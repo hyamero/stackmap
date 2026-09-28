@@ -14,8 +14,14 @@ const toScriptJson = (value: unknown) =>
 export function embedDiagram(template: string, diagram: LaidOutDiagram): string {
   const parts = template.split(EMPTY_DATA_BLOCK);
   if (parts.length !== 2) throw new Error('viewer template must contain exactly one empty stackmap-data block');
-  const block = EMPTY_DATA_BLOCK.replace('></script>', `>${toScriptJson(diagram)}</script>`);
+  // Concatenation only: String#replace would expand `$&`, `$'` etc. inside diagram text.
+  const block = `${EMPTY_DATA_BLOCK.slice(0, -'</script>'.length)}${toScriptJson(diagram)}</script>`;
+  // The title lives in <head>; the inlined bundle further down also contains "<title>" literals.
+  const headEnd = parts[0]!.indexOf('</head>');
+  const head = headEnd < 0 ? '' : parts[0]!.slice(0, headEnd);
+  const titleAt = head.search(/<title>[^<]*<\/title>/);
+  if (titleAt < 0) throw new Error('viewer template must have a <title> in its <head>');
+  const titleEnd = head.indexOf('</title>', titleAt) + '</title>'.length;
   const title = `<title>${escapeHtml(diagram.draft.title)} · stackmap</title>`;
-  // Function replacers: a `$` in diagram text must not be read as a replacement pattern.
-  return parts[0]!.replace(/<title>[^<]*<\/title>/, () => title) + block + parts[1]!;
+  return parts[0]!.slice(0, titleAt) + title + parts[0]!.slice(titleEnd) + block + parts[1]!;
 }

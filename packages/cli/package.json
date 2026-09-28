@@ -14,7 +14,7 @@
     "node": "^22.12.0 || >=24.0.0"
   },
   "scripts": {
-    "build": "tsup && cp ../viewer/dist/index.html dist/viewer.html",
+    "build": "tsup && node scripts/copy-template.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "smoke": "bun run --filter @stackmap/viewer build && bun run build && node scripts/smoke.mjs",

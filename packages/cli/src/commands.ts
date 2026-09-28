@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { extname } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { extname, resolve } from 'node:path';
 import { layoutDiagram } from '@stackmap/layout';
 import { validateDiagram, type Diagnostic, type ValidationResult } from '@stackmap/schema';
 import { embedDiagram } from './embed';
@@ -33,9 +34,19 @@ function validateFile(path: string): ValidationResult {
   return validateDiagram(input);
 }
 
-const usageError = (e: unknown): CommandResult => {
-  if (e instanceof CliError) return { code: 2, stdout: '', stderr: `stackmap: ${e.message}\n` };
-  throw e;
+// Exit 1 means "the diagram has errors" to the agent loop, so every other failure must be exit 2.
+const failure = (e: unknown): CommandResult => ({
+  code: 2,
+  stdout: '',
+  stderr: `stackmap: ${e instanceof CliError ? '' : 'internal error: '}${(e as Error).message}\n`,
+});
+
+const real = (p: string) => {
+  try {
+    return realpathSync(p);
+  } catch {
+    return resolve(p);
+  }
 };
 
 const report = (diagnostics: Diagnostic[]) => diagnostics.map((d) => `${formatDiagnostic(d)}\n`).join('');
@@ -46,21 +57,23 @@ export async function validateCommand(path: string, { json }: { json: boolean })
     const stdout = json ? `${JSON.stringify({ ok, diagnostics }, null, 2)}\n` : `${report(diagnostics)}${summary(diagnostics)}\n`;
     return { code: ok ? 0 : 1, stdout, stderr: '' };
   } catch (e) {
-    return usageError(e);
+    return failure(e);
   }
 }
 
 export async function deliverCommand(path: string, { template, out }: { template: string; out?: string }): Promise<CommandResult> {
   try {
     const { ok, diagram, diagnostics } = validateFile(path);
-    if (!ok || !diagram) return { code: 1, stdout: `${report(diagnostics)}${summary(diagnostics)}\n`, stderr: '' };
-    const html = embedDiagram(template, await layoutDiagram(diagram));
+    // Diagnostics go to stderr so stdout carries only the receipt.
+    if (!ok || !diagram) return { code: 1, stdout: '', stderr: `${report(diagnostics)}${summary(diagnostics)}\n` };
     const target = out ?? path.slice(0, path.length - extname(path).length) + '.html';
+    if (real(target) === real(path)) throw new CliError(`refusing to overwrite the input ${path}; pass -o <out.html>`);
+    const html = embedDiagram(template, await layoutDiagram(diagram));
     writeAtomic(target, html);
     const bytes = Buffer.byteLength(html);
     const sha = createHash('sha256').update(html).digest('hex');
     return { code: 0, stdout: `delivered ${target} · sha256 ${sha} · ${bytes} bytes\n`, stderr: report(diagnostics) };
   } catch (e) {
-    return usageError(e);
+    return failure(e);
   }
 }

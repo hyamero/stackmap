@@ -27,8 +27,15 @@ describe('embedDiagram', () => {
     expect(html).toContain('<title>x&lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;!-- \u2028\u2029 · stackmap</title>');
   });
 
+  it.each(['Edge $& more', 'Tier $$ plan', "a $` b", "c $' d", '$1 $<n>'])('keeps replacement patterns literal: %s', (title) => {
+    const html = embedDiagram(template, laidOut(title));
+    expect(dataOf(html).draft.title).toBe(title);
+    expect(html.match(/<script/g)).toHaveLength(1);
+  });
+
   it('refuses a template without exactly one empty data block', () => {
     expect(() => embedDiagram('<html></html>', laidOut('T'))).toThrow(/template/);
     expect(() => embedDiagram(template + EMPTY_DATA_BLOCK, laidOut('T'))).toThrow(/template/);
+    expect(() => embedDiagram(`<head></head><script>"<title>x</title>"</script>${EMPTY_DATA_BLOCK}`, laidOut('T'))).toThrow(/<title>/);
   });
 });

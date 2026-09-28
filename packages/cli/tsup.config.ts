@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'tsup';
+
+const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
 
 export default defineConfig({
   entry: ['src/cli.ts'],
@@ -10,4 +13,5 @@ export default defineConfig({
   noExternal: [/^@stackmap\//, 'zod'],
   external: ['elkjs'],
   banner: { js: '#!/usr/bin/env node' },
+  define: { __STACKMAP_VERSION__: JSON.stringify(version) },
 });

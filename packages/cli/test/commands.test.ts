@@ -7,7 +7,7 @@ import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
 import { deliverCommand, validateCommand } from '../src/commands';
 import { EMPTY_DATA_BLOCK } from '../src/embed';
 
-const TEMPLATE = `<!doctype html><title>stackmap</title><div id="root"></div>${EMPTY_DATA_BLOCK}`;
+const TEMPLATE = `<!doctype html><head><title>stackmap</title></head><div id="root"></div>${EMPTY_DATA_BLOCK}`;
 let dir: string;
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'stackmap-cli-'));
@@ -48,6 +48,11 @@ describe('validate', () => {
     expect(JSON.parse(r.stdout).diagnostics).toMatchObject([{ code: 'schema/invalid-json', subject: '', evidence: { line: 3, column: 12 } }]);
   });
 
+  it('accepts a UTF-8 byte order mark', async () => {
+    const r = await validateCommand(file('d.json', `\uFEFF${JSON.stringify(commerceApi)}`), { json: false });
+    expect(r.code).toBe(0);
+  });
+
   it('exits 2 without a stack trace when the file cannot be read', async () => {
     for (const p of [join(dir, 'missing.json'), dir]) {
       const r = await validateCommand(p, { json: false });
@@ -77,10 +82,11 @@ describe('deliver', () => {
     expect(a.stdout.split(' · ')[1]).toBe(b.stdout.split(' · ')[1]);
   });
 
-  it('writes nothing when validation fails, and prints why', async () => {
+  it('writes nothing when validation fails, and prints why on stderr', async () => {
     const r = await deliverCommand(file('d.json', broken), { template: TEMPLATE });
     expect(r.code).toBe(1);
-    expect(r.stdout).toContain('refs/unknown-node');
+    expect(r.stdout).toBe('');
+    expect(r.stderr).toContain('refs/unknown-node');
     expect(readdirSync(dir)).toEqual(['d.json']);
   });
 
@@ -90,6 +96,23 @@ describe('deliver', () => {
     expect(r.code).toBe(0);
     expect(r.stderr).toContain('warning  refs/unknown-brand');
     expect(r.stdout).toMatch(/^delivered /);
+  });
+
+  it('refuses to overwrite its own input', async () => {
+    const json = file('d.json', commerceApi);
+    const html = file('x.html', commerceApi);
+    for (const [input, out] of [[json, json], [html, undefined], [json, join(dir, '.', 'd.json')]] as const) {
+      const r = await deliverCommand(input, { template: TEMPLATE, out });
+      expect(r.code).toBe(2);
+      expect(r.stderr).toMatch(/^stackmap: refusing to overwrite the input/);
+    }
+    expect(JSON.parse(readFileSync(json, 'utf8'))).toEqual(commerceApi);
+  });
+
+  it('reports an unexpected failure as an internal error with exit 2, never a stack trace', async () => {
+    const r = await deliverCommand(file('d.json', commerceApi), { template: '<html>no data block</html>' });
+    expect(r.code).toBe(2);
+    expect(r.stderr).toMatch(/^stackmap: internal error: viewer template must contain/);
   });
 
   it('keeps the previous file intact and leaves no temp file when the write fails', async () => {

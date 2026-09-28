@@ -8,7 +8,8 @@ const reason = (e: unknown) => (e as NodeJS.ErrnoException).code ?? (e as Error)
 
 export function readText(path: string): string {
   try {
-    return readFileSync(path, 'utf8');
+    // Editors on Windows like to prepend a BOM; JSON.parse rejects it.
+    return readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
   } catch (e) {
     throw new CliError(`cannot read ${path}: ${reason(e)}`);
   }
