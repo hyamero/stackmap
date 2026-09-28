@@ -5,3 +5,4 @@ export * from './card-metrics';
 export * from './geometry';
 export * from './diagram-stats';
 export * from './brands';
+export * from './text-measure';
