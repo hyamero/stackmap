@@ -50,7 +50,7 @@ const light: ThemeTokens = {
     gateway: { fill: '#f8ece2', border: '#efdccb', tile: '#f0dcca', accent: '#b25e14' },
     database: { fill: '#e8ebfa', border: '#d6dcf5', tile: '#d6dcf5', accent: '#4f63c9' },
     cache: { fill: '#f9e6e3', border: '#f0d2cd', tile: '#f2d3ce', accent: '#c4432f' },
-    queue: { fill: '#efe8f7', border: '#dfd3ee', tile: '#dfd3ee', accent: '#7c4fbf' },
+    queue: { fill: '#efe8f7', border: '#dfd3ee', tile: '#e1d6ef', accent: '#7c4fbf' },
     storage: { fill: '#f4f0de', border: '#e6dfc2', tile: '#e7dfc0', accent: '#8a7417' },
     external: { fill: '#efefed', border: '#e1e1de', tile: '#e1e1de', accent: '#5f5f5c' },
     security: { fill: '#f8e6ef', border: '#edd0df', tile: '#efd1e0', accent: '#b83c74' },

@@ -19,6 +19,7 @@ describe.each(THEMES)('%s theme contrast', (theme) => {
     expect(contrastRatio(t.text, tint.fill)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(t.textMuted, tint.fill)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(t.text, tint.tile)).toBeGreaterThanOrEqual(4.5); // CTA label sits on tile
+    expect(contrastRatio(t.textMuted, tint.tile)).toBeGreaterThanOrEqual(4.5); // statsNote sits on tile
     expect(contrastRatio(tint.accent, tint.tile)).toBeGreaterThanOrEqual(3);
     expect(contrastRatio(tint.accent, t.stage)).toBeGreaterThanOrEqual(3); // handle dots, legend dots
   });
