@@ -29,6 +29,8 @@ if (/sans500tnum/.test(html)) fail('Geist metrics table leaked into the viewer b
 // Samples and gallery fixtures are dev-server pages; the template renders only embedded data.
 if (/commerce-api-1|Boundary-text|Grouped tiers/.test(html)) fail('dev samples or gallery fixtures leaked into the template');
 if (!html.includes('<script type="application/json" id="stackmap-data"></script>')) fail('template lacks the empty stackmap-data block');
+// Bundling strips licence comments, so the attribution lives in an HTML comment that must survive the build.
+if (!html.includes('THIRD_PARTY_NOTICES.md') || !html.includes('SIL OFL 1.1')) fail('third-party notice comment missing from the template');
 
 const kb = statSync(new URL('index.html', dist)).size / 1024;
 if (kb > BUDGET_KB) fail(`index.html is ${kb.toFixed(0)} KB, budget ${BUDGET_KB} KB`);
