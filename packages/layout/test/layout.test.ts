@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cardSize, type DiagramDraft, type DiagramNode, type Point, type Rect } from '@stackmap/core';
-import { groupedPlatform } from '@stackmap/core/samples';
+import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
 import { GROUP_LABEL_BAND, layoutDiagram } from '../src/index';
 
 const node = (id: string, extra: Partial<DiagramNode> = {}): DiagramNode => ({
@@ -71,6 +71,27 @@ describe('layoutDiagram', () => {
       const pts = out.edges[`${s}-t`]!;
       near(pts[pts.length - 1]!, target);
     }
+  });
+
+  it('stacks siblings fed from one source in draft order', async () => {
+    const siblings = ['s1', 's2', 's3'];
+    const out = await layoutDiagram(
+      draft({
+        nodes: [node('src'), ...siblings.map((s) => node(s)), node('t1'), node('t2')],
+        edges: [
+          ...siblings.map((s) => ({ id: `src-${s}`, from: 'src', to: s })),
+          ...siblings.flatMap((s) => ['t1', 't2'].map((t) => ({ id: `${s}-${t}`, from: s, to: t }))),
+        ],
+      }),
+    );
+    const ys = siblings.map((s) => out.nodes[s]!.y);
+    expect(ys).toEqual([...ys].sort((a, b) => a - b));
+  });
+
+  it('keeps the Commerce API instances in draft order', async () => {
+    const out = await layoutDiagram(commerceApi);
+    const ys = [1, 2, 3].map((i) => out.nodes[`commerce-api-${i}`]!.y);
+    expect(ys).toEqual([...ys].sort((a, b) => a - b));
   });
 
   it('lays out top-down when direction is DOWN', async () => {

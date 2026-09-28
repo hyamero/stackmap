@@ -245,13 +245,13 @@ export const commerceApiLayout: LaidOutDiagram = {
     },
     "commerce-api-2": {
       "x": 440,
-      "y": 469,
+      "y": 281,
       "width": 280,
       "height": 148
     },
     "commerce-api-3": {
       "x": 440,
-      "y": 281,
+      "y": 469,
       "width": 280,
       "height": 148
     },
@@ -294,16 +294,8 @@ export const commerceApiLayout: LaidOutDiagram = {
         "y": 355
       },
       {
-        "x": 344,
-        "y": 355
-      },
-      {
-        "x": 344,
-        "y": 543
-      },
-      {
         "x": 440,
-        "y": 543
+        "y": 355
       }
     ],
     "e-edge-3": [
@@ -312,8 +304,16 @@ export const commerceApiLayout: LaidOutDiagram = {
         "y": 355
       },
       {
-        "x": 440,
+        "x": 344,
         "y": 355
+      },
+      {
+        "x": 344,
+        "y": 543
+      },
+      {
+        "x": 440,
+        "y": 543
       }
     ],
     "e-1-orders": [
@@ -329,11 +329,11 @@ export const commerceApiLayout: LaidOutDiagram = {
     "e-2-orders": [
       {
         "x": 720,
-        "y": 543
+        "y": 355
       },
       {
         "x": 744,
-        "y": 543
+        "y": 355
       },
       {
         "x": 744,
@@ -347,11 +347,11 @@ export const commerceApiLayout: LaidOutDiagram = {
     "e-3-orders": [
       {
         "x": 720,
-        "y": 355
+        "y": 543
       },
       {
         "x": 744,
-        "y": 355
+        "y": 543
       },
       {
         "x": 744,
@@ -383,11 +383,11 @@ export const commerceApiLayout: LaidOutDiagram = {
     "e-2-sessions": [
       {
         "x": 720,
-        "y": 543
+        "y": 355
       },
       {
         "x": 744,
-        "y": 543
+        "y": 355
       },
       {
         "x": 744,
@@ -401,11 +401,11 @@ export const commerceApiLayout: LaidOutDiagram = {
     "e-3-sessions": [
       {
         "x": 720,
-        "y": 355
+        "y": 543
       },
       {
         "x": 744,
-        "y": 355
+        "y": 543
       },
       {
         "x": 744,

@@ -17,6 +17,8 @@ const rootOptions = (direction: Direction): Record<string, string> => ({
   'elk.layered.spacing.nodeNodeBetweenLayers': '120',
   'elk.layered.spacing.edgeNodeBetweenLayers': '24',
   'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+  // Draft order is the author's intended stacking; ELK otherwise reorders ties freely.
+  'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   // Absolute coordinates everywhere, so the viewer never walks the hierarchy.
   'org.eclipse.elk.json.shapeCoords': 'ROOT',
   'org.eclipse.elk.json.edgeCoords': 'ROOT',
