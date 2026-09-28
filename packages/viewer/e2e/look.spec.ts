@@ -94,6 +94,16 @@ for (const theme of ['light', 'dark'] as const) {
       }
     });
 
+    test('handle dots are drawn only where an edge attaches', async ({ page }) => {
+      await page.goto('/?page=sample');
+      await expect(page.locator('.react-flow__edge-path')).toHaveCount(9);
+      await expect(page.locator('[data-id="edge"] .react-flow__handle[data-handleid="in"]')).toHaveCount(0);
+      await expect(page.locator('[data-id="orders"] .react-flow__handle[data-handleid="out"]')).toHaveCount(0);
+      await expect(page.locator('[data-id="sessions"] .react-flow__handle[data-handleid="out"]')).toHaveCount(0);
+      // edge:out, three API in+out, orders:in, sessions:in
+      await expect(page.locator('.react-flow__handle')).toHaveCount(9);
+    });
+
     test('Geist renders, and edges come from the baked routes', async ({ page }) => {
       await page.goto('/?page=sample');
       await page.evaluate(() => document.fonts.ready);

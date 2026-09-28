@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import type { DiagramNode, Direction, LaidOutDiagram, Point, Rect } from '@stackmap/core';
 
-export type CardFlowNode = Node<{ node: DiagramNode; direction: Direction }, 'card'>;
+export type CardFlowNode = Node<{ node: DiagramNode; direction: Direction; hasIn: boolean; hasOut: boolean }, 'card'>;
 export type FrameFlowNode = Node<{ label: string }, 'frame'>;
 export type RoutedFlowEdge = Edge<{ points: Point[]; kind: 'sync' | 'async'; label?: string }, 'routed'>;
 
@@ -26,10 +26,13 @@ export function toFlow(d: LaidOutDiagram): { nodes: (CardFlowNode | FrameFlowNod
     zIndex: 0,
   }));
 
+  const targets = new Set(d.draft.edges.map((e) => e.to));
+  const sources = new Set(d.draft.edges.map((e) => e.from));
+
   const cards: CardFlowNode[] = d.draft.nodes.map((n) => ({
     id: n.id,
     type: 'card',
-    data: { node: n, direction },
+    data: { node: n, direction, hasIn: targets.has(n.id), hasOut: sources.has(n.id) },
     ...placed(need(d.nodes[n.id], `node '${n.id}'`)),
     ...readOnly,
     zIndex: 1,

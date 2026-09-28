@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LaidOutDiagram } from '@stackmap/core';
 import { groupedPlatformLayout } from '../samples/grouped-platform.layout';
-import { toFlow } from './to-flow';
+import { toFlow, type CardFlowNode } from './to-flow';
 
 describe('toFlow', () => {
   const { nodes, edges } = toFlow(groupedPlatformLayout);
@@ -29,6 +29,16 @@ describe('toFlow', () => {
     expect(e5.data!.kind).toBe('async');
     expect(e5.data!.label).toBe('enqueue');
     expect(edges.find((e) => e.id === 'e2')!.data!.kind).toBe('sync');
+  });
+
+  it('marks which sides of each card have edges attached', () => {
+    const sides = (id: string) => {
+      const { hasIn, hasOut } = (nodes.find((n) => n.id === id) as CardFlowNode).data;
+      return { hasIn, hasOut };
+    };
+    expect(sides('web')).toEqual({ hasIn: false, hasOut: true });
+    expect(sides('gw')).toEqual({ hasIn: true, hasOut: true });
+    expect(sides('stripe')).toEqual({ hasIn: true, hasOut: false });
   });
 
   it('fails loudly when the layout is missing an element', () => {
