@@ -23,8 +23,8 @@ const FACES = {
 } as const;
 
 const SIZE = 1000;
-// Pairs are kept for printable ASCII only, and only when |adjustment| ≥ 5/1000 em (0.06px at 12px): the
-// full table is ~0.5 MB. An omitted pair is measured unkerned, which the browser cross-check bounds.
+// Pairs are kept for printable ASCII only; negative pairs only when ≤ -5/1000 em (0.06px at 12px): the
+// full table is ~0.5 MB. An omitted negative pair only makes the measure err wide.
 const KERN_MIN = 5;
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -62,7 +62,7 @@ for (const [name, f] of Object.entries(FACES)) {
       for (const a of ascii) {
         for (const b of ascii) {
           const k = Math.round((width(String.fromCodePoint(a, b)) - adv.get(a)! - adv.get(b)!) * 100) / 100;
-          if (Math.abs(k) >= min) pairs[a * 0x10000 + b] = k;
+          if (k >= 0.5 || k <= -min) pairs[a * 0x10000 + b] = k; // positive pairs always: dropping one under-measures
         }
       }
       span.remove();

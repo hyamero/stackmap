@@ -8,19 +8,27 @@ export function cardFitDiagnostics(d: DiagramDraft): Diagnostic[] {
   const out: Diagnostic[] = [];
   d.nodes.forEach((n, i) => {
     for (const slot of cardTextSlots(n.card)) {
-      const width = measureText(slot.text, slot.face, slot.size);
+      // Cards render with white-space: nowrap, which collapses runs of whitespace and trims the ends.
+      const shown = slot.text.replace(/\s+/g, ' ').trim();
+      const width = measureText(shown, slot.face, slot.size);
       if (width <= slot.maxWidth) continue;
-      const chars = [...slot.text];
+      const chars = [...shown];
       let maxChars = 0;
       while (maxChars < chars.length && measureText(chars.slice(0, maxChars + 1).join(''), slot.face, slot.size) <= slot.maxWidth) maxChars++;
       const header = slot.path === '/title' || slot.path === '/subtitle';
+      // A row label's budget is whatever its value leaves, so shortening the value also works.
+      const rowLabel = /^\/rows\/\d+\/label$/.test(slot.path);
       out.push({
         code: 'card-fit/overflow',
         severity: 'error',
         subject: `/nodes/${i}/card${slot.path}`,
         message: `"${slot.text}" is ${round(width)}px wide; this slot fits ${round(slot.maxWidth)}px (~${maxChars} characters)`,
         evidence: { text: slot.text, width: round(width), maxWidth: round(slot.maxWidth), maxChars },
-        allowedFixes: [`shorten to at most ${maxChars} characters`, ...(header ? ['move the detail into a card row'] : [])],
+        allowedFixes: [
+          `shorten to at most ${maxChars} characters`,
+          ...(header ? ['move the detail into a card row'] : []),
+          ...(rowLabel ? [`shorten the value at /nodes/${i}/card${slot.path.replace(/label$/, 'value')} to give the label room`] : []),
+        ],
       });
     }
   });

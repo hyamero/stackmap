@@ -3,6 +3,13 @@ import type { Diagnostic } from '../diagnostics';
 
 function duplicates(items: { id: string }[] | undefined, collection: string): Diagnostic[] {
   const first = new Map<string, number>();
+  const taken = new Set(items?.map((x) => x.id));
+  const unused = (id: string) => {
+    let n = 2;
+    while (taken.has(`${id}-${n}`)) n++;
+    taken.add(`${id}-${n}`);
+    return `${id}-${n}`;
+  };
   const out: Diagnostic[] = [];
   items?.forEach(({ id }, i) => {
     const at = first.get(id);
@@ -13,7 +20,7 @@ function duplicates(items: { id: string }[] | undefined, collection: string): Di
       subject: `/${collection}/${i}/id`,
       message: `Duplicate ${collection.slice(0, -1)} id "${id}"`,
       evidence: { id, first: `/${collection}/${at}/id` },
-      allowedFixes: [`rename to a unique id, e.g. "${id}-${i + 1}"`, 'remove the duplicate'],
+      allowedFixes: [`rename to a unique id, e.g. "${unused(id)}"`, 'remove the duplicate'],
     });
   });
   return out;
@@ -64,6 +71,18 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
     ...duplicates(d.views, 'views'),
   ];
 
+  d.nodes.forEach((n, i) => {
+    if (n.card.statsNote !== undefined && !n.card.stats?.length)
+      out.push({
+        code: 'semantics/hidden-stats-note',
+        severity: 'warning',
+        subject: `/nodes/${i}/card/statsNote`,
+        message: `The stats note on "${n.id}" is never shown: the card has no stats`,
+        evidence: { id: n.id },
+        allowedFixes: ['add "stats"', 'remove "statsNote"', 'move the note into a card row'],
+      });
+  });
+
   const linked = new Set(d.edges.flatMap((e) => [e.from, e.to]));
   if (d.nodes.length > 1) {
     d.nodes.forEach((n, i) => {
@@ -92,9 +111,11 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
   });
 
   if (d.kind === 'dataflow') {
-    for (const comp of cycles(d.nodes.map((n) => n.id), d.edges.map((e) => [e.from, e.to]))) {
+    // An async edge is an explicit feedback path (retry, event back-channel), so it doesn't close a cycle.
+    const flow = d.edges.filter((e) => e.kind !== 'async');
+    for (const comp of cycles(d.nodes.map((n) => n.id), flow.map((e) => [e.from, e.to]))) {
       const members = new Set(comp);
-      const i = d.edges.findIndex((e) => members.has(e.from) && members.has(e.to) && e.from !== e.to);
+      const i = d.edges.findIndex((e) => e.kind !== 'async' && members.has(e.from) && members.has(e.to) && e.from !== e.to);
       out.push({
         code: 'semantics/dataflow-cycle',
         severity: 'warning',

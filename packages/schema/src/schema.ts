@@ -5,10 +5,12 @@ import { NODE_TYPES } from '@stackmap/core';
 // so a misspelt key is reported instead of silently dropped.
 
 export const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
-export const LIMITS = { rows: 6, stats: 3, edgeLabel: 24 } as const;
+// Size caps keep validation and layout fast and the diagram readable; beyond them, split into views.
+export const LIMITS = { rows: 6, stats: 3, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50 } as const;
+export const VISIBLE_TEXT = /\S/;
 
 const id = z.string().regex(ID_PATTERN).meta({ description: 'Lowercase id: letters, digits, "-" and "_"; starts with a letter or digit.' });
-const text = z.string().min(1);
+const text = z.string().regex(VISIBLE_TEXT);
 
 const FooterItem = z.strictObject({
   text,
@@ -71,10 +73,10 @@ export const DiagramDraftSchema = z
     title: text,
     subtitle: text.optional(),
     direction: z.enum(['RIGHT', 'DOWN']).optional().meta({ description: 'Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.' }),
-    groups: z.array(Group).optional(),
-    nodes: z.array(Node).min(1),
-    edges: z.array(Edge),
-    views: z.array(View).optional(),
+    groups: z.array(Group).max(LIMITS.groups).optional(),
+    nodes: z.array(Node).min(1).max(LIMITS.nodes),
+    edges: z.array(Edge).max(LIMITS.edges),
+    views: z.array(View).max(LIMITS.views).optional(),
   })
   .meta({ title: 'stackmap diagram', description: 'Agent-authored diagram. Layout is computed by stackmap; never give coordinates.' });
 

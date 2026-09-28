@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { Diagnostic } from '../diagnostics';
-import { buildJsonSchema, ID_PATTERN } from '../schema';
+import { buildJsonSchema, ID_PATTERN, VISIBLE_TEXT } from '../schema';
 import { closest, pointer, toId } from '../util';
 
 const kindOf = (v: unknown) => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
@@ -11,26 +11,32 @@ function valueAt(input: unknown, path: readonly PropertyKey[]): unknown {
   return v;
 }
 
-// Every property name the schema knows, for "did you mean" on misspelt keys.
-let knownKeys: string[] | undefined;
-function allKeys(): string[] {
-  if (knownKeys) return knownKeys;
-  const keys = new Set<string>();
-  const walk = (node: unknown) => {
-    if (node === null || typeof node !== 'object') return;
-    const props = (node as { properties?: Record<string, unknown> }).properties;
-    if (props) for (const k of Object.keys(props)) keys.add(k);
-    for (const v of Object.values(node)) walk(v);
-  };
-  walk(buildJsonSchema());
-  return (knownKeys = [...keys]);
+type JsonSchemaNode = { properties?: Record<string, JsonSchemaNode>; items?: JsonSchemaNode };
+let jsonSchema: JsonSchemaNode | undefined;
+
+/** Property names allowed on the object at `path`, read from the emitted JSON Schema. */
+function keysAt(path: readonly PropertyKey[]): string[] {
+  let node: JsonSchemaNode | undefined = (jsonSchema ??= buildJsonSchema() as JsonSchemaNode);
+  for (const key of path) node = typeof key === 'number' ? node?.items : node?.properties?.[String(key)];
+  return Object.keys(node?.properties ?? {});
+}
+
+const article = (t: string) => (/^[aeiou]/.test(t) ? `an ${t}` : `a ${t}`);
+
+/** "the diagram", "item 2 of \"nodes\"" or "\"title\"" — how a fix names the value at `path`. */
+function name(path: readonly PropertyKey[]): string {
+  const last = path.at(-1);
+  if (last === undefined) return 'the diagram';
+  return typeof last === 'number' ? `item ${last} of "${String(path.at(-2))}"` : `"${String(last)}"`;
 }
 
 function fixes(issue: z.core.$ZodIssue, received: unknown): string[] {
   const key = String(issue.path.at(-1) ?? 'value');
   switch (issue.code) {
     case 'invalid_type':
-      return received === undefined ? [`add the required "${key}" field (${issue.expected})`] : [`make "${key}" a ${issue.expected}`];
+      return received === undefined && issue.path.length > 0
+        ? [`add the required "${key}" field (${issue.expected})`]
+        : [`make ${name(issue.path)} ${article(issue.expected)}`];
     case 'invalid_value':
       return [`use one of: ${issue.values.map(String).join(', ')}`];
     case 'too_big':
@@ -40,13 +46,16 @@ function fixes(issue: z.core.$ZodIssue, received: unknown): string[] {
     case 'invalid_format':
       if (issue.format === 'regex' && issue.pattern === String(ID_PATTERN))
         return [`use a lowercase id such as "${toId(String(received ?? ''))}"`];
+      if (issue.format === 'regex' && issue.pattern === String(VISIBLE_TEXT)) return [`give "${key}" visible text`];
       if (key === 'href') return ['use an http(s) URL', 'remove "href"'];
       return [`match ${issue.pattern ?? issue.format}`];
-    case 'unrecognized_keys':
+    case 'unrecognized_keys': {
+      const allowed = keysAt(issue.path);
       return issue.keys.map((k) => {
-        const near = closest(k, allKeys(), 1)[0];
-        return near ? `rename "${k}" to "${near}"` : `remove "${k}"`;
+        const near = closest(k, allowed, 1)[0];
+        return near ? `rename "${k}" to "${near}"` : `remove "${k}" (not valid here; allowed: ${allowed.join(', ')})`;
       });
+    }
     default:
       return ['fix the value to match stackmap.schema.json'];
   }
@@ -59,7 +68,7 @@ export function schemaDiagnostics(issues: readonly z.core.$ZodIssue[], input: un
     const { code, path, message, input: _input, ...rest } = issue as z.core.$ZodIssue & { input?: unknown };
     const evidence: Record<string, unknown> = { ...rest };
     // Primitives verbatim; objects and arrays by kind only, so evidence stays small.
-    if (code !== 'unrecognized_keys') evidence.received = received !== null && typeof received === 'object' ? kindOf(received) : received ?? 'missing';
+    if (code !== 'unrecognized_keys') evidence.received = received !== null && typeof received === 'object' ? kindOf(received) : received === undefined ? 'missing' : received;
     return {
       code: `schema/${code}`,
       severity: 'error',

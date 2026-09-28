@@ -14,11 +14,11 @@
     },
     "title": {
       "type": "string",
-      "minLength": 1
+      "pattern": "\\S"
     },
     "subtitle": {
       "type": "string",
-      "minLength": 1
+      "pattern": "\\S"
     },
     "direction": {
       "description": "Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.",
@@ -29,6 +29,7 @@
       ]
     },
     "groups": {
+      "maxItems": 200,
       "type": "array",
       "items": {
         "type": "object",
@@ -40,7 +41,7 @@
           },
           "label": {
             "type": "string",
-            "minLength": 1
+            "pattern": "\\S"
           },
           "parent": {
             "type": "string",
@@ -57,6 +58,7 @@
     },
     "nodes": {
       "minItems": 1,
+      "maxItems": 500,
       "type": "array",
       "items": {
         "type": "object",
@@ -91,12 +93,12 @@
             "properties": {
               "title": {
                 "type": "string",
-                "minLength": 1,
+                "pattern": "\\S",
                 "description": "Card title. Must fit the card; `stackmap validate` reports the character budget."
               },
               "subtitle": {
                 "type": "string",
-                "minLength": 1
+                "pattern": "\\S"
               },
               "brand": {
                 "description": "simple-icons slug shown in the icon tile, e.g. \"postgresql\".",
@@ -111,11 +113,11 @@
                   "properties": {
                     "label": {
                       "type": "string",
-                      "minLength": 1
+                      "pattern": "\\S"
                     },
                     "value": {
                       "type": "string",
-                      "minLength": 1
+                      "pattern": "\\S"
                     },
                     "mono": {
                       "type": "boolean"
@@ -137,11 +139,11 @@
                   "properties": {
                     "value": {
                       "type": "string",
-                      "minLength": 1
+                      "pattern": "\\S"
                     },
                     "label": {
                       "type": "string",
-                      "minLength": 1
+                      "pattern": "\\S"
                     }
                   },
                   "required": [
@@ -154,7 +156,7 @@
               "statsNote": {
                 "description": "Line under the stat tiles; only shown with stats.",
                 "type": "string",
-                "minLength": 1
+                "pattern": "\\S"
               },
               "footer": {
                 "type": "object",
@@ -164,7 +166,7 @@
                     "properties": {
                       "text": {
                         "type": "string",
-                        "minLength": 1
+                        "pattern": "\\S"
                       },
                       "icon": {
                         "type": "string",
@@ -185,7 +187,7 @@
                     "properties": {
                       "text": {
                         "type": "string",
-                        "minLength": 1
+                        "pattern": "\\S"
                       },
                       "icon": {
                         "type": "string",
@@ -209,7 +211,7 @@
                 "properties": {
                   "label": {
                     "type": "string",
-                    "minLength": 1
+                    "pattern": "\\S"
                   },
                   "href": {
                     "type": "string",
@@ -237,6 +239,7 @@
       }
     },
     "edges": {
+      "maxItems": 2000,
       "type": "array",
       "items": {
         "type": "object",
@@ -259,8 +262,8 @@
           "label": {
             "description": "Short label; use sparingly.",
             "type": "string",
-            "minLength": 1,
-            "maxLength": 24
+            "maxLength": 24,
+            "pattern": "\\S"
           },
           "kind": {
             "description": "async edges render dashed.",
@@ -280,6 +283,7 @@
       }
     },
     "views": {
+      "maxItems": 50,
       "type": "array",
       "items": {
         "type": "object",
@@ -291,11 +295,11 @@
           },
           "label": {
             "type": "string",
-            "minLength": 1
+            "pattern": "\\S"
           },
           "caption": {
             "type": "string",
-            "minLength": 1
+            "pattern": "\\S"
           },
           "nodes": {
             "type": "array",

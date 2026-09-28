@@ -27,9 +27,11 @@ describe('measureText', () => {
     expect(measureText('10.44.0.11', 'mono400', 12)).toBeCloseTo(10 * 0.6 * 12, 6);
   });
 
-  it('counts a code point outside the table as 1em, astral ones once', () => {
-    expect(measureText('数', 'sans400', 12)).toBe(12);
-    expect(measureText('🚀', 'sans400', 12)).toBe(12);
-    expect(measureText('a🚀', 'sans400', 12)).toBeCloseTo(12 + (faces.sans400[97]! * 12) / 1000, 6);
+  it('measures code points outside the table wide: 1.1em, emoji 1.3em, astral ones counted once', () => {
+    expect(measureText('数', 'sans400', 10)).toBeCloseTo(11, 6);
+    expect(measureText('🚀', 'sans400', 10)).toBeCloseTo(13, 6);
+    expect(measureText('✅', 'sans400', 10)).toBeCloseTo(13, 6);
+    expect(measureText('🇩🇪', 'sans400', 10)).toBeCloseTo(26, 6);
+    expect(measureText('a🚀', 'sans400', 10)).toBeCloseTo(13 + (faces.sans400[97]! * 10) / 1000, 6);
   });
 });

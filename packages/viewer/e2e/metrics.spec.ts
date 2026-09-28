@@ -91,3 +91,19 @@ test('a card slot truncates exactly when its measured text exceeds its budget', 
   expect(mismatches).toEqual([]);
   expect(checked).toBeGreaterThan(60);
 });
+
+test('text outside the Latin subset is never measured narrower than it renders', async ({ page }) => {
+  await page.goto('/?page=gallery');
+  await page.evaluate(() => document.fonts.ready);
+  const corpus = ['🚀🚀🚀 deploy', '✅ healthy', '🇩🇪 Frankfurt', '支付服务', '注文サービス', '결제 서비스', 'naïve café', 'Zürich — Ørsted'];
+  const real = await page.evaluate((corpus) => {
+    const span = document.createElement('span');
+    span.style.cssText = "font:500 13.5px 'Geist';white-space:pre;position:absolute";
+    document.body.append(span);
+    const w = corpus.map((t) => ((span.textContent = t), span.getBoundingClientRect().width));
+    span.remove();
+    return w;
+  }, corpus);
+  const under = corpus.filter((t, i) => measureText(t, 'sans500', 13.5) < real[i]! - 0.25);
+  expect(under).toEqual([]);
+});

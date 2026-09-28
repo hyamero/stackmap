@@ -67,6 +67,34 @@ describe('validateDiagram', () => {
       expect(d).toMatchObject({ code: 'schema/unrecognized_keys', subject: '/nodes/0/card', evidence: { keys: ['subtitel'] }, allowedFixes: ['rename "subtitel" to "subtitle"'] });
     });
 
+    it('only suggests keys valid on the offending object, never the key itself', () => {
+      const onNode = diags(base({ nodes: [node('a', { label: 'x' } as never), node('b')] }))[0];
+      expect(onNode).toMatchObject({ subject: '/nodes/0', allowedFixes: ['remove "label" (not valid here; allowed: id, type, group, card)'] });
+      const onEdge = diags(base({ edges: [{ id: 'ab', from: 'a', to: 'b', subtitel: 'x' } as never] }))[0];
+      expect(onEdge!.allowedFixes).toEqual(['remove "subtitel" (not valid here; allowed: id, from, to, label, kind)']);
+      const onRoot = diags({ ...base(), titel: 'x' })[0];
+      expect(onRoot).toMatchObject({ subject: '', allowedFixes: ['rename "titel" to "title"'] });
+    });
+
+    it('a blank or whitespace-only text is one diagnostic asking for visible text', () => {
+      for (const title of ['', '   ']) {
+        expect(diags(base({ nodes: [node('a', { card: { title } }), node('b')] }))).toMatchObject([
+          { code: 'schema/invalid_format', subject: '/nodes/0/card/title', allowedFixes: ['give "title" visible text'] },
+        ]);
+      }
+    });
+
+    it('type errors name the value in plain words', () => {
+      expect(diags(null)[0]).toMatchObject({ evidence: { received: null }, allowedFixes: ['make the diagram an object'] });
+      expect(diags(base({ nodes: [5 as never] }))[0]).toMatchObject({ subject: '/nodes/0', allowedFixes: ['make item 0 of "nodes" an object'] });
+      expect(diags(base({ title: null as never }))[0]).toMatchObject({ evidence: { received: null }, allowedFixes: ['make "title" a string'] });
+    });
+
+    it('caps diagram size so validation and layout stay fast', () => {
+      const nodes = Array.from({ length: 501 }, (_, i) => node(`n${i}`));
+      expect(diags(base({ nodes }))[0]).toMatchObject({ code: 'schema/too_big', subject: '/nodes', allowedFixes: ['keep at most 500 items'] });
+    });
+
     it('limits say how far to cut', () => {
       const stats = Array.from({ length: 4 }, (_, i) => ({ value: String(i), label: 'x' }));
       expect(diags(base({ nodes: [node('a', { card: { title: 'a', stats } })] }))[0]).toMatchObject({
@@ -89,7 +117,7 @@ describe('validateDiagram', () => {
     it('returns only schema diagnostics when the schema fails', () => {
       // Dangling edge + orphan would be reported too if later families ran.
       const r = validateDiagram({ ...base({ edges: [{ id: 'ax', from: 'a', to: 'x' }] }), title: '' });
-      expect(r.diagnostics.map((d) => d.code)).toEqual(['schema/too_small']);
+      expect(r.diagnostics.map((d) => d.code)).toEqual(['schema/invalid_format']);
     });
   });
 
@@ -154,6 +182,17 @@ describe('validateDiagram', () => {
       ]);
     });
 
+    it('a stats note without stats is a warning (it is never shown)', () => {
+      expect(only(base({ nodes: [node('a', { card: { title: 'a', statsNote: 'links' } }), node('b')] }), 'semantics/hidden-stats-note')).toMatchObject([
+        { severity: 'warning', subject: '/nodes/0/card/statsNote' },
+      ]);
+    });
+
+    it('a duplicate id rename suggestion is itself unused', () => {
+      const d = base({ nodes: [node('a'), node('a-2'), node('a')], edges: [] });
+      expect(only(d, 'semantics/duplicate-id')[0]!.allowedFixes[0]).toBe('rename to a unique id, e.g. "a-3"');
+    });
+
     it('an unconnected node is an orphan, except in a one-node diagram', () => {
       expect(only(base({ nodes: [node('a'), node('b'), node('c')] }), 'semantics/orphan-node')).toMatchObject([{ subject: '/nodes/2', severity: 'warning' }]);
       expect(diags(base({ nodes: [node('a')], edges: [] }))).toEqual([]);
@@ -176,6 +215,14 @@ describe('validateDiagram', () => {
         { subject: '/edges/0', severity: 'warning', evidence: { nodes: ['a', 'b', 'c'] } },
       ]);
       expect(only(base({ nodes, edges }), 'semantics/dataflow-cycle')).toEqual([]);
+    });
+
+    it('an async feedback edge clears the cycle warning (its suggested fix works)', () => {
+      const edges = [
+        { id: 'ab', from: 'a', to: 'b' },
+        { id: 'ba', from: 'b', to: 'a', kind: 'async' as const },
+      ];
+      expect(only(base({ kind: 'dataflow', edges }), 'semantics/dataflow-cycle')).toEqual([]);
     });
 
     it('an empty view is an error, an empty group a warning', () => {
@@ -224,9 +271,19 @@ describe('validateDiagram', () => {
       ]);
     });
 
+    it('measures text as rendered: runs of spaces collapse, ends are trimmed', () => {
+      expect(only(base({ nodes: [node('a', { card: { title: `Orders${' '.repeat(60)}` } }), node('b')] }), 'card-fit/overflow')).toEqual([]);
+    });
+
+    it('a row label squeezed by its value also offers shortening the value', () => {
+      const card = { title: 'a', rows: [{ label: 'Connection string for the primary', value: 'postgres://orders.internal:5432' }] };
+      const [d] = only(base({ nodes: [node('a', { card }), node('b')] }), 'card-fit/overflow').filter((x) => x.subject.endsWith('/label'));
+      expect(d!.allowedFixes).toContain('shorten the value at /nodes/0/card/rows/0/value to give the label room');
+    });
+
     it('measures non-Latin text conservatively instead of crashing', () => {
       const [d] = only(base({ nodes: [node('a', { card: { title: '注文サービス本番環境クラスター東京' } }), node('b')] }), 'card-fit/overflow');
-      expect(d).toMatchObject({ subject: '/nodes/0/card/title', evidence: { maxChars: 14 } });
+      expect(d).toMatchObject({ subject: '/nodes/0/card/title', evidence: { maxChars: 13 } });
     });
   });
 });
