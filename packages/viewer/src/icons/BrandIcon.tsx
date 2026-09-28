@@ -45,6 +45,9 @@ const BRANDS: Record<string, { title: string; path: string }> = Object.fromEntri
   ].map((icon) => [icon.slug, { title: icon.title, path: icon.path }]),
 );
 
+/** Sorted, for the parity test against core's BRAND_SLUGS. */
+export const BRANDED_SLUGS: string[] = Object.keys(BRANDS).sort();
+
 export const hasBrand = (slug: string): boolean => Object.hasOwn(BRANDS, slug);
 
 export function BrandIcon({ slug, size }: { slug: string; size: number }) {

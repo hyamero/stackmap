@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { NODE_TYPES } from '@stackmap/core';
-import { BrandIcon, hasBrand } from './BrandIcon';
+import { BRAND_SLUGS, NODE_TYPES } from '@stackmap/core';
+import { BRANDED_SLUGS, BrandIcon, hasBrand } from './BrandIcon';
 import { TypeIcon } from './TypeIcon';
 
 describe('TypeIcon', () => {
@@ -19,6 +19,10 @@ describe('BrandIcon', () => {
     const svg = getByRole('img', { name: 'PostgreSQL' });
     expect(svg).toHaveAttribute('fill', 'currentColor');
     expect(svg).toHaveAttribute('data-icon', 'brand');
+  });
+
+  it('renders exactly the allowlist the validator checks against', () => {
+    expect(BRANDED_SLUGS).toEqual([...BRAND_SLUGS]);
   });
 
   it('hasBrand rejects unknown and prototype slugs', () => {
