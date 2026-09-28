@@ -1,9 +1,15 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { commerceApiLayout } from '../samples/commerce-api.layout';
 import { ViewerShell } from './ViewerShell';
 
 describe('ViewerShell', () => {
+  // Wide enough for the inspector to start open (it collapses below 1100px).
+  beforeEach(() => {
+    innerWidth = 1440;
+    location.hash = '';
+  });
+
   it('shows title, kind badge and counts', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
     expect(screen.getByRole('heading', { level: 1, name: 'Commerce API' })).toBeInTheDocument();
@@ -33,7 +39,7 @@ describe('ViewerShell', () => {
 
   it('renders the scene: one named group per card and one path per edge', () => {
     const { container } = render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
-    expect(screen.getByRole('group', { name: 'Orders, Database' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Orders, Database' })).toBeInTheDocument();
     expect(container.querySelectorAll('.sm-card')).toHaveLength(6);
     expect(container.querySelectorAll('path.sm-edge-path')).toHaveLength(9);
     expect(screen.getByText('100%')).toBeInTheDocument(); // zero-size stage in jsdom → identity transform

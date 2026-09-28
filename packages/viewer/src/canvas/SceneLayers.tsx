@@ -1,8 +1,15 @@
-import { memo, type CSSProperties } from 'react';
-import { TYPE_LABELS } from '@stackmap/core';
+import { memo, useMemo, type CSSProperties, type KeyboardEvent } from 'react';
+import { TYPE_LABELS, type Rect } from '@stackmap/core';
 import { NodeCard } from '../card/NodeCard';
-import { ARROW_MARKER_ID, ArrowMarkerDefs } from './ArrowMarker';
+import type { Emphasis, NodeEmphasis } from '../explore/emphasis';
+import { useExplore } from '../explore/ExploreContext';
+import { neighbourInDirection, type Direction } from '../explore/graph';
+import { arrowMarkerId, ArrowMarkerDefs } from './ArrowMarker';
 import type { Scene, SceneCard, SceneFrame } from './scene';
+import { useCamera } from './ViewportContext';
+
+const ARROWS: Record<string, Direction> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+const focusCard = (id: string) => document.querySelector<HTMLElement>(`.sm-card[data-card-id="${CSS.escape(id)}"]`)?.focus();
 
 const place = ({ x, y, width, height }: { x: number; y: number; width: number; height: number }): CSSProperties => ({
   left: x,
@@ -38,29 +45,65 @@ function Frame({ frame }: { frame: SceneFrame }) {
   );
 }
 
-function Card({ card, horizontal }: { card: SceneCard; horizontal: boolean }) {
+function Card({
+  card,
+  horizontal,
+  state,
+  rects,
+}: {
+  card: SceneCard;
+  horizontal: boolean;
+  state: NodeEmphasis;
+  rects: Record<string, Rect>;
+}) {
   const { node, rect, hasIn, hasOut } = card;
+  const { dispatch } = useExplore();
+  const camera = useCamera();
   const accent = { '--sm-handle': `var(--sm-${node.type}-accent)` } as CSSProperties;
+  const onKeyDown = (e: KeyboardEvent) => {
+    const dir = ARROWS[e.key];
+    if (dir) {
+      const next = neighbourInDirection(rects, node.id, dir);
+      if (next) focusCard(next);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      dispatch({ type: 'select', id: node.id });
+    } else if (e.key === 'Escape') {
+      dispatch({ type: 'clear' });
+    } else return;
+    // The stage would otherwise pan on arrows / clear on Escape as well.
+    e.preventDefault();
+    e.stopPropagation();
+  };
   return (
     <div
       data-card-id={node.id}
-      role="group"
+      data-emphasis={state}
+      role="button"
+      tabIndex={0}
+      aria-pressed={state === 'focus'}
       aria-label={`${node.card.title}, ${TYPE_LABELS[node.type]}`}
-      className="sm-card absolute"
-      style={place(rect)}
+      className="sm-card absolute cursor-pointer"
+      style={{ ...place(rect), ...accent }}
+      onClick={(e) => {
+        e.stopPropagation();
+        dispatch({ type: 'select', id: node.id });
+      }}
+      onFocus={() => camera.ensureVisible(rect)}
+      onKeyDown={onKeyDown}
     >
       <NodeCard node={node} />
-      {hasIn && <span aria-hidden="true" data-handle="in" className="sm-handle" style={{ ...accent, ...handleStyle('in', horizontal) }} />}
-      {hasOut && <span aria-hidden="true" data-handle="out" className="sm-handle" style={{ ...accent, ...handleStyle('out', horizontal) }} />}
+      {hasIn && <span aria-hidden="true" data-handle="in" className="sm-handle" style={handleStyle('in', horizontal)} />}
+      {hasOut && <span aria-hidden="true" data-handle="out" className="sm-handle" style={handleStyle('out', horizontal)} />}
     </div>
   );
 }
 
 // Paint order is the z-order: frames < edges < cards (+ handle dots) < edge labels.
-// Memoised: `scene` is stable across pan/zoom frames (useMemo in DiagramCanvas), so without this
-// every d3-zoom transform update re-rendered every card.
-export const SceneLayers = memo(function SceneLayers({ scene }: { scene: Scene }) {
+// Memoised: `scene` and `emphasis` are stable across pan/zoom frames, so without this every d3-zoom
+// transform update re-rendered every card.
+export const SceneLayers = memo(function SceneLayers({ scene, emphasis }: { scene: Scene; emphasis: Emphasis }) {
   const horizontal = scene.direction === 'RIGHT';
+  const rects = useMemo(() => Object.fromEntries(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
   return (
     <>
       {scene.frames.map((f) => (
@@ -73,25 +116,35 @@ export const SceneLayers = memo(function SceneLayers({ scene }: { scene: Scene }
         height={scene.bounds.height}
       >
         <ArrowMarkerDefs />
-        {scene.edges.map((e) => (
-          <path
-            key={e.id}
-            data-edge-id={e.id}
-            className="sm-edge-path"
-            d={e.path}
-            fill="none"
-            markerEnd={`url(#${ARROW_MARKER_ID})`}
-            style={{ stroke: 'var(--sm-edge)', strokeWidth: 1.25, strokeDasharray: e.kind === 'async' ? '5 4' : undefined }}
-          />
-        ))}
+        {scene.edges.map((e) => {
+          const { dim, tint } = emphasis.edges.get(e.id) ?? { dim: false, tint: null };
+          return (
+            <path
+              key={e.id}
+              data-edge-id={e.id}
+              data-dim={dim || undefined}
+              data-tint={tint ?? undefined}
+              className="sm-edge-path"
+              d={e.path}
+              fill="none"
+              markerEnd={`url(#${arrowMarkerId(tint)})`}
+              style={{
+                stroke: tint ? `var(--sm-${tint}-accent)` : 'var(--sm-edge)',
+                strokeWidth: tint ? 1.75 : 1.25,
+                strokeDasharray: e.kind === 'async' ? '5 4' : undefined,
+              }}
+            />
+          );
+        })}
       </svg>
       {scene.cards.map((c) => (
-        <Card key={c.node.id} card={c} horizontal={horizontal} />
+        <Card key={c.node.id} card={c} horizontal={horizontal} state={emphasis.nodes.get(c.node.id) ?? 'normal'} rects={rects} />
       ))}
       {scene.edges.map((e) =>
         e.label && e.mid ? (
           <div
             key={e.id}
+            data-dim={emphasis.edges.get(e.id)?.dim || undefined}
             className="sm-edge-label pointer-events-none absolute rounded-full bg-panel px-2 py-0.5 font-sans text-[11px] whitespace-nowrap text-fg-muted"
             style={{
               left: e.mid.x,

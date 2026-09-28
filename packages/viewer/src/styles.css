@@ -37,6 +37,33 @@ body {
   border: 1.5px solid var(--sm-handle);
 }
 
+/* Explorer emphasis (M3). Opacity only: layout never changes in the viewer. */
+.sm-card,
+.sm-edge-path,
+.sm-edge-label {
+  transition: opacity 150ms ease;
+}
+.sm-card[data-emphasis='dim'],
+.sm-edge-path[data-dim],
+.sm-edge-label[data-dim] {
+  opacity: 0.22;
+}
+.sm-card {
+  border-radius: 14px;
+  outline: none;
+}
+.sm-card[data-emphasis='focus'] {
+  outline: 2px solid var(--sm-handle);
+  outline-offset: 3px;
+}
+.sm-card:focus-visible {
+  outline: 2px solid var(--sm-text);
+  outline-offset: 3px;
+}
+.sm-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--sm-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

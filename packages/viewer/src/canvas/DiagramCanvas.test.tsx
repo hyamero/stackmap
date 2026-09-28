@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { commerceApiLayout } from '../samples/commerce-api.layout';
+import { ExploreProvider } from '../explore/ExploreContext';
 import { DiagramCanvas } from './DiagramCanvas';
 
 const { nodeCardRenders } = vi.hoisted(() => ({ nodeCardRenders: vi.fn() }));
@@ -15,7 +16,11 @@ vi.mock('../card/NodeCard', () => ({
 
 describe('DiagramCanvas', () => {
   it('changes the viewport transform on wheel without re-rendering the cards', () => {
-    const { container } = render(<DiagramCanvas diagram={commerceApiLayout} />);
+    const { container } = render(
+      <ExploreProvider draft={commerceApiLayout.draft}>
+        <DiagramCanvas diagram={commerceApiLayout} />
+      </ExploreProvider>,
+    );
     const stage = container.querySelector('.sm-stage')!;
     const viewport = () => container.querySelector('.sm-viewport') as HTMLElement;
 

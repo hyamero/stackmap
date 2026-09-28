@@ -13,6 +13,12 @@ describe('explorer reducer', () => {
     expect(s.trace).toBe(true); // a mode, not a selection: survives clear
   });
 
+  it('a revealing selection bumps the camera counter; a plain one does not', () => {
+    const a = explore(INITIAL, { type: 'select', id: 'api', reveal: true });
+    expect(a.reveal).toBe(1);
+    expect(explore(a, { type: 'select', id: 'db' }).reveal).toBe(1);
+  });
+
   it('toggles lens types and switches views', () => {
     let s = explore(INITIAL, { type: 'toggleType', nodeType: 'database' });
     expect([...s.hiddenTypes]).toEqual(['database']);
@@ -27,7 +33,7 @@ describe('hash', () => {
     const s = { ...INITIAL, view: 'data', selected: 'api', hiddenTypes: new Set(['database'] as const) };
     const hash = formatHash(s);
     expect(hash).toBe('#view=data&node=api&lens=database');
-    expect(parseHash(hash, known)).toMatchObject({ view: 'data', selected: 'api', hiddenTypes: new Set(['database']) });
+    expect(parseHash(hash, known)).toMatchObject({ view: 'data', selected: 'api', hiddenTypes: new Set(['database']), reveal: 1 });
   });
 
   it('is empty for the initial state', () => {

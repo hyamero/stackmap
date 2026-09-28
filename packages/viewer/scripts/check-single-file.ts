@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 
-const BUDGET_KB = 1024; // M0 budget; re-set from measurements in M3
+// M3 measured ~600 KB (fonts ~52 KB, 146 brand paths ~157 KB, React + d3); ~15% headroom.
+const BUDGET_KB = 700;
 const dist = new URL('../dist/', import.meta.url);
 const fail = (msg: string): never => {
   console.error(`✗ ${msg}`);

@@ -8,12 +8,14 @@ export interface ExploreState {
   trace: boolean;
   /** null = Overview */
   view: string | null;
+  /** bumped when a selection should also move the camera (search, deep link) */
+  reveal: number;
 }
 
-export const INITIAL: ExploreState = { selected: null, query: null, hiddenTypes: new Set(), trace: false, view: null };
+export const INITIAL: ExploreState = { selected: null, query: null, hiddenTypes: new Set(), trace: false, view: null, reveal: 0 };
 
 export type ExploreAction =
-  | { type: 'select'; id: string | null }
+  | { type: 'select'; id: string | null; reveal?: boolean }
   | { type: 'clear' }
   | { type: 'search'; query: string | null }
   | { type: 'toggleType'; nodeType: NodeType }
@@ -24,7 +26,7 @@ export type ExploreAction =
 export function explore(s: ExploreState, a: ExploreAction): ExploreState {
   switch (a.type) {
     case 'select':
-      return { ...s, selected: a.id };
+      return { ...s, selected: a.id, reveal: a.reveal ? s.reveal + 1 : s.reveal };
     case 'clear':
       return { ...s, selected: null, query: null };
     case 'search':
@@ -62,6 +64,7 @@ export function parseHash(hash: string, known: Known): ExploreState {
     ...INITIAL,
     view: view && known.views.has(view) ? view : null,
     selected: node && known.nodes.has(node) ? node : null,
+    reveal: node && known.nodes.has(node) ? 1 : 0,
     hiddenTypes: new Set(lens),
   };
 }

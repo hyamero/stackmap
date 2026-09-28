@@ -1,13 +1,44 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import type { LaidOutDiagram } from '@stackmap/core';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import type { LaidOutDiagram, Rect } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
+import { useExplore } from '../explore/ExploreContext';
 import { CanvasPanel } from './CanvasPanel';
 import { Minimap } from './Minimap';
-import { toScene } from './scene';
+import { toScene, type Scene } from './scene';
 import { SceneLayers } from './SceneLayers';
 import { useZoom } from './useZoom';
+import type { Camera } from './useZoom';
 import type { Transform } from './viewport';
-import { ViewportProvider } from './ViewportContext';
+import { CameraProvider, ViewportProvider } from './ViewportContext';
+
+const PAN_STEP = 80;
+
+function union(rects: Rect[]): Rect | null {
+  if (!rects.length) return null;
+  const x = Math.min(...rects.map((r) => r.x));
+  const y = Math.min(...rects.map((r) => r.y));
+  return { x, y, width: Math.max(...rects.map((r) => r.x + r.width)) - x, height: Math.max(...rects.map((r) => r.y + r.height)) - y };
+}
+
+// Camera follows the explorer: a view fits its members (Overview fits everything, Q27); a revealing
+// selection (search, deep link) centres the node. Skips the first run for Overview so the initial fit stands.
+function useCameraEffects(scene: Scene, camera: Camera) {
+  const { draft, state } = useExplore();
+  const rectOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
+  const first = useRef(true);
+  useEffect(() => {
+    const members = state.view ? (draft.views?.find((v) => v.id === state.view)?.nodes ?? []) : [];
+    const box = union(members.flatMap((id) => rectOf.get(id) ?? []));
+    if (box) camera.fitRect(box);
+    else if (!first.current) camera.fit();
+    first.current = false;
+  }, [state.view, draft, rectOf, camera]);
+  useEffect(() => {
+    const r = state.reveal && state.selected ? rectOf.get(state.selected) : undefined;
+    if (r) camera.centerOn({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
+    // Only a new reveal moves the camera, not every selection.
+  }, [state.reveal]);
+}
 
 const GRID = 20;
 const DOT = 1.2;
@@ -38,24 +69,50 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
   const scene = useMemo(() => toScene(diagram), [diagram]);
   const stageRef = useRef<HTMLDivElement>(null);
   const viewport = useZoom(stageRef, scene.content);
+  const { camera } = viewport;
+  const { emphasis, dispatch } = useExplore();
   const [minimap, setMinimap] = useState(false);
   const { x, y, k } = viewport.transform;
+  useCameraEffects(scene, camera);
+
+  // Keys when the stage itself has focus (cards handle their own and stop propagation).
+  const onKeyDown = (e: KeyboardEvent) => {
+    const pan: Record<string, [number, number]> = {
+      ArrowUp: [0, PAN_STEP],
+      ArrowDown: [0, -PAN_STEP],
+      ArrowLeft: [PAN_STEP, 0],
+      ArrowRight: [-PAN_STEP, 0],
+    };
+    if (pan[e.key]) camera.panBy(...pan[e.key]!);
+    else if (e.key === '+' || e.key === '=') camera.zoomIn();
+    else if (e.key === '-') camera.zoomOut();
+    else if (e.key === '0') camera.fit();
+    else if (e.key === 'Escape') dispatch({ type: 'clear' });
+    else return;
+    e.preventDefault();
+  };
 
   return (
     <ViewportProvider value={viewport}>
+     <CameraProvider value={camera}>
       <div className="relative size-full">
         <div
           ref={stageRef}
           role="region"
           aria-label="Diagram canvas"
-          className="sm-stage absolute inset-0 cursor-grab overflow-hidden active:cursor-grabbing"
+          aria-roledescription="zoomable diagram; arrows pan, plus and minus zoom, 0 fits"
+          tabIndex={0}
+          className="sm-stage absolute inset-0 cursor-grab overflow-hidden outline-none active:cursor-grabbing"
+          // d3-zoom swallows the click that ends a drag, so this only fires for a real click on empty canvas.
+          onClick={() => dispatch({ type: 'select', id: null })}
+          onKeyDown={onKeyDown}
         >
           <DotGrid {...viewport.transform} />
           <div
             className="sm-viewport absolute top-0 left-0 origin-top-left"
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
           >
-            <SceneLayers scene={scene} />
+            <SceneLayers scene={scene} emphasis={emphasis} />
           </div>
         </div>
         {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}
@@ -69,6 +126,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
         )}
         {children}
       </div>
+     </CameraProvider>
     </ViewportProvider>
   );
 }

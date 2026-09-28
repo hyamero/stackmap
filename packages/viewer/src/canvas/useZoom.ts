@@ -1,17 +1,27 @@
 import { select } from 'd3-selection';
 import 'd3-transition';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom';
-import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { Point, Rect } from '@stackmap/core';
-import { CHROME_INSET, fitTransform, MAX_ZOOM, MIN_ZOOM, ZOOM_STEP, type Size, type Transform } from './viewport';
+import { CHROME_INSET, fitTransform, MAX_ZOOM, MIN_ZOOM, viewportRect, ZOOM_STEP, type Size, type Transform } from './viewport';
 
-export interface ViewportApi {
-  transform: Transform;
-  stage: Size;
+/** Camera moves. Stable across renders, so consumers don't re-render on every pan/zoom frame. */
+export interface Camera {
   zoomIn(): void;
   zoomOut(): void;
   fit(): void;
   centerOn(p: Point): void;
+  /** Fit an arbitrary diagram-space rect (e.g. a view's members), never zooming past 100%. */
+  fitRect(r: Rect): void;
+  panBy(dx: number, dy: number): void;
+  /** Pan the least distance that brings `r` fully on stage; no-op when it already is. */
+  ensureVisible(r: Rect): void;
+}
+
+export interface ViewportApi extends Camera {
+  transform: Transform;
+  stage: Size;
+  camera: Camera;
 }
 
 const duration = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
@@ -19,6 +29,8 @@ const toZoom = (t: Transform) => zoomIdentity.translate(t.x, t.y).scale(t.k);
 
 export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rect): ViewportApi {
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
+  const current = useRef(transform);
+  current.current = transform;
   const [stage, setStage] = useState<Size>({ width: 0, height: 0 });
   const behavior = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
 
@@ -84,5 +96,40 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     [animate],
   );
 
-  return { transform, stage, zoomIn, zoomOut, fit, centerOn };
+  const fitRect = useCallback(
+    (r: Rect) =>
+      animate((z, el) => {
+        const t = fitTransform(r, { width: el.clientWidth, height: el.clientHeight });
+        const k = Math.min(t.k, 1);
+        const cx = r.x + r.width / 2;
+        const cy = r.y + r.height / 2;
+        const next = { x: el.clientWidth / 2 - cx * k, y: el.clientHeight / 2 - cy * k, k };
+        select(el).transition().duration(duration()).call(z.transform, toZoom(next));
+      }),
+    [animate],
+  );
+  const panBy = useCallback(
+    (dx: number, dy: number) =>
+      animate((z, el) => select(el).transition().duration(duration()).call(z.translateBy, dx / current.current.k, dy / current.current.k)),
+    [animate],
+  );
+  const ensureVisible = useCallback(
+    (r: Rect) =>
+      animate((z, el) => {
+        const margin = 24 / current.current.k;
+        const v = viewportRect(current.current, { width: el.clientWidth, height: el.clientHeight });
+        const shift = (lo: number, size: number, vlo: number, vsize: number) =>
+          lo - margin < vlo ? lo - margin - vlo : lo + size + margin > vlo + vsize ? lo + size + margin - (vlo + vsize) : 0;
+        const dx = shift(r.x, r.width, v.x, v.width);
+        const dy = shift(r.y, r.height, v.y, v.height);
+        if (dx || dy) select(el).transition().duration(duration()).call(z.translateBy, -dx, -dy);
+      }),
+    [animate],
+  );
+
+  const camera = useMemo<Camera>(
+    () => ({ zoomIn, zoomOut, fit, centerOn, fitRect, panBy, ensureVisible }),
+    [zoomIn, zoomOut, fit, centerOn, fitRect, panBy, ensureVisible],
+  );
+  return { transform, stage, camera, ...camera };
 }

@@ -16,6 +16,7 @@ export const commerceApi: DiagramDraft = {
   kind: 'architecture',
   title: 'Commerce API',
   subtitle: 'Production topology',
+  source: { url: 'https://github.com/hyamero/stackmap/blob/main' },
   direction: 'RIGHT',
   nodes: [
     {
@@ -33,6 +34,10 @@ export const commerceApi: DiagramDraft = {
     api(3),
     {
       id: 'orders',
+      evidence: [
+        { file: 'infra/orders/postgres.tf', line: 12, note: 'Primary + 2 read replicas' },
+        { file: 'services/api/src/db.ts', line: 8 },
+      ],
       type: 'database',
       card: {
         title: 'Orders',
