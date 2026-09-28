@@ -3,6 +3,7 @@ import 'd3-transition';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { Point, Rect } from '@stackmap/core';
+import { readStoredViewport } from '../live';
 import { CHROME_INSET, fitTransform, MAX_ZOOM, MIN_ZOOM, viewportRect, ZOOM_STEP, type Size, type Transform } from './viewport';
 
 /** Camera moves. Stable across renders, so consumers don't re-render on every pan/zoom frame. */
@@ -22,6 +23,8 @@ export interface ViewportApi extends Camera {
   transform: Transform;
   stage: Size;
   camera: Camera;
+  /** the camera came back from a live reload rather than a fresh fit */
+  restored: boolean;
 }
 
 const duration = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
@@ -33,6 +36,8 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
   current.current = transform;
   const [stage, setStage] = useState<Size>({ width: 0, height: 0 });
   const behavior = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
+  // Read once per mount; `stackmap serve` stores the camera right before it reloads the page.
+  const [stored] = useState(() => readStoredViewport());
 
   useLayoutEffect(() => {
     const el = stageRef.current;
@@ -50,7 +55,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
 
     const size = { width: el.clientWidth, height: el.clientHeight };
     setStage(size);
-    sel.call(z.transform, toZoom(fitTransform(content, size, { inset: CHROME_INSET })));
+    sel.call(z.transform, toZoom(stored ?? fitTransform(content, size, { inset: CHROME_INSET })));
 
     const observer =
       typeof ResizeObserver === 'undefined'
@@ -62,7 +67,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
       sel.on('.zoom', null);
       behavior.current = null;
     };
-  }, [stageRef, content]);
+  }, [stageRef, content, stored]);
 
   const animate = useCallback(
     (apply: (z: ZoomBehavior<HTMLDivElement, unknown>, el: HTMLDivElement) => void) => {
@@ -137,5 +142,5 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     () => ({ zoomIn, zoomOut, fit, centerOn, fitRect, panBy, ensureVisible }),
     [zoomIn, zoomOut, fit, centerOn, fitRect, panBy, ensureVisible],
   );
-  return { transform, stage, camera, ...camera };
+  return { transform, stage, camera, restored: stored !== null, ...camera };
 }

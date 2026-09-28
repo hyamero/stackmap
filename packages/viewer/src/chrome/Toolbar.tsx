@@ -1,14 +1,14 @@
-import { Download, Filter, Moon, Route, Search, Sun } from 'lucide-react';
+import { Filter, Moon, Route, Search, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useExplore } from '../explore/ExploreContext';
 import type { ThemeChoice } from '../theme/theme';
+import { ExportMenu } from './ExportMenu';
 import { LensPanel } from './LensPanel';
 import { SearchPanel } from './SearchPanel';
 import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
 const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
-// Export is wired in M4; M0 fixed its look and placement.
 export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggleTheme: () => void }) {
   const { state, dispatch } = useExplore();
   const [lensOpen, setLensOpen] = useState(false);
@@ -98,13 +98,7 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
       <IconButton label={`Switch to ${next} theme`} onClick={onToggleTheme}>
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>
-      <button
-        type="button"
-        className="ml-1 flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-fg"
-      >
-        <Download size={16} strokeWidth={2} aria-hidden="true" />
-        Export
-      </button>
+      <ExportMenu />
       {searchOpen && <SearchPanel onClose={closeSearch} />}
       {lensOpen && <LensPanel />}
     </div>

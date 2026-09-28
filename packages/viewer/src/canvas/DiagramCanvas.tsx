@@ -9,7 +9,7 @@ import { SceneLayers } from './SceneLayers';
 import { useZoom } from './useZoom';
 import type { Camera } from './useZoom';
 import type { Transform } from './viewport';
-import { CameraProvider, ViewportProvider } from './ViewportContext';
+import { CameraProvider, ContentProvider, ViewportProvider } from './ViewportContext';
 
 const PAN_STEP = 80;
 
@@ -22,22 +22,27 @@ function union(rects: Rect[]): Rect | null {
 
 // Camera follows the explorer: a view fits its members (Overview fits everything, Q27); a revealing
 // selection (search, deep link) centres the node. Skips the first run for Overview so the initial fit stands.
-function useCameraEffects(scene: Scene, camera: Camera) {
+function useCameraEffects(scene: Scene, camera: Camera, restored: boolean) {
   const { draft, state } = useExplore();
   const rectOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
   const first = useRef(true);
   useEffect(() => {
+    // After a live reload the restored camera stands; later view changes move it as usual.
+    if (first.current && restored) return void (first.current = false);
     const members = state.view ? (draft.views?.find((v) => v.id === state.view)?.nodes ?? []) : [];
     const box = union(members.flatMap((id) => rectOf.get(id) ?? []));
     if (box) camera.fitRect(box);
     else if (!first.current) camera.fit();
     first.current = false;
   }, [state.view, draft, rectOf, camera]);
+  // The reveal a live reload restores from the hash is already on screen.
+  const restoredReveal = useRef(restored ? state.reveal : -1);
   const latest = useRef({ state, draft });
   latest.current = { state, draft };
   useEffect(() => {
     // Only a new reveal moves the camera, not every selection; read the rest from the latest render.
     const { state: s, draft: d } = latest.current;
+    if (restoredReveal.current === s.reveal) return;
     const r = s.reveal && s.selected ? rectOf.get(s.selected) : undefined;
     if (!r) return;
     // Inside the active view the fit already shows it; centring would undo the view's zoom (Q27).
@@ -75,11 +80,16 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
   const scene = useMemo(() => toScene(diagram), [diagram]);
   const stageRef = useRef<HTMLDivElement>(null);
   const viewport = useZoom(stageRef, scene.content);
+  // Exports frame everything drawn: edge routes can swing outside the card/frame box (U-turns).
+  const exportBox = useMemo(() => {
+    const points = scene.edges.flatMap((e) => e.points);
+    return union([scene.content, ...points.map((p) => ({ x: p.x, y: p.y, width: 0, height: 0 }))])!;
+  }, [scene]);
   const { camera } = viewport;
   const { emphasis, dispatch, state } = useExplore();
   const [minimap, setMinimap] = useState(false);
   const { x, y, k } = viewport.transform;
-  useCameraEffects(scene, camera);
+  useCameraEffects(scene, camera, viewport.restored);
 
   // Keys when the stage itself has focus (cards handle their own and stop propagation).
   const onKeyDown = (e: KeyboardEvent) => {
@@ -101,6 +111,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
   return (
     <ViewportProvider value={viewport}>
      <CameraProvider value={camera}>
+      <ContentProvider value={exportBox}>
       <div className="relative size-full">
         {/* Top-left chrome first in the DOM: Tab reaches search/lens/trace before the cards. */}
         {children}
@@ -133,6 +144,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
           </CanvasPanel>
         )}
       </div>
+      </ContentProvider>
      </CameraProvider>
     </ViewportProvider>
   );

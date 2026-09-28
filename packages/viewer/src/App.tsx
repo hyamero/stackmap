@@ -1,4 +1,5 @@
 import type { LaidOutDiagram } from '@stackmap/core';
+import { isLive, LiveToast, useLiveStatus } from './chrome/LiveToast';
 import { ViewerShell } from './chrome/ViewerShell';
 import { readEmbeddedDiagram } from './data';
 import { GalleryPage } from './pages/GalleryPage';
@@ -36,10 +37,21 @@ function DevPages({ theme, toggle }: ReturnType<typeof useTheme>) {
   return <ViewerShell diagram={diagram} theme={theme} onToggleTheme={toggle} />;
 }
 
-export function App() {
+function Page() {
   const { theme, toggle } = useTheme();
   if (loaded && 'error' in loaded) return <Notice>{loaded.error}</Notice>;
   if (loaded) return <ViewerShell diagram={loaded.diagram} theme={theme} onToggleTheme={toggle} />;
+  if (isLive()) return <Notice>Waiting for a valid diagram…</Notice>;
   if (import.meta.env.DEV) return <DevPages theme={theme} toggle={toggle} />;
   return <Notice>No diagram embedded. Create one with `stackmap deliver`.</Notice>;
+}
+
+export function App() {
+  const live = useLiveStatus();
+  return (
+    <>
+      <Page />
+      <LiveToast status={live} hasDiagram={!!loaded && 'diagram' in loaded} />
+    </>
+  );
 }
