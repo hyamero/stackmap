@@ -88,6 +88,8 @@ test('"/" opens search; Enter selects the first match and centres it', async ({ 
   const stage = (await page.locator('.sm-stage').boundingBox())!;
   const c = (await card(page, 'sessions').boundingBox())!;
   expect(Math.abs(c.x + c.width / 2 - (stage.x + stage.width / 2))).toBeLessThan(2);
+  // Vertically centred in the band between the toolbar (80px) and the zoom bar (76px).
+  expect(Math.abs(c.y + c.height / 2 - (stage.y + (stage.height + 80 - 76) / 2))).toBeLessThan(2);
 });
 
 test('search tolerates regex characters and whitespace', async ({ page }) => {

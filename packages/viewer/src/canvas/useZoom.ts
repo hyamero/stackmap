@@ -97,8 +97,13 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
       ),
     [animate, content],
   );
+  // Centre between the chrome bands, not on the raw stage, so the node doesn't sit under the toolbar.
   const centerOn = useCallback(
-    (p: Point) => animate((z, el) => select(el).transition().duration(duration()).call(z.translateTo, p.x, p.y)),
+    (p: Point) =>
+      animate((z, el) => {
+        const anchor: [number, number] = [el.clientWidth / 2, (el.clientHeight + CHROME_INSET.top - CHROME_INSET.bottom) / 2];
+        select(el).transition().duration(duration()).call(z.translateTo, p.x, p.y, anchor);
+      }),
     [animate],
   );
 
