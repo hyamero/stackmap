@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties } from 'react';
 import { TYPE_LABELS } from '@stackmap/core';
 import { NodeCard } from '../card/NodeCard';
 import { ARROW_MARKER_ID, ArrowMarkerDefs } from './ArrowMarker';
@@ -57,7 +57,9 @@ function Card({ card, horizontal }: { card: SceneCard; horizontal: boolean }) {
 }
 
 // Paint order is the z-order: frames < edges < cards (+ handle dots) < edge labels.
-export function SceneLayers({ scene }: { scene: Scene }) {
+// Memoised: `scene` is stable across pan/zoom frames (useMemo in DiagramCanvas), so without this
+// every d3-zoom transform update re-rendered every card.
+export const SceneLayers = memo(function SceneLayers({ scene }: { scene: Scene }) {
   const horizontal = scene.direction === 'RIGHT';
   return (
     <>
@@ -104,4 +106,4 @@ export function SceneLayers({ scene }: { scene: Scene }) {
       )}
     </>
   );
-}
+});
