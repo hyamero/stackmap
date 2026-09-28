@@ -32,6 +32,19 @@ async function inkMask(page: Page, clip: Clip, ink: number[], paper: number[]) {
   return { width, height, pxPerCss: width / clip.width, inked };
 }
 
+test.describe('accessibility', () => {
+  test('node description tells assistive tech the diagram is read-only', async ({ page }) => {
+    await page.goto('/?page=sample');
+    const node = page.locator('.react-flow__node[data-id="orders"]');
+    const describedBy = await node.getAttribute('aria-describedby');
+    expect(describedBy, 'node should have an aria-describedby').toBeTruthy();
+    const description = await page.locator(`#${describedBy}`).textContent();
+    for (const word of ['move', 'delete', 'remove']) {
+      expect(description?.toLowerCase(), `description should not mention "${word}"`).not.toContain(word);
+    }
+  });
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test.describe(theme, () => {
     test.beforeEach(async ({ page }) => {
