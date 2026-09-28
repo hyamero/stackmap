@@ -43,7 +43,7 @@ const light: ThemeTokens = {
   primary: '#161616',
   primaryText: '#ffffff',
   groupFill: '#fafaf9',
-  groupBorder: '#b2b2ad',
+  groupBorder: '#8f8f8a',
   tints: {
     client: { fill: '#e3f0ef', border: '#cfe4e2', tile: '#cfe4e2', accent: '#2a7f7b' },
     service: { fill: '#e9f0e8', border: '#dce6da', tile: '#dce6da', accent: '#4e7f3f' },
@@ -70,7 +70,7 @@ const dark: ThemeTokens = {
   primary: '#f5f5f4',
   primaryText: '#141414',
   groupFill: '#1b1b1b',
-  groupBorder: '#505050',
+  groupBorder: '#686868',
   tints: {
     client: { fill: '#141c1c', border: '#28504d', tile: '#1b2d2c', accent: '#6fd1c9' },
     service: { fill: '#181c16', border: '#33402b', tile: '#232b1e', accent: '#a6d97a' },
