@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { measureText, type FontFace } from '@stackmap/core';
+import { cardTextSlots, measureText, type FontFace } from '@stackmap/core';
+import { GALLERY_SECTIONS } from '../src/pages/gallery-nodes';
 
 // Browser ground truth for the headless card-fit measure (M1): the generated table must match what
 // Chromium renders, including kerning, within a small conservative margin.
@@ -54,4 +55,38 @@ test('headless text measure matches the browser within a conservative margin', a
     }
   }
   expect(worst).toEqual([]);
+});
+
+test('a card slot truncates exactly when its measured text exceeds its budget', async ({ page }) => {
+  await page.goto('/?page=gallery');
+  await page.evaluate(() => document.fonts.ready);
+  const rendered = await page.$$eval('[data-testid="node-card"]', (cards) =>
+    Object.fromEntries(
+      cards.map((card) => [
+        card.getAttribute('data-node-id')!,
+        [...card.querySelectorAll<HTMLElement>('span[title], div[title]')].map((el) => ({
+          text: el.getAttribute('title')!,
+          truncated: el.scrollWidth > el.clientWidth,
+        })),
+      ]),
+    ),
+  );
+  const mismatches: string[] = [];
+  let checked = 0;
+  for (const [, nodes] of GALLERY_SECTIONS) {
+    for (const node of nodes) {
+      const slots = cardTextSlots(node.card);
+      const dom = rendered[node.id]!;
+      expect(dom.map((d) => d.text), node.id).toEqual(slots.map((s) => s.text));
+      slots.forEach((slot, i) => {
+        const width = measureText(slot.text, slot.face, slot.size);
+        if (Math.abs(width - slot.maxWidth) < 1) return; // scrollWidth is integer-rounded
+        checked++;
+        if (width > slot.maxWidth !== dom[i]!.truncated)
+          mismatches.push(`${node.id}${slot.path}: measured ${width.toFixed(1)} / budget ${slot.maxWidth.toFixed(1)}, truncated=${dom[i]!.truncated}`);
+      });
+    }
+  }
+  expect(mismatches).toEqual([]);
+  expect(checked).toBeGreaterThan(60);
 });

@@ -6,3 +6,4 @@ export * from './geometry';
 export * from './diagram-stats';
 export * from './brands';
 export * from './text-measure';
+export * from './card-text';
