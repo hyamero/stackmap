@@ -94,8 +94,8 @@ describe('layoutDiagram', () => {
     expect(ys).toEqual([...ys].sort((a, b) => a - b));
   });
 
-  it('wraps the grouped sample instead of laying it out as one long strip', async () => {
-    const { width, height } = (await layoutDiagram(groupedPlatform)).bounds;
+  it('wraps a wide left-to-right diagram instead of laying it out as one long strip', async () => {
+    const { width, height } = (await layoutDiagram({ ...groupedPlatform, direction: 'RIGHT' })).bounds;
     expect(width / height).toBeLessThanOrEqual(2.6);
   });
 
@@ -112,6 +112,13 @@ describe('layoutDiagram', () => {
       draft({ direction: 'DOWN', nodes: [node('a'), node('b')], edges: [{ id: 'e', from: 'a', to: 'b' }] }),
     );
     expect(out.nodes.b!.y).toBeGreaterThan(out.nodes.a!.y + out.nodes.a!.height);
+  });
+
+  it('lays the grouped sample out top-down with every edge flowing downward', async () => {
+    const out = await layoutDiagram(groupedPlatform);
+    for (const [id, pts] of Object.entries(out.edges)) {
+      expect(pts[pts.length - 1]!.y, id).toBeGreaterThan(pts[0]!.y);
+    }
   });
 
   it('is deterministic', async () => {
