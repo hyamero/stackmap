@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  --color-page: var(--sm-page);
+  --color-stage: var(--sm-stage);
+  --color-panel: var(--sm-panel);
+  --color-panel-border: var(--sm-panel-border);
+  --color-fg: var(--sm-text);
+  --color-fg-muted: var(--sm-text-muted);
+  --color-divider: var(--sm-divider);
+  --color-primary: var(--sm-primary);
+  --color-primary-fg: var(--sm-primary-text);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sm-page);
+  color: var(--sm-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.react-flow__handle.sm-handle {
+  width: 7px;
+  height: 7px;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 9999px;
+  background: var(--sm-stage);
+  border: 1.5px solid var(--sm-handle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

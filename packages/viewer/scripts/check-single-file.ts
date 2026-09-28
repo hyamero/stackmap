@@ -1,0 +1,28 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+
+const BUDGET_KB = 1024; // M0 budget; re-set from measurements in M3
+const dist = new URL('../dist/', import.meta.url);
+const fail = (msg: string): never => {
+  console.error(`✗ ${msg}`);
+  process.exit(1);
+};
+
+const files = readdirSync(dist);
+if (files.length !== 1 || files[0] !== 'index.html') fail(`dist must contain only index.html, found: ${files.join(', ')}`);
+
+const html = readFileSync(new URL('index.html', dist), 'utf8');
+// Only real tags count: inlined JS/CSS bodies can contain attribute-looking strings.
+const markup = html
+  .replace(/(<script\b[^>]*>)[\s\S]*?<\/script>/g, '$1</script>')
+  .replace(/(<style\b[^>]*>)[\s\S]*?<\/style>/g, '$1</style>');
+const external = [
+  ...(markup.match(/(?:src|href)=["'](?!data:|#)[^"']+["']/g) ?? []),
+  ...(html.match(/url\(\s*["']?(?:https?:)?\/\//g) ?? []),
+];
+if (external.length) fail(`external references: ${external.slice(0, 5).join('  ')}`);
+if (!html.includes('data:font/woff2')) fail('Geist fonts are not inlined');
+if (/elkjs|org\.eclipse\.elk/.test(html)) fail('elkjs leaked into the viewer bundle');
+
+const kb = statSync(new URL('index.html', dist)).size / 1024;
+if (kb > BUDGET_KB) fail(`index.html is ${kb.toFixed(0)} KB, budget ${BUDGET_KB} KB`);
+console.log(`✓ single self-contained file, ${kb.toFixed(0)} KB`);
