@@ -227,6 +227,12 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(view).toHaveCount(1);
       // The box strokes in --sm-text, which is AA on the panel in both themes (tokens.test.ts).
       expect(await view.evaluate((r) => (r as SVGRectElement).style.stroke)).toBe('var(--sm-text)');
+      // At the fitted zoom the visible area is larger than the content; the box must still fit inside the map.
+      const [mapBox, viewBox] = [(await map.boundingBox())!, (await view.boundingBox())!];
+      expect(viewBox.x).toBeGreaterThanOrEqual(mapBox.x - 1);
+      expect(viewBox.y).toBeGreaterThanOrEqual(mapBox.y - 1);
+      expect(viewBox.x + viewBox.width).toBeLessThanOrEqual(mapBox.x + mapBox.width + 1);
+      expect(viewBox.y + viewBox.height).toBeLessThanOrEqual(mapBox.y + mapBox.height + 1);
       await page.screenshot({ path: `${OUT}/minimap-${theme}.png` });
       const before = await viewportOf(page);
       await map.click({ position: { x: 8, y: 8 } });

@@ -15,6 +15,16 @@ export function Minimap({ scene }: { scene: Scene }) {
   const c = scene.content;
   const box = { x: c.x - PAD, y: c.y - PAD, width: c.width + PAD * 2, height: c.height + PAD * 2 };
   const height = Math.min(160, Math.max(60, Math.round((WIDTH * box.height) / box.width)));
+  const view = viewportRect(transform, stage);
+  // Framing the visible area too (as React Flow did) keeps the box unclipped when it is larger than the content.
+  const x0 = Math.min(box.x, view.x);
+  const y0 = Math.min(box.y, view.y);
+  const frame = {
+    x: x0,
+    y: y0,
+    width: Math.max(box.x + box.width, view.x + view.width) - x0,
+    height: Math.max(box.y + box.height, view.y + view.height) - y0,
+  };
 
   const onClick = (e: MouseEvent<SVGSVGElement>) => {
     const ctm = e.currentTarget.getScreenCTM();
@@ -28,10 +38,10 @@ export function Minimap({ scene }: { scene: Scene }) {
       <svg
         role="img"
         aria-label="Minimap"
-        className="sm-minimap block cursor-pointer"
+        className="sm-minimap block cursor-pointer overflow-visible"
         width={WIDTH}
         height={height}
-        viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+        viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
         preserveAspectRatio="xMidYMid meet"
         onClick={onClick}
       >
@@ -56,7 +66,7 @@ export function Minimap({ scene }: { scene: Scene }) {
         {/* --sm-text instead of a fixed translucent black: the React Flow mask vanished on dark panels. */}
         <rect
           className="sm-minimap-viewport"
-          {...attrs(viewportRect(transform, stage))}
+          {...attrs(view)}
           vectorEffect="non-scaling-stroke"
           style={{ fill: 'var(--sm-text)', fillOpacity: 0.06, stroke: 'var(--sm-text)', strokeOpacity: 0.7, strokeWidth: 1.5 }}
         />
