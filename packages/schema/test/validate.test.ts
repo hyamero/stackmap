@@ -95,9 +95,24 @@ describe('validateDiagram', () => {
       expect(diags(base({ nodes }))[0]).toMatchObject({ code: 'schema/too_big', subject: '/nodes', allowedFixes: ['keep at most 500 items'] });
     });
 
-    it('a key that belongs one level down says where to move it', () => {
-      const [d] = diags(base({ nodes: [node('a', { brand: 'redis' } as never), node('b')] }));
-      expect(d).toMatchObject({ subject: '/nodes/0', allowedFixes: ['move "brand" into "card"'] });
+    it.each([
+      ['a node-level brand belongs in the card', { brand: 'redis' }, '/nodes/0', ['move "brand" into "card"', 'remove "brand"']],
+      ['card evidence belongs on the node', { card: { title: 'a', evidence: [{ file: 'a.ts' }] } }, '/nodes/0/card', ['move "evidence" up to the enclosing object', 'remove "evidence"']],
+      ['a card "label" is the title', { card: { title: 'a', label: 'x' } }, '/nodes/0/card', ['rename "label" to "title"']],
+      ['a card "name" is the title', { card: { title: 'a', name: 'x' } }, '/nodes/0/card', ['rename "name" to "title"']],
+      ['a card "description" is the subtitle', { card: { title: 'a', description: 'x' } }, '/nodes/0/card', ['rename "description" to "subtitle"']],
+    ])('%s', (_n, over, subject, fixes) => {
+      const [d] = diags(base({ nodes: [node('a', over as never), node('b')] }));
+      expect(d).toMatchObject({ code: 'schema/unrecognized_keys', subject, allowedFixes: fixes });
+    });
+
+    it('never "moves" into an array or suggests a far-fetched rename for a short key', () => {
+      const [value] = diags(base({ nodes: [node('a', { card: { title: 'a', value: 'x' } } as never), node('b')] }));
+      expect(value!.allowedFixes).toEqual([expect.stringMatching(/^remove "value"/)]);
+      const [file] = diags(base({ nodes: [node('a', { card: { title: 'a', file: 'x' } } as never), node('b')] }));
+      expect(file!.allowedFixes).toEqual([expect.stringMatching(/^remove "file"/)]);
+      const [id] = diags({ ...base(), id: 'x' });
+      expect(id!.allowedFixes).toEqual([expect.stringMatching(/^remove "id"/)]);
     });
 
     it('limits say how far to cut', () => {

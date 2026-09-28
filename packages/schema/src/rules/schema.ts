@@ -11,7 +11,7 @@ function valueAt(input: unknown, path: readonly PropertyKey[]): unknown {
   return v;
 }
 
-type JsonSchemaNode = { properties?: Record<string, JsonSchemaNode>; items?: JsonSchemaNode };
+type JsonSchemaNode = { type?: string; properties?: Record<string, JsonSchemaNode>; items?: JsonSchemaNode };
 let jsonSchema: JsonSchemaNode | undefined;
 
 function schemaAt(path: readonly PropertyKey[]): JsonSchemaNode | undefined {
@@ -23,14 +23,27 @@ function schemaAt(path: readonly PropertyKey[]): JsonSchemaNode | undefined {
 /** Property names allowed on the object at `path`, read from the emitted JSON Schema. */
 const keysAt = (path: readonly PropertyKey[]) => Object.keys(schemaAt(path)?.properties ?? {});
 
-/** The child object of `path` that does accept `key` (e.g. a node's `brand` belongs in `card`). */
+/**
+ * The plain-object child of `path` that accepts `key` (a node's `brand` belongs in `card`). Arrays are
+ * skipped: "move label into rows" would send the agent off to invent a row.
+ */
 function childAccepting(path: readonly PropertyKey[], key: string): string | undefined {
   const props = schemaAt(path)?.properties ?? {};
-  return Object.keys(props).find((k) => {
-    const child = props[k]!.items ?? props[k]!;
-    return child.properties !== undefined && key in child.properties;
-  });
+  return Object.keys(props).find((k) => props[k]!.type === 'object' && key in (props[k]!.properties ?? {}));
 }
+
+/** Whether the object enclosing `path` accepts `key` (card `evidence` belongs on the node). */
+function parentAccepts(path: readonly PropertyKey[], key: string): boolean {
+  if (!path.length) return false;
+  // The parent of `/nodes/0/card` is the node; of `/nodes/0` it is the array, so step past it to the diagram.
+  const up = path.slice(0, -1);
+  const parent = schemaAt(up);
+  const obj = parent?.properties ? parent : schemaAt(up.slice(0, -1));
+  return key in (obj?.properties ?? {});
+}
+
+// Names authors reach for that mean an existing field.
+const ALIASES: Record<string, string> = { name: 'title', label: 'title', description: 'subtitle', desc: 'subtitle', icon: 'brand', logo: 'brand' };
 
 const article = (t: string) => (/^[aeiou]/.test(t) ? `an ${t}` : `a ${t}`);
 
@@ -66,11 +79,15 @@ function fixes(issue: z.core.$ZodIssue, received: unknown): string[] {
       return [`match ${issue.pattern ?? issue.format}`];
     case 'unrecognized_keys': {
       const allowed = keysAt(issue.path);
-      return issue.keys.map((k) => {
+      return issue.keys.flatMap((k) => {
+        const alias = ALIASES[k];
+        if (alias && allowed.includes(alias)) return [`rename "${k}" to "${alias}"`];
         const near = closest(k, allowed, 1)[0];
-        if (near) return `rename "${k}" to "${near}"`;
+        if (near) return [`rename "${k}" to "${near}"`];
         const home = childAccepting(issue.path, k);
-        return home ? `move "${k}" into "${home}"` : `remove "${k}" (not valid here; allowed: ${allowed.join(', ')})`;
+        if (home) return [`move "${k}" into "${home}"`, `remove "${k}"`];
+        if (parentAccepts(issue.path, k)) return [`move "${k}" up to the enclosing object`, `remove "${k}"`];
+        return [`remove "${k}" (not valid here; allowed: ${allowed.join(', ')})`];
       });
     }
     default:

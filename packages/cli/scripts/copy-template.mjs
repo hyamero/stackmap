@@ -11,3 +11,5 @@ const html = readFileSync(src, 'utf8');
 if (!html.includes('<script type="application/json" id="stackmap-data"></script>')) fail('viewer build has no empty data block');
 if (/<script[^>]+src=/.test(html)) fail('viewer build is not single-file');
 copyFileSync(src, new URL('../dist/viewer.html', import.meta.url));
+// The package also serves the JSON Schema that diagrams' "$schema" points at (via unpkg).
+copyFileSync(new URL('../../schema/stackmap.schema.json', import.meta.url), new URL('../dist/stackmap.schema.json', import.meta.url));

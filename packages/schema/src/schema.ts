@@ -87,14 +87,14 @@ const View = z.strictObject({
 
 export const DiagramDraftSchema = z
   .strictObject({
-    $schema: z.string().optional(),
+    $schema: z.string().optional().meta({ description: `Optional; set it to ${'`'}https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json${'`'} for editor completion.` }),
     kind: z.enum(['architecture', 'dataflow']),
     title: text,
     subtitle: text.optional(),
     source: z
       .strictObject({ url: httpUrl })
       .optional()
-      .meta({ description: 'Base URL for evidence links: <url>/<file>#L<line>.' }),
+      .meta({ description: 'Base URL for evidence links: `<url>/<file>#L<line>`.' }),
     direction: z.enum(['RIGHT', 'DOWN']).optional().meta({ description: 'Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.' }),
     groups: z.array(Group).max(LIMITS.groups).optional(),
     nodes: z.array(Node).min(1).max(LIMITS.nodes),
@@ -103,7 +103,8 @@ export const DiagramDraftSchema = z
   })
   .meta({ title: 'stackmap diagram', description: 'Agent-authored diagram. Layout is computed by stackmap; never give coordinates.' });
 
-export const SCHEMA_ID = 'https://raw.githubusercontent.com/hyamero/stackmap/main/packages/schema/stackmap.schema.json';
+/** Served from the published CLI package, so it is pinned to the same version as the validator. */
+export const SCHEMA_ID = 'https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json';
 
 export function buildJsonSchema(): Record<string, unknown> {
   return { ...z.toJSONSchema(DiagramDraftSchema, { target: 'draft-2020-12' }), $id: SCHEMA_ID };

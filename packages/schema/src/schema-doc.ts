@@ -52,7 +52,6 @@ export function renderSchemaDoc(): string {
     const rows: string[] = [];
     const nested: [string, Node][] = [];
     for (const [key, prop] of Object.entries(obj.properties ?? {})) {
-      if (key === '$schema') continue;
       const base = name === 'Diagram' ? key : `${name}.${key}`;
       let link: string | undefined;
       if (prop.type === 'object' && prop.properties) nested.push([(link = base), prop]);

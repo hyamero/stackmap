@@ -16,7 +16,8 @@ export function levenshtein(a: string, b: string): number {
 
 /** Up to `n` candidates closest to `target`, nearest first, ties in candidate order; only plausible matches. */
 export function closest(target: string, candidates: Iterable<string>, n = 3): string[] {
-  const max = Math.max(2, Math.floor(target.length / 3));
+  // Short keys are one or two edits from almost anything (`id` → `kind`), so they only match on one.
+  const max = target.length <= 4 ? 1 : Math.max(2, Math.floor(target.length / 3));
   return [...new Set(candidates)]
     .map((c, i) => ({ c, i, d: levenshtein(target.toLowerCase(), c.toLowerCase()) }))
     .filter((x) => x.d <= max)

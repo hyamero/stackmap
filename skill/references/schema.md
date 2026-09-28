@@ -7,10 +7,11 @@ Agent-authored diagram. Layout is computed by stackmap; never give coordinates. 
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
+| `$schema` | string | no | Optional; set it to `https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json` for editor completion |
 | `kind` | enum | yes | one of `architecture`, `dataflow` |
 | `title` | string | yes | non-blank |
 | `subtitle` | string | no | non-blank |
-| `source` | object | no | Base URL for evidence links: <url>/<file>#L<line>. see [source](#source) |
+| `source` | object | no | Base URL for evidence links: `<url>/<file>#L<line>`. see [source](#source) |
 | `direction` | enum | no | Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams. one of `RIGHT`, `DOWN` |
 | `groups` | array | no | at most 200. see [groups[]](#groups) |
 | `nodes` | array | yes | at least 1. at most 500. see [nodes[]](#nodes) |
@@ -19,7 +20,7 @@ Agent-authored diagram. Layout is computed by stackmap; never give coordinates. 
 
 ## source
 
-Base URL for evidence links: <url>/<file>#L<line>.
+Base URL for evidence links: `<url>/<file>#L<line>`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
