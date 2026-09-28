@@ -20,6 +20,20 @@
       "type": "string",
       "pattern": "\\S"
     },
+    "source": {
+      "description": "Base URL for evidence links: <url>/<file>#L<line>.",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "pattern": "^https?:\\/\\/\\S+$"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    },
     "direction": {
       "description": "Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.",
       "type": "string",
@@ -228,6 +242,34 @@
               "title"
             ],
             "additionalProperties": false
+          },
+          "evidence": {
+            "description": "Source locations backing this node; listed in the inspector.",
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "pattern": "\\S",
+                  "description": "Repo-relative path, e.g. \"src/orders/api.ts\"."
+                },
+                "line": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "note": {
+                  "type": "string",
+                  "pattern": "\\S"
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [

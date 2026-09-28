@@ -6,11 +6,14 @@ import { NODE_TYPES } from '@stackmap/core';
 
 export const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 // Size caps keep validation and layout fast and the diagram readable; beyond them, split into views.
-export const LIMITS = { rows: 6, stats: 3, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50 } as const;
+export const LIMITS = { rows: 6, stats: 3, evidence: 8, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50 } as const;
 export const VISIBLE_TEXT = /\S/;
 
 const id = z.string().regex(ID_PATTERN).meta({ description: 'Lowercase id: letters, digits, "-" and "_"; starts with a letter or digit.' });
 const text = z.string().regex(VISIBLE_TEXT);
+// A regex rather than z.url(): it carries into the JSON Schema, and only http(s) may become a link.
+export const HTTP_URL = /^https?:\/\/\S+$/;
+const httpUrl = z.string().regex(HTTP_URL);
 
 const FooterItem = z.strictObject({
   text,
@@ -36,10 +39,15 @@ const Card = z.strictObject({
   cta: z
     .strictObject({
       label: text,
-      // A regex rather than z.url(): it carries into the JSON Schema, and only http(s) may become a link.
-      href: z.string().regex(/^https?:\/\/\S+$/).optional(),
+      href: httpUrl.optional(),
     })
     .optional(),
+});
+
+const Evidence = z.strictObject({
+  file: text.meta({ description: 'Repo-relative path, e.g. "src/orders/api.ts".' }),
+  line: z.number().int().positive().optional(),
+  note: text.optional(),
 });
 
 const Node = z.strictObject({
@@ -47,6 +55,11 @@ const Node = z.strictObject({
   type: z.enum(NODE_TYPES).meta({ description: 'Sets the card color. Never color by brand.' }),
   group: id.optional(),
   card: Card,
+  evidence: z
+    .array(Evidence)
+    .max(LIMITS.evidence)
+    .optional()
+    .meta({ description: 'Source locations backing this node; listed in the inspector.' }),
 });
 
 const Edge = z.strictObject({
@@ -72,6 +85,10 @@ export const DiagramDraftSchema = z
     kind: z.enum(['architecture', 'dataflow']),
     title: text,
     subtitle: text.optional(),
+    source: z
+      .strictObject({ url: httpUrl })
+      .optional()
+      .meta({ description: 'Base URL for evidence links: <url>/<file>#L<line>.' }),
     direction: z.enum(['RIGHT', 'DOWN']).optional().meta({ description: 'Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.' }),
     groups: z.array(Group).max(LIMITS.groups).optional(),
     nodes: z.array(Node).min(1).max(LIMITS.nodes),

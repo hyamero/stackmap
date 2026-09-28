@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { Diagnostic } from '../diagnostics';
-import { buildJsonSchema, ID_PATTERN, VISIBLE_TEXT } from '../schema';
+import { buildJsonSchema, HTTP_URL, ID_PATTERN, VISIBLE_TEXT } from '../schema';
 import { closest, pointer, toId } from '../util';
 
 const kindOf = (v: unknown) => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
@@ -47,7 +47,7 @@ function fixes(issue: z.core.$ZodIssue, received: unknown): string[] {
       if (issue.format === 'regex' && issue.pattern === String(ID_PATTERN))
         return [`use a lowercase id such as "${toId(String(received ?? ''))}"`];
       if (issue.format === 'regex' && issue.pattern === String(VISIBLE_TEXT)) return [`give "${key}" visible text`];
-      if (key === 'href') return ['use an http(s) URL', 'remove "href"'];
+      if (issue.format === 'regex' && issue.pattern === String(HTTP_URL)) return ['use an http(s) URL', `remove "${key}"`];
       return [`match ${issue.pattern ?? issue.format}`];
     case 'unrecognized_keys': {
       const allowed = keysAt(issue.path);

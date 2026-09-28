@@ -69,7 +69,7 @@ describe('validateDiagram', () => {
 
     it('only suggests keys valid on the offending object, never the key itself', () => {
       const onNode = diags(base({ nodes: [node('a', { label: 'x' } as never), node('b')] }))[0];
-      expect(onNode).toMatchObject({ subject: '/nodes/0', allowedFixes: ['remove "label" (not valid here; allowed: id, type, group, card)'] });
+      expect(onNode).toMatchObject({ subject: '/nodes/0', allowedFixes: ['remove "label" (not valid here; allowed: id, type, group, card, evidence)'] });
       const onEdge = diags(base({ edges: [{ id: 'ab', from: 'a', to: 'b', subtitel: 'x' } as never] }))[0];
       expect(onEdge!.allowedFixes).toEqual(['remove "subtitel" (not valid here; allowed: id, from, to, label, kind)']);
       const onRoot = diags({ ...base(), titel: 'x' })[0];
@@ -112,6 +112,10 @@ describe('validateDiagram', () => {
     it('rejects a non-http CTA link', () => {
       const [d] = diags(base({ nodes: [node('a', { card: { title: 'a', cta: { label: 'Go', href: 'javascript:alert(1)' } } })] }));
       expect(d).toMatchObject({ code: 'schema/invalid_format', subject: '/nodes/0/card/cta/href', allowedFixes: ['use an http(s) URL', 'remove "href"'] });
+    });
+
+    it('a non-http source URL gets the same fix', () => {
+      expect(diags(base({ source: { url: 'ftp://x' } }))[0]).toMatchObject({ subject: '/source/url', allowedFixes: ['use an http(s) URL', 'remove "url"'] });
     });
 
     it('returns only schema diagnostics when the schema fails', () => {

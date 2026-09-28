@@ -23,7 +23,16 @@ describe('DiagramDraftSchema', () => {
     expect(parses(draft({ $schema: './stackmap.schema.json' }))).toBe(true);
   });
 
+  it('accepts node evidence and a source URL for evidence links', () => {
+    const evidence = [{ file: 'src/orders/api.ts', line: 42, note: 'route table' }, { file: 'infra/db.tf' }];
+    expect(parses(draft({ source: { url: 'https://github.com/acme/shop/blob/main' }, nodes: [node({ evidence })] }))).toBe(true);
+  });
+
   it.each([
+    ['evidence with line 0', draft({ nodes: [node({ evidence: [{ file: 'a.ts', line: 0 }] })] })],
+    ['evidence with a fractional line', draft({ nodes: [node({ evidence: [{ file: 'a.ts', line: 1.5 }] })] })],
+    ['more than 8 evidence items', draft({ nodes: [node({ evidence: Array(9).fill({ file: 'a.ts' }) })] })],
+    ['a non-http source URL', draft({ source: { url: 'file:///etc' } })],
     ['an uppercase id', draft({ nodes: [node({ id: 'Orders' })] })],
     ['an id starting with a dash', draft({ nodes: [node({ id: '-a' })] })],
     ['an unknown node type', draft({ nodes: [node({ type: 'lambda' })] })],
