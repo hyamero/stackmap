@@ -2,23 +2,48 @@
   "name": "@hyamero/stackmap",
   "version": "0.1.0",
   "description": "Validate agent-authored architecture diagrams and deliver them as one offline HTML viewer",
+  "keywords": [
+    "architecture",
+    "diagram",
+    "agent",
+    "skill",
+    "claude",
+    "elk",
+    "offline",
+    "html",
+    "dataflow"
+  ],
+  "homepage": "https://github.com/hyamero/stackmap#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyamero/stackmap.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/hyamero/stackmap/issues",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "stackmap": "./dist/cli.js"
+    "stackmap": "dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "engines": {
     "node": "^22.12.0 || >=24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsup && node scripts/copy-template.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "smoke": "bun run --filter @stackmap/viewer build && bun run build && node scripts/smoke.mjs",
-    "e2e": "bun run --filter @stackmap/viewer build && bun run build && playwright test"
+    "e2e": "bun run --filter @stackmap/viewer build && bun run build && playwright test",
+    "prepack": "bun run build && node scripts/prepack.mjs"
   },
   "dependencies": {
     "elkjs": "^0.12.0"

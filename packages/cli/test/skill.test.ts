@@ -22,3 +22,10 @@ describe('skill ↔ CLI version', () => {
       expect(JSON.parse(skill(`examples/${f}`)).$schema, f).toBe(SCHEMA_ID);
   });
 });
+
+describe('package.json', () => {
+  it('declares bin paths the way npm publish accepts them (no "./" prefix, or npm drops the bin)', () => {
+    const { bin } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { bin: Record<string, string> };
+    expect(bin).toEqual({ stackmap: 'dist/cli.js' });
+  });
+});
