@@ -33,11 +33,17 @@ function useCameraEffects(scene: Scene, camera: Camera) {
     else if (!first.current) camera.fit();
     first.current = false;
   }, [state.view, draft, rectOf, camera]);
+  const latest = useRef({ state, draft });
+  latest.current = { state, draft };
   useEffect(() => {
-    const r = state.reveal && state.selected ? rectOf.get(state.selected) : undefined;
-    if (r) camera.centerOn({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
-    // Only a new reveal moves the camera, not every selection.
-  }, [state.reveal]);
+    // Only a new reveal moves the camera, not every selection; read the rest from the latest render.
+    const { state: s, draft: d } = latest.current;
+    const r = s.reveal && s.selected ? rectOf.get(s.selected) : undefined;
+    if (!r) return;
+    // Inside the active view the fit already shows it; centring would undo the view's zoom (Q27).
+    const inView = s.view && d.views?.find((v) => v.id === s.view)?.nodes.includes(s.selected!);
+    if (!inView) camera.centerOn({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
+  }, [state.reveal, rectOf, camera]);
 }
 
 const GRID = 20;
@@ -70,7 +76,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
   const stageRef = useRef<HTMLDivElement>(null);
   const viewport = useZoom(stageRef, scene.content);
   const { camera } = viewport;
-  const { emphasis, dispatch } = useExplore();
+  const { emphasis, dispatch, state } = useExplore();
   const [minimap, setMinimap] = useState(false);
   const { x, y, k } = viewport.transform;
   useCameraEffects(scene, camera);
@@ -96,6 +102,8 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
     <ViewportProvider value={viewport}>
      <CameraProvider value={camera}>
       <div className="relative size-full">
+        {/* Top-left chrome first in the DOM: Tab reaches search/lens/trace before the cards. */}
+        {children}
         <div
           ref={stageRef}
           role="region"
@@ -112,7 +120,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
             className="sm-viewport absolute top-0 left-0 origin-top-left"
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
           >
-            <SceneLayers scene={scene} emphasis={emphasis} />
+            <SceneLayers scene={scene} emphasis={emphasis} selected={state.selected} />
           </div>
         </div>
         {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}
@@ -124,7 +132,6 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
             <Minimap scene={scene} />
           </CanvasPanel>
         )}
-        {children}
       </div>
      </CameraProvider>
     </ViewportProvider>

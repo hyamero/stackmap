@@ -1,15 +1,15 @@
-import { memo, useMemo, type CSSProperties, type KeyboardEvent } from 'react';
+import { memo, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { TYPE_LABELS, type Rect } from '@stackmap/core';
 import { NodeCard } from '../card/NodeCard';
 import type { Emphasis, NodeEmphasis } from '../explore/emphasis';
-import { useExplore } from '../explore/ExploreContext';
+import { useExploreDispatch } from '../explore/ExploreContext';
 import { neighbourInDirection, type Direction } from '../explore/graph';
 import { arrowMarkerId, ArrowMarkerDefs } from './ArrowMarker';
 import type { Scene, SceneCard, SceneFrame } from './scene';
 import { useCamera } from './ViewportContext';
 
 const ARROWS: Record<string, Direction> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
-const focusCard = (id: string) => document.querySelector<HTMLElement>(`.sm-card[data-card-id="${CSS.escape(id)}"]`)?.focus();
+export const focusCard = (id: string) => document.querySelector<HTMLElement>(`.sm-card[data-card-id="${CSS.escape(id)}"]`)?.focus();
 
 const place = ({ x, y, width, height }: { x: number; y: number; width: number; height: number }): CSSProperties => ({
   left: x,
@@ -45,22 +45,29 @@ function Frame({ frame }: { frame: SceneFrame }) {
   );
 }
 
-function Card({
+// Memoised with stable props: an explorer change re-renders only the cards whose emphasis changed.
+const Card = memo(function Card({
   card,
   horizontal,
   state,
   rects,
+  tabbable,
+  onFocused,
 }: {
   card: SceneCard;
   horizontal: boolean;
   state: NodeEmphasis;
   rects: Record<string, Rect>;
+  /** roving tabindex: one card is the canvas's tab stop, arrows move between the rest */
+  tabbable: boolean;
+  onFocused: (id: string) => void;
 }) {
   const { node, rect, hasIn, hasOut } = card;
-  const { dispatch } = useExplore();
+  const dispatch = useExploreDispatch();
   const camera = useCamera();
   const accent = { '--sm-handle': `var(--sm-${node.type}-accent)` } as CSSProperties;
   const onKeyDown = (e: KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;
     const dir = ARROWS[e.key];
     if (dir) {
       const next = neighbourInDirection(rects, node.id, dir);
@@ -79,16 +86,21 @@ function Card({
       data-card-id={node.id}
       data-emphasis={state}
       role="button"
-      tabIndex={0}
+      tabIndex={tabbable ? 0 : -1}
       aria-pressed={state === 'focus'}
       aria-label={`${node.card.title}, ${TYPE_LABELS[node.type]}`}
       className="sm-card absolute cursor-pointer"
       style={{ ...place(rect), ...accent }}
       onClick={(e) => {
         e.stopPropagation();
+        if ((e.target as Element).closest('a')) return; // the card's CTA link opens, not selects
         dispatch({ type: 'select', id: node.id });
       }}
-      onFocus={() => camera.ensureVisible(rect)}
+      onFocus={(e) => {
+        onFocused(node.id);
+        // Keyboard focus only: a mouse-down focus would start a pan that fights the user's drag.
+        if (e.currentTarget.matches(':focus-visible')) camera.ensureVisible(rect);
+      }}
       onKeyDown={onKeyDown}
     >
       <NodeCard node={node} />
@@ -96,14 +108,24 @@ function Card({
       {hasOut && <span aria-hidden="true" data-handle="out" className="sm-handle" style={handleStyle('out', horizontal)} />}
     </div>
   );
-}
+});
 
 // Paint order is the z-order: frames < edges < cards (+ handle dots) < edge labels.
 // Memoised: `scene` and `emphasis` are stable across pan/zoom frames, so without this every d3-zoom
 // transform update re-rendered every card.
-export const SceneLayers = memo(function SceneLayers({ scene, emphasis }: { scene: Scene; emphasis: Emphasis }) {
+export const SceneLayers = memo(function SceneLayers({
+  scene,
+  emphasis,
+  selected,
+}: {
+  scene: Scene;
+  emphasis: Emphasis;
+  selected: string | null;
+}) {
   const horizontal = scene.direction === 'RIGHT';
   const rects = useMemo(() => Object.fromEntries(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
+  const [lastFocused, setLastFocused] = useState<string | null>(null);
+  const tabStop = selected ?? (lastFocused && rects[lastFocused] ? lastFocused : scene.cards[0]?.node.id);
   return (
     <>
       {scene.frames.map((f) => (
@@ -138,7 +160,15 @@ export const SceneLayers = memo(function SceneLayers({ scene, emphasis }: { scen
         })}
       </svg>
       {scene.cards.map((c) => (
-        <Card key={c.node.id} card={c} horizontal={horizontal} state={emphasis.nodes.get(c.node.id) ?? 'normal'} rects={rects} />
+        <Card
+          key={c.node.id}
+          card={c}
+          horizontal={horizontal}
+          state={emphasis.nodes.get(c.node.id) ?? 'normal'}
+          rects={rects}
+          tabbable={c.node.id === tabStop}
+          onFocused={setLastFocused}
+        />
       ))}
       {scene.edges.map((e) =>
         e.label && e.mid ? (

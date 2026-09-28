@@ -115,7 +115,22 @@ describe('validateDiagram', () => {
     });
 
     it('a non-http source URL gets the same fix', () => {
-      expect(diags(base({ source: { url: 'ftp://x' } }))[0]).toMatchObject({ subject: '/source/url', allowedFixes: ['use an http(s) URL', 'remove "url"'] });
+      // Removing only "url" would leave an invalid `source: {}`; the fix must name the whole object.
+      expect(diags(base({ source: { url: 'ftp://x' } }))[0]).toMatchObject({ subject: '/source/url', allowedFixes: ['use an http(s) URL', 'remove "source"'] });
+    });
+
+    it.each(['../../other/repo/x.ts', '/etc/passwd', 'src\\\\win.ts', 'https://evil.example/x', 'a/../b.ts'])(
+      'rejects evidence file %s: repo-relative paths only',
+      (file) => {
+        const [d] = diags(base({ nodes: [node('a', { evidence: [{ file }] }), node('b')] }));
+        expect(d).toMatchObject({ subject: '/nodes/0/evidence/0/file', allowedFixes: ['use a repo-relative path like "src/api/server.ts" (no "..", "\\", "://" or leading "/")'] });
+      },
+    );
+
+    it('accepts ordinary repo-relative evidence paths', () => {
+      for (const file of ['src/a.ts', '.github/workflows/ci.yml', 'docs/my file#1.md', 'a..b/c.ts']) {
+        expect(validateDiagram(base({ nodes: [node('a', { evidence: [{ file }] }), node('b')] })).ok, file).toBe(true);
+      }
     });
 
     it('returns only schema diagnostics when the schema fails', () => {

@@ -155,14 +155,88 @@ test('keyboard only: tab to a card, arrow between cards, Enter selects, Escape c
   await expect(inspector(page).getByRole('heading', { level: 2, name: 'commerce-api-1' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(card(page, 'commerce-api-1')).toHaveAttribute('aria-pressed', 'false');
-  // Every card is reachable with Tab.
-  const ids = new Set<string>();
-  await page.locator('.sm-stage').focus();
-  for (let i = 0; i < 6; i++) {
+});
+
+test('Tab reaches the toolbar before the canvas, and the canvas is one tab stop (roving)', async ({ page }) => {
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  const order: string[] = [];
+  for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab');
-    ids.add((await page.evaluate(() => document.activeElement?.getAttribute('data-card-id'))) ?? '');
+    order.push(
+      await page.evaluate(() => {
+        const el = document.activeElement!;
+        return el.getAttribute('data-card-id') ? `card:${el.getAttribute('data-card-id')}` : (el.getAttribute('aria-label') ?? el.textContent ?? el.tagName).trim();
+      }),
+    );
   }
-  expect([...ids].sort()).toEqual(['commerce-api-1', 'commerce-api-2', 'commerce-api-3', 'edge', 'orders', 'sessions']);
+  expect(order.indexOf('Search nodes (/)')).toBeLessThan(order.findIndex((x) => x.startsWith('card:')));
+  expect(order.filter((x) => x.startsWith('card:'))).toEqual(['card:edge']);
+  // Arrows still reach every card from the single tab stop (walk every direction from every card reached).
+  const seen = new Set(['edge']);
+  const queue = ['edge'];
+  while (queue.length) {
+    const from = queue.shift()!;
+    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+      await card(page, from).focus();
+      await page.keyboard.press(key);
+      const to = await page.evaluate(() => document.activeElement?.getAttribute('data-card-id'));
+      if (to && !seen.has(to)) seen.add(to) && queue.push(to);
+    }
+  }
+  expect([...seen].sort()).toEqual(['commerce-api-1', 'commerce-api-2', 'commerce-api-3', 'edge', 'orders', 'sessions']);
+});
+
+test('focus is never dropped: search Enter lands on the card, Esc returns to the button, Clear returns to the card', async ({ page }) => {
+  await page.locator('body').press('/');
+  await page.getByRole('combobox').fill('orders');
+  await page.getByRole('combobox').press('Enter');
+  await expect(card(page, 'orders')).toBeFocused();
+  await page.getByRole('button', { name: /Search nodes/ }).click();
+  await page.getByRole('combobox').press('Escape');
+  await expect(page.getByRole('button', { name: /Search nodes/ })).toBeFocused();
+  await inspector(page).getByRole('button', { name: /Clear selection/ }).click();
+  await expect(card(page, 'orders')).toBeFocused();
+  await expect(card(page, 'orders')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('Escape closes the lens from its button and on the page body clears the selection', async ({ page }) => {
+  await page.getByRole('button', { name: 'Filter by type' }).click();
+  await expect(page.getByRole('checkbox').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('checkbox')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Filter by type' })).toBeFocused();
+  await card(page, 'orders').click();
+  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+  await page.keyboard.press('Escape');
+  await expect(card(page, 'orders')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the inspector collapses with a node selected, keeping focus on its toggle', async ({ page }) => {
+  await card(page, 'orders').click();
+  await inspector(page).getByRole('button', { name: 'Hide inspector' }).click();
+  await expect(inspector(page).getByRole('button', { name: 'Show inspector' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(inspector(page).getByRole('button', { name: 'Hide inspector' })).toBeFocused();
+  await expect(inspector(page).getByRole('heading', { level: 2, name: 'Orders' })).toBeVisible();
+});
+
+test('a hash change to another node moves the camera to it', async ({ page }) => {
+  await page.goto('/?page=sample#node=orders');
+  await settle(page);
+  const before = await viewportOf(page);
+  await page.evaluate(() => (location.hash = '#node=edge'));
+  await settle(page);
+  await expect(card(page, 'edge')).toHaveAttribute('aria-pressed', 'true');
+  expect(await viewportOf(page)).not.toEqual(before);
+});
+
+test('a deep link to a node inside a view keeps the view’s fit', async ({ page }) => {
+  await page.goto('/?page=sample#view=data');
+  await settle(page);
+  const viewFit = await viewportOf(page);
+  await page.goto('/?page=sample#view=data&node=orders');
+  await settle(page);
+  expect((await viewportOf(page)).k).toBeCloseTo(viewFit.k, 3);
 });
 
 test('focusing an off-screen card pans it into view', async ({ page }) => {
@@ -170,12 +244,15 @@ test('focusing an off-screen card pans it into view', async ({ page }) => {
   await page.getByRole('button', { name: 'Zoom in' }).click();
   await page.getByRole('button', { name: 'Zoom in' }).click();
   await settle(page);
-  await card(page, 'sessions').focus();
+  // Arrive by keyboard, as a keyboard user would (programmatic focus after a click isn't :focus-visible).
+  await card(page, 'orders').focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(card(page, 'sessions')).toBeFocused();
   await settle(page);
   const stage = (await page.locator('.sm-stage').boundingBox())!;
   const c = (await card(page, 'sessions').boundingBox())!;
   expect(c.x).toBeGreaterThanOrEqual(stage.x);
-  expect(c.y).toBeGreaterThanOrEqual(stage.y);
+  expect(c.y).toBeGreaterThanOrEqual(stage.y + 80); // clear of the toolbar band
   expect(c.x + c.width).toBeLessThanOrEqual(stage.x + stage.width);
   expect(c.y + c.height).toBeLessThanOrEqual(stage.y + stage.height);
 });

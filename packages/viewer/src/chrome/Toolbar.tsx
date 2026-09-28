@@ -13,12 +13,27 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
   const { state, dispatch } = useExplore();
   const [lensOpen, setLensOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const searchButton = useRef<HTMLButtonElement>(null);
+  const lensButton = useRef<HTMLButtonElement>(null);
+  const closeSearch = () => {
+    dispatch({ type: 'search', query: null });
+    searchButton.current?.focus();
+  };
+  const closeLens = () => {
+    setLensOpen(false);
+    lensButton.current?.focus();
+  };
   const next = theme === 'dark' ? 'light' : 'dark';
   const searchOpen = state.query !== null;
 
-  // "/" opens search from anywhere except a text field.
+  // "/" opens search from anywhere except a text field; Escape from the page body clears the selection
+  // (cards, the stage and the popovers handle their own Escape and stop it).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented && (e.target === document.body || e.target === document.documentElement)) {
+        dispatch({ type: 'clear' });
+        return;
+      }
       if (e.key !== '/' || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault();
       setLensOpen(false);
@@ -41,10 +56,22 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
   }, [searchOpen, lensOpen, dispatch]);
 
   return (
-    <div ref={root} className={`${PANEL_CLASS} relative flex items-center gap-0.5 p-1.5`} style={PANEL_STYLE}>
+    <div
+      ref={root}
+      className={`${PANEL_CLASS} relative flex items-center gap-0.5 p-1.5`}
+      style={PANEL_STYLE}
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape' || !lensOpen) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeLens();
+      }}
+    >
       <IconButton
+        ref={searchButton}
         label="Search nodes (/)"
         pressed={searchOpen}
+        expanded={searchOpen}
         onClick={() => {
           setLensOpen(false);
           dispatch({ type: 'search', query: searchOpen ? null : '' });
@@ -53,8 +80,10 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         <Search size={17} strokeWidth={1.75} />
       </IconButton>
       <IconButton
+        ref={lensButton}
         label="Filter by type"
         pressed={lensOpen || state.hiddenTypes.size > 0}
+        expanded={lensOpen}
         onClick={() => {
           dispatch({ type: 'search', query: null });
           setLensOpen((v) => !v);
@@ -76,8 +105,8 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         <Download size={16} strokeWidth={2} aria-hidden="true" />
         Export
       </button>
-      {searchOpen && <SearchPanel />}
-      {lensOpen && <LensPanel onClose={() => setLensOpen(false)} />}
+      {searchOpen && <SearchPanel onClose={closeSearch} />}
+      {lensOpen && <LensPanel />}
     </div>
   );
 }

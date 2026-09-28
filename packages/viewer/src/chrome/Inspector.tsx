@@ -1,6 +1,7 @@
 import { ArrowDownLeft, ArrowUpRight, Copy, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramNode, type Evidence } from '@stackmap/core';
+import { focusCard } from '../canvas/SceneLayers';
 import { useExplore } from '../explore/ExploreContext';
 import { IconButton, PANEL_STYLE } from './ui';
 
@@ -31,7 +32,9 @@ function Legend({ draft }: { draft: DiagramDraft }) {
   );
 }
 
-const evidenceHref = (base: string, e: Evidence) => `${base.replace(/\/+$/, '')}/${e.file.replace(/^\/+/, '')}${e.line ? `#L${e.line}` : ''}`;
+// Each path segment is encoded, so `#`, `?`, `%` or spaces in a file name can't reshape the URL.
+const evidenceHref = (base: string, e: Evidence) =>
+  `${base.replace(/\/+$/, '')}/${e.file.split('/').filter(Boolean).map(encodeURIComponent).join('/')}${e.line ? `#L${e.line}` : ''}`;
 
 function EvidenceItem({ item, base }: { item: Evidence; base?: string }) {
   const [copied, setCopied] = useState(false);
@@ -96,7 +99,7 @@ function Connections({ node }: { node: DiagramNode }) {
   );
 }
 
-function NodeDetail({ node }: { node: DiagramNode }) {
+function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) {
   const { draft, dispatch } = useExplore();
   const { card } = node;
   return (
@@ -106,9 +109,18 @@ function NodeDetail({ node }: { node: DiagramNode }) {
           <span aria-hidden="true" className="size-2 rounded-full" style={{ background: `var(--sm-${node.type}-accent)` }} />
           {TYPE_LABELS[node.type]}
         </div>
-        <IconButton label="Clear selection (Esc)" onClick={() => dispatch({ type: 'clear' })}>
-          <X size={16} strokeWidth={1.75} />
-        </IconButton>
+        <div className="flex">
+          <IconButton
+            label="Clear selection (Esc)"
+            onClick={() => {
+              dispatch({ type: 'clear' });
+              focusCard(node.id); // back where the keyboard user came from
+            }}
+          >
+            <X size={16} strokeWidth={1.75} />
+          </IconButton>
+          {toggle}
+        </div>
       </div>
       <h2 className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">{card.title}</h2>
       {card.subtitle && <p className="mt-1 text-[13px] break-words text-fg-muted">{card.subtitle}</p>}
@@ -154,29 +166,50 @@ function NodeDetail({ node }: { node: DiagramNode }) {
   );
 }
 
+function Toggle({ collapsed, onToggle, ref }: { collapsed: boolean; onToggle: () => void; ref: Ref<HTMLButtonElement> }) {
+  return (
+    <IconButton ref={ref} label={collapsed ? 'Show inspector' : 'Hide inspector'} expanded={!collapsed} onClick={onToggle}>
+      {collapsed ? <PanelRightOpen size={17} strokeWidth={1.75} /> : <PanelRightClose size={17} strokeWidth={1.75} />}
+    </IconButton>
+  );
+}
+
 export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { draft, state } = useExplore();
   const selected = state.selected ? draft.nodes.find((n) => n.id === state.selected) : undefined;
+  // The toggle re-renders as its counterpart; keep keyboard focus on it across the switch.
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const toggled = useRef(false);
+  useEffect(() => {
+    if (toggled.current) toggleRef.current?.focus();
+    toggled.current = false;
+  }, [collapsed]);
+  const toggle = (
+    <Toggle
+      ref={toggleRef}
+      collapsed={collapsed}
+      onToggle={() => {
+        toggled.current = true;
+        onToggle();
+      }}
+    />
+  );
   if (collapsed) {
     return (
       <aside aria-label="Inspector" className="shrink-0 rounded-[20px] bg-panel p-1.5" style={PANEL_STYLE}>
-        <IconButton label="Show inspector" onClick={onToggle}>
-          <PanelRightOpen size={17} strokeWidth={1.75} />
-        </IconButton>
+        {toggle}
       </aside>
     );
   }
   return (
     <aside aria-label="Inspector" className="relative w-[300px] shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5" style={PANEL_STYLE}>
       {selected ? (
-        <NodeDetail node={selected} />
+        <NodeDetail node={selected} toggle={toggle} />
       ) : (
         <>
           <div className="flex items-center justify-between">
             <div className={eyebrow}>Diagram</div>
-            <IconButton label="Hide inspector" onClick={onToggle}>
-              <PanelRightClose size={17} strokeWidth={1.75} />
-            </IconButton>
+            {toggle}
           </div>
           <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-fg">{draft.title}</h2>
           {draft.subtitle && <p className="mt-1 text-[13px] text-fg-muted">{draft.subtitle}</p>}

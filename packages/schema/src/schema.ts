@@ -13,6 +13,8 @@ const id = z.string().regex(ID_PATTERN).meta({ description: 'Lowercase id: lette
 const text = z.string().regex(VISIBLE_TEXT);
 // A regex rather than z.url(): it carries into the JSON Schema, and only http(s) may become a link.
 export const HTTP_URL = /^https?:\/\/\S+$/;
+/** Repo-relative: no leading "/", no ".." segment, no backslash, no scheme; evidence links join it onto source.url. */
+export const REPO_PATH = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)(?!.*:\/\/).*\S.*$/;
 const httpUrl = z.string().regex(HTTP_URL);
 
 const FooterItem = z.strictObject({
@@ -45,7 +47,7 @@ const Card = z.strictObject({
 });
 
 const Evidence = z.strictObject({
-  file: text.meta({ description: 'Repo-relative path, e.g. "src/orders/api.ts".' }),
+  file: z.string().regex(REPO_PATH).meta({ description: 'Repo-relative path, e.g. "src/orders/api.ts".' }),
   line: z.number().int().positive().optional(),
   note: text.optional(),
 });

@@ -24,6 +24,9 @@ export interface ViewportApi extends Camera {
   camera: Camera;
 }
 
+// Stage bands covered by the top-left toolbar row and the bottom-left zoom bar (15px inset + panel + gap).
+const OVERLAY_BANDS = { top: 80, bottom: 76 };
+
 const duration = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
 const toZoom = (t: Transform) => zoomIdentity.translate(t.x, t.y).scale(t.k);
 
@@ -116,8 +119,11 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
   const ensureVisible = useCallback(
     (r: Rect) =>
       animate((z, el) => {
-        const margin = 24 / current.current.k;
-        const v = viewportRect(current.current, { width: el.clientWidth, height: el.clientHeight });
+        const { k } = current.current;
+        const margin = 24 / k;
+        const full = viewportRect(current.current, { width: el.clientWidth, height: el.clientHeight });
+        // Treat the overlay bands as off-screen so a focused card never ends up under the chrome.
+        const v = { ...full, y: full.y + OVERLAY_BANDS.top / k, height: full.height - (OVERLAY_BANDS.top + OVERLAY_BANDS.bottom) / k };
         const shift = (lo: number, size: number, vlo: number, vsize: number) =>
           lo - margin < vlo ? lo - margin - vlo : lo + size + margin > vlo + vsize ? lo + size + margin - (vlo + vsize) : 0;
         const dx = shift(r.x, r.width, v.x, v.width);

@@ -252,7 +252,7 @@
               "properties": {
                 "file": {
                   "type": "string",
-                  "pattern": "\\S",
+                  "pattern": "^(?!\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*\\\\)(?!.*:\\/\\/).*\\S.*$",
                   "description": "Repo-relative path, e.g. \"src/orders/api.ts\"."
                 },
                 "line": {

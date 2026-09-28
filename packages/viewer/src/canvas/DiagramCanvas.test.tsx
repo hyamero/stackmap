@@ -33,4 +33,16 @@ describe('DiagramCanvas', () => {
     expect(viewport().style.transform).not.toBe(transformBefore);
     expect(nodeCardRenders.mock.calls.length).toBe(rendersBefore);
   });
+
+  it('selecting a card re-renders only the cards whose emphasis or tab stop changed', () => {
+    const { container } = render(
+      <ExploreProvider draft={commerceApiLayout.draft}>
+        <DiagramCanvas diagram={commerceApiLayout} />
+      </ExploreProvider>,
+    );
+    nodeCardRenders.mockClear();
+    fireEvent.click(container.querySelector('.sm-card[data-card-id="orders"]')!);
+    // orders gains focus + the tab stop; edge (the default tab stop) loses it. The other four stay put.
+    expect([...new Set(nodeCardRenders.mock.calls.map(([id]) => id))].sort()).toEqual(['edge', 'orders']);
+  });
 });

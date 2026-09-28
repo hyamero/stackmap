@@ -123,6 +123,8 @@ export function NodeCard({ node }: { node: DiagramNode }) {
         <div data-testid="card-cta" className="shrink-0 px-3" style={{ height: CARD.cta }}>
           <a
             href={card.cta.href}
+            // Not a tab stop inside the card (nested interactive); the inspector repeats the link.
+            tabIndex={-1}
             target="_blank"
             rel="noreferrer"
             className="flex h-9 items-center justify-between rounded-lg px-3 text-[13px] font-medium text-fg"

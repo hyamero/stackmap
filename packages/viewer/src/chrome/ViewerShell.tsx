@@ -13,18 +13,23 @@ const KIND_LABEL = { architecture: 'Architecture', dataflow: 'Dataflow' } as con
 /** Below this width the inspector starts collapsed (Q27). */
 const INSPECTOR_BREAKPOINT = 1100;
 
+// Author view ids are prefixed so a view named "overview" can't collide with the built-in tab.
+const tabId = (id: string | null) => (id === null ? 'sm-tab-overview' : `sm-tab-v-${id}`);
+const DIAGRAM_ID = 'sm-diagram';
+
 function ViewTabs() {
   const { draft, state, dispatch } = useExplore();
   const tabs = [{ id: null, label: 'Overview', caption: undefined }, ...(draft.views ?? []).map((v) => ({ ...v, id: v.id as string | null }))];
   const current = tabs.find((t) => t.id === state.view) ?? tabs[0]!;
   // Roving focus across the tablist, per the ARIA tabs pattern.
   const onKeyDown = (e: KeyboardEvent, i: number) => {
-    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    if (!step) return;
+    const last = tabs.length - 1;
+    const to = { ArrowRight: (i + 1) % tabs.length, ArrowLeft: (i + last) % tabs.length, Home: 0, End: last }[e.key];
+    if (to === undefined) return;
     e.preventDefault();
-    const next = tabs[(i + step + tabs.length) % tabs.length]!;
+    const next = tabs[to]!;
     dispatch({ type: 'view', id: next.id });
-    document.getElementById(`sm-tab-${next.id ?? 'overview'}`)?.focus();
+    document.getElementById(tabId(next.id))?.focus();
   };
   return (
     <>
@@ -32,8 +37,9 @@ function ViewTabs() {
         {tabs.map((tab, i) => (
           <button
             key={tab.id ?? 'overview'}
-            id={`sm-tab-${tab.id ?? 'overview'}`}
+            id={tabId(tab.id)}
             role="tab"
+            aria-controls={DIAGRAM_ID}
             type="button"
             aria-selected={tab === current}
             tabIndex={tab === current ? 0 : -1}
@@ -88,6 +94,8 @@ export function ViewerShell({
         </header>
         <main className="flex min-h-0 flex-1 gap-4 px-8 pt-5 pb-6">
           <section
+            id={DIAGRAM_ID}
+            role="tabpanel"
             aria-label="Diagram"
             className="relative min-w-0 flex-1 overflow-hidden rounded-[20px] bg-stage"
             style={{ boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}

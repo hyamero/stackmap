@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type Dispatch, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type Dispatch, type ReactNode } from 'react';
 import type { DiagramDraft } from '@stackmap/core';
 import { emphasis, type Emphasis } from './emphasis';
 import { buildGraph, type Graph } from './graph';
@@ -13,6 +13,14 @@ export interface Explore {
 }
 
 const ExploreContext = createContext<Explore | null>(null);
+// `dispatch` never changes; cards read it from here so explorer state changes don't re-render them all.
+const DispatchContext = createContext<Dispatch<ExploreAction> | null>(null);
+
+export function useExploreDispatch(): Dispatch<ExploreAction> {
+  const d = useContext(DispatchContext);
+  if (!d) throw new Error('useExploreDispatch must be used inside ExploreProvider');
+  return d;
+}
 
 export function useExplore(): Explore {
   const ctx = useContext(ExploreContext);
@@ -31,6 +39,8 @@ export function ExploreProvider({ draft, children }: { draft: DiagramDraft; chil
   const [state, dispatch] = useReducer(explore, undefined, () => parseHash(location.hash, known));
   const graph = useMemo(() => buildGraph(draft.nodes.map((n) => n.id), draft.edges), [draft]);
   const em = useMemo(() => emphasis(draft, graph, state), [draft, graph, state]);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // Deep links: the hash mirrors view/node/lens without adding history entries.
   const hash = formatHash(state);
@@ -39,11 +49,20 @@ export function ExploreProvider({ draft, children }: { draft: DiagramDraft; chil
     history.replaceState(history.state, '', hash || location.pathname + location.search);
   }, [hash]);
   useEffect(() => {
-    const onHash = () => dispatch({ type: 'replace', state: { ...parseHash(location.hash, known), trace: false } });
+    // A new node in the hash is a new reveal, so the camera follows every deep link, not just the first.
+    const onHash = () =>
+      dispatch({
+        type: 'replace',
+        state: { ...parseHash(location.hash, known), trace: false, reveal: stateRef.current.reveal + 1 },
+      });
     addEventListener('hashchange', onHash);
     return () => removeEventListener('hashchange', onHash);
   }, [known]);
 
   const value = useMemo(() => ({ draft, state, dispatch, graph, emphasis: em }), [draft, state, graph, em]);
-  return <ExploreContext.Provider value={value}>{children}</ExploreContext.Provider>;
+  return (
+    <DispatchContext.Provider value={dispatch}>
+      <ExploreContext.Provider value={value}>{children}</ExploreContext.Provider>
+    </DispatchContext.Provider>
+  );
 }

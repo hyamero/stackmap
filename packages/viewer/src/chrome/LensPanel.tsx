@@ -2,17 +2,13 @@ import { countByType, TYPE_LABELS } from '@stackmap/core';
 import { useExplore } from '../explore/ExploreContext';
 import { PANEL_CLASS, PANEL_STYLE } from './ui';
 
-export function LensPanel({ onClose }: { onClose: () => void }) {
+// Escape is handled by the toolbar, so it closes the lens wherever focus is inside it.
+export function LensPanel() {
   const { draft, state, dispatch } = useExplore();
   return (
     <fieldset
       className={`${PANEL_CLASS} absolute top-full left-0 z-20 mt-2 w-[240px] p-3`}
       style={PANEL_STYLE}
-      onKeyDown={(e) => {
-        if (e.key !== 'Escape') return;
-        e.stopPropagation();
-        onClose();
-      }}
     >
       <legend className="sr-only">Show node types</legend>
       <p className="mb-2 text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase" aria-hidden="true">
