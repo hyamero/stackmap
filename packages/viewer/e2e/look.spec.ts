@@ -1,7 +1,36 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 // Screenshots are review artifacts for the M0 sign-off, not assertions; docs/ is git-ignored.
 const OUT = '../../docs/design/spike';
+
+type Clip = { x: number; y: number; width: number; height: number };
+
+const tokenRgb = (page: Page, name: string) =>
+  page.evaluate((v) => {
+    const hex = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  }, name);
+
+/** Screenshot a region and, per device pixel, report whether it is closer to `ink` than to `paper`. */
+async function inkMask(page: Page, clip: Clip, ink: number[], paper: number[]) {
+  const png = await page.screenshot({ clip });
+  const { width, height, data } = await page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    [c.width, c.height] = [img.width, img.height];
+    const ctx = c.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    return { width: c.width, height: c.height, data: [...ctx.getImageData(0, 0, c.width, c.height).data] };
+  }, png.toString('base64'));
+  const d = (i: number, rgb: number[]) => Math.hypot(data[i]! - rgb[0]!, data[i + 1]! - rgb[1]!, data[i + 2]! - rgb[2]!);
+  const inked = (x: number, y: number) => {
+    const i = (y * width + x) * 4;
+    return d(i, ink) < d(i, paper);
+  };
+  return { width, height, pxPerCss: width / clip.width, inked };
+}
 
 for (const theme of ['light', 'dark'] as const) {
   test.describe(theme, () => {
@@ -49,49 +78,48 @@ for (const theme of ['light', 'dark'] as const) {
       );
       expect(unresolved).toEqual([]);
 
-      const [edgeRgb, stageRgb] = await page.evaluate(() =>
-        ['--sm-edge', '--sm-stage'].map((v) => {
-          const hex = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-          return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-        }),
-      );
+      const [edgeRgb, stageRgb] = [await tokenRgb(page, '--sm-edge'), await tokenRgb(page, '--sm-stage')];
       for (const target of ['commerce-api-1', 'commerce-api-2', 'commerce-api-3', 'orders', 'sessions']) {
         const handle = (await page.locator(`[data-id="${target}"] .react-flow__handle[data-handleid="in"]`).boundingBox())!;
         const cy = handle.y + handle.height / 2;
         // Strip left of the dot: a bare 1.25px line has no edge-coloured pixels 1px+ off its axis, an arrowhead does.
-        const png = await page.screenshot({ clip: { x: handle.x - 10, y: cy - 4, width: 10, height: 8 } });
-        const visibleLength = await page.evaluate(
-          async ({ b64, edge, stage }) => {
-            const img = new Image();
-            img.src = `data:image/png;base64,${b64}`;
-            await img.decode();
-            const c = document.createElement('canvas');
-            [c.width, c.height] = [img.width, img.height];
-            const ctx = c.getContext('2d')!;
-            ctx.drawImage(img, 0, 0);
-            const { data } = ctx.getImageData(0, 0, c.width, c.height);
-            const pxPerCss = c.height / 8;
-            const isEdge = (x: number, y: number) => {
-              const i = (y * c.width + x) * 4;
-              const d = (rgb: number[]) => Math.hypot(data[i]! - rgb[0]!, data[i + 1]! - rgb[1]!, data[i + 2]! - rgb[2]!);
-              return d(edge) < d(stage);
-            };
-            let columns = 0;
-            for (let x = 0; x < c.width; x++) {
-              let above = false;
-              let below = false;
-              for (let y = 0; y < c.height; y++) {
-                const off = (y + 0.5) / pxPerCss - 4;
-                if (Math.abs(off) >= 1 && isEdge(x, y)) off < 0 ? (above = true) : (below = true);
-              }
-              if (above && below) columns++;
-            }
-            return columns / pxPerCss;
-          },
-          { b64: png.toString('base64'), edge: edgeRgb!, stage: stageRgb! },
-        );
-        expect(visibleLength, `${target} arrowhead visible length (css px)`).toBeGreaterThanOrEqual(2);
+        const m = await inkMask(page, { x: handle.x - 10, y: cy - 4, width: 10, height: 8 }, edgeRgb, stageRgb);
+        let columns = 0;
+        for (let x = 0; x < m.width; x++) {
+          let above = false;
+          let below = false;
+          for (let y = 0; y < m.height; y++) {
+            const off = (y + 0.5) / m.pxPerCss - 4;
+            if (Math.abs(off) >= 1 && m.inked(x, y)) off < 0 ? (above = true) : (below = true);
+          }
+          if (above && below) columns++;
+        }
+        expect(columns / m.pxPerCss, `${target} arrowhead visible length (css px)`).toBeGreaterThanOrEqual(2);
       }
+    });
+
+    test('edges inside a group are drawn above its frame', async ({ page }) => {
+      await page.goto('/?page=grouped');
+      await expect(page.locator('.react-flow__node-frame')).toHaveCount(3);
+      const [edgeRgb, fillRgb] = [await tokenRgb(page, '--sm-edge'), await tokenRgb(page, '--sm-group-fill')];
+      // gw→auth and orders→jobs (async, dashed) both run entirely inside their group.
+      for (const id of ['e2', 'e5']) {
+        const mid = await page.locator(`.react-flow__edge-path[id="${id}"]`).evaluate((p: SVGPathElement) => {
+          const pt = p.getPointAtLength(p.getTotalLength() / 2).matrixTransform(p.getScreenCTM()!);
+          return { x: pt.x, y: pt.y };
+        });
+        const m = await inkMask(page, { x: mid.x - 6, y: mid.y - 3, width: 12, height: 6 }, edgeRgb, fillRgb);
+        let inked = 0;
+        for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) if (m.inked(x, y)) inked++;
+        expect(inked, `${id} visible at its midpoint`).toBeGreaterThan(0);
+      }
+
+      // Labels sit on their edge: the line must stop at the pill, not strike through it.
+      const pill = (await page.getByText('HTTPS', { exact: true }).boundingBox())!;
+      const m = await inkMask(page, { x: pill.x + 1.5, y: pill.y + pill.height / 2 - 1, width: 2.5, height: 2 }, edgeRgb, await tokenRgb(page, '--sm-panel'));
+      let inked = 0;
+      for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) if (m.inked(x, y)) inked++;
+      expect(inked, 'edge ink inside the HTTPS label pill').toBe(0);
     });
 
     test('handle dots are drawn only where an edge attaches', async ({ page }) => {

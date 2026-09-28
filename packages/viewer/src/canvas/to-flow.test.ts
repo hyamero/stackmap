@@ -31,6 +31,10 @@ describe('toFlow', () => {
     expect(edges.find((e) => e.id === 'e2')!.data!.kind).toBe('sync');
   });
 
+  it('stacks every edge above the group frames', () => {
+    for (const e of edges) expect(e.zIndex, e.id).toBeGreaterThan(0);
+  });
+
   it('marks which sides of each card have edges attached', () => {
     const sides = (id: string) => {
       const { hasIn, hasOut } = (nodes.find((n) => n.id === id) as CardFlowNode).data;

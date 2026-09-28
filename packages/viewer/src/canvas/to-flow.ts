@@ -47,6 +47,8 @@ export function toFlow(d: LaidOutDiagram): { nodes: (CardFlowNode | FrameFlowNod
     type: 'routed',
     data: { points: need(d.edges[e.id], `edge '${e.id}'`), kind: e.kind ?? 'sync', label: e.label },
     focusable: false,
+    // Above zIndex-0 frames, whose opaque fill would hide edges running inside a group.
+    zIndex: 1,
   }));
 
   // Frames first so React Flow paints them beneath the cards.

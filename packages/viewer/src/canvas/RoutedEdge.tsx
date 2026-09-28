@@ -21,6 +21,8 @@ export function RoutedEdge({ id, data }: EdgeProps<RoutedFlowEdge>) {
             className="pointer-events-none absolute rounded-full bg-panel px-2 py-0.5 font-sans text-[11px] text-fg-muted"
             style={{
               transform: `translate(-50%, -50%) translate(${mid.x}px, ${mid.y}px)`,
+              // Edges are raised to zIndex 1 (above frames); the pill must still cover its line.
+              zIndex: 2,
               boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)',
             }}
           >
