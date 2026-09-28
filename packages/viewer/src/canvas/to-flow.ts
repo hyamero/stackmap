@@ -1,4 +1,4 @@
-import { MarkerType, type Edge, type Node } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import type { DiagramNode, Direction, LaidOutDiagram, Point, Rect } from '@stackmap/core';
 
 export type CardFlowNode = Node<{ node: DiagramNode; direction: Direction }, 'card'>;
@@ -43,7 +43,6 @@ export function toFlow(d: LaidOutDiagram): { nodes: (CardFlowNode | FrameFlowNod
     targetHandle: 'in',
     type: 'routed',
     data: { points: need(d.edges[e.id], `edge '${e.id}'`), kind: e.kind ?? 'sync', label: e.label },
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: 'var(--sm-edge)' },
     focusable: false,
   }));
 

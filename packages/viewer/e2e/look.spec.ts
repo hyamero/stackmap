@@ -36,6 +36,64 @@ for (const theme of ['light', 'dark'] as const) {
       await page.screenshot({ path: `${OUT}/gallery-${theme}.png`, fullPage: true });
     });
 
+    test('every edge ends in an arrowhead drawn just before its target handle', async ({ page }) => {
+      await page.goto('/?page=sample');
+      await expect(page.locator('.react-flow__edge-path')).toHaveCount(9);
+      const unresolved = await page.$$eval('.react-flow__edge-path', (paths) =>
+        paths
+          .map((p) => {
+            const id = /^url\((['"]?)#(.+)\1\)$/.exec(p.getAttribute('marker-end') ?? '')?.[2];
+            return id && document.getElementById(id)?.tagName === 'marker' ? null : p.getAttribute('marker-end');
+          })
+          .filter((m) => m !== null),
+      );
+      expect(unresolved).toEqual([]);
+
+      const [edgeRgb, stageRgb] = await page.evaluate(() =>
+        ['--sm-edge', '--sm-stage'].map((v) => {
+          const hex = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+          return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+        }),
+      );
+      for (const target of ['commerce-api-1', 'commerce-api-2', 'commerce-api-3', 'orders', 'sessions']) {
+        const handle = (await page.locator(`[data-id="${target}"] .react-flow__handle[data-handleid="in"]`).boundingBox())!;
+        const cy = handle.y + handle.height / 2;
+        // Strip left of the dot: a bare 1.25px line has no edge-coloured pixels 1px+ off its axis, an arrowhead does.
+        const png = await page.screenshot({ clip: { x: handle.x - 10, y: cy - 4, width: 10, height: 8 } });
+        const visibleLength = await page.evaluate(
+          async ({ b64, edge, stage }) => {
+            const img = new Image();
+            img.src = `data:image/png;base64,${b64}`;
+            await img.decode();
+            const c = document.createElement('canvas');
+            [c.width, c.height] = [img.width, img.height];
+            const ctx = c.getContext('2d')!;
+            ctx.drawImage(img, 0, 0);
+            const { data } = ctx.getImageData(0, 0, c.width, c.height);
+            const pxPerCss = c.height / 8;
+            const isEdge = (x: number, y: number) => {
+              const i = (y * c.width + x) * 4;
+              const d = (rgb: number[]) => Math.hypot(data[i]! - rgb[0]!, data[i + 1]! - rgb[1]!, data[i + 2]! - rgb[2]!);
+              return d(edge) < d(stage);
+            };
+            let columns = 0;
+            for (let x = 0; x < c.width; x++) {
+              let above = false;
+              let below = false;
+              for (let y = 0; y < c.height; y++) {
+                const off = (y + 0.5) / pxPerCss - 4;
+                if (Math.abs(off) >= 1 && isEdge(x, y)) off < 0 ? (above = true) : (below = true);
+              }
+              if (above && below) columns++;
+            }
+            return columns / pxPerCss;
+          },
+          { b64: png.toString('base64'), edge: edgeRgb!, stage: stageRgb! },
+        );
+        expect(visibleLength, `${target} arrowhead visible length (css px)`).toBeGreaterThanOrEqual(2);
+      }
+    });
+
     test('Geist renders, and edges come from the baked routes', async ({ page }) => {
       await page.goto('/?page=sample');
       await page.evaluate(() => document.fonts.ready);

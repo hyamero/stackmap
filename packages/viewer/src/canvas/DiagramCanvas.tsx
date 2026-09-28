@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LaidOutDiagram } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
 import type { ThemeChoice } from '../theme/theme';
+import { ArrowMarker } from './ArrowMarker';
 import { CardNode } from './CardNode';
 import { FrameNode } from './FrameNode';
 import { RoutedEdge } from './RoutedEdge';
@@ -24,6 +25,7 @@ export function DiagramCanvas({
   const [minimap, setMinimap] = useState(false);
   return (
     <ReactFlowProvider>
+      <ArrowMarker />
       <ReactFlow
         nodes={nodes}
         edges={edges}

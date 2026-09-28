@@ -1,9 +1,10 @@
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react';
 import { polylineMidpoint, roundedOrthogonalPath } from '@stackmap/core';
+import { ARROW_MARKER_ID } from './ArrowMarker';
 import type { RoutedFlowEdge } from './to-flow';
 
 // Ignores React Flow's handle coordinates: the route is ELK's, baked at build time.
-export function RoutedEdge({ id, data, markerEnd }: EdgeProps<RoutedFlowEdge>) {
+export function RoutedEdge({ id, data }: EdgeProps<RoutedFlowEdge>) {
   const { points, kind, label } = data!;
   const mid = label ? polylineMidpoint(points) : null;
   return (
@@ -11,7 +12,7 @@ export function RoutedEdge({ id, data, markerEnd }: EdgeProps<RoutedFlowEdge>) {
       <BaseEdge
         id={id}
         path={roundedOrthogonalPath(points, 10)}
-        markerEnd={markerEnd}
+        markerEnd={`url(#${ARROW_MARKER_ID})`}
         style={{ stroke: 'var(--sm-edge)', strokeWidth: 1.25, strokeDasharray: kind === 'async' ? '5 4' : undefined }}
       />
       {label && mid && (
