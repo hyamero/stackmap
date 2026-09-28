@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LaidOutDiagram } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
 import { CanvasPanel } from './CanvasPanel';
@@ -10,16 +10,28 @@ import type { Transform } from './viewport';
 import { ViewportProvider } from './ViewportContext';
 
 const GRID = 20;
+const DOT = 1.2;
 
-// Dot grid that pans and scales with the diagram, like the M0 React Flow background.
-function gridStyle({ x, y, k }: Transform): CSSProperties {
+// Dot grid that pans and scales with the diagram — React Flow's <Background> pattern, so dot size and weight match M0.
+function DotGrid({ x, y, k }: Transform) {
   const gap = GRID * k;
-  const r = Math.max(0.5, 1.2 * k);
-  return {
-    backgroundImage: `radial-gradient(circle, var(--sm-grid) ${r}px, transparent ${r + 0.5}px)`,
-    backgroundSize: `${gap}px ${gap}px`,
-    backgroundPosition: `${x % gap}px ${y % gap}px`,
-  };
+  const r = (DOT * k) / 2;
+  return (
+    <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
+      <pattern
+        id="sm-grid"
+        patternUnits="userSpaceOnUse"
+        x={x % gap}
+        y={y % gap}
+        width={gap}
+        height={gap}
+        patternTransform={`translate(${-gap / 2},${-gap / 2})`}
+      >
+        <circle cx={r} cy={r} r={r} style={{ fill: 'var(--sm-grid)' }} />
+      </pattern>
+      <rect width="100%" height="100%" fill="url(#sm-grid)" />
+    </svg>
+  );
 }
 
 export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; children?: ReactNode }) {
@@ -37,8 +49,8 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
           role="region"
           aria-label="Diagram canvas"
           className="sm-stage absolute inset-0 cursor-grab overflow-hidden active:cursor-grabbing"
-          style={gridStyle(viewport.transform)}
         >
+          <DotGrid {...viewport.transform} />
           <div
             className="sm-viewport absolute top-0 left-0 origin-top-left"
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
