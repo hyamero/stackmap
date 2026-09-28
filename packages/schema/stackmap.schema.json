@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "architecture",
+        "dataflow"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subtitle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction": {
+      "description": "Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.",
+      "type": "string",
+      "enum": [
+        "RIGHT",
+        "DOWN"
+      ]
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parent": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "nodes": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "client",
+              "service",
+              "gateway",
+              "database",
+              "cache",
+              "queue",
+              "storage",
+              "external",
+              "security"
+            ],
+            "description": "Sets the card color. Never color by brand."
+          },
+          "group": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "card": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Card title. Must fit the card; `stackmap validate` reports the character budget."
+              },
+              "subtitle": {
+                "type": "string",
+                "minLength": 1
+              },
+              "brand": {
+                "description": "simple-icons slug shown in the icon tile, e.g. \"postgresql\".",
+                "type": "string"
+              },
+              "rows": {
+                "description": "Key/value rows. `mono` renders the value in Geist Mono (ports, IPs).",
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "value": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "mono": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "stats": {
+                "description": "Stat tiles, e.g. replica counts.",
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "statsNote": {
+                "description": "Line under the stat tiles; only shown with stats.",
+                "type": "string",
+                "minLength": 1
+              },
+              "footer": {
+                "type": "object",
+                "properties": {
+                  "left": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "icon": {
+                        "type": "string",
+                        "enum": [
+                          "region",
+                          "secure",
+                          "members"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "right": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "icon": {
+                        "type": "string",
+                        "enum": [
+                          "region",
+                          "secure",
+                          "members"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "cta": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "href": {
+                    "type": "string",
+                    "pattern": "^https?:\\/\\/\\S+$"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "card"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "label": {
+            "description": "Short label; use sparingly.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 24
+          },
+          "kind": {
+            "description": "async edges render dashed.",
+            "type": "string",
+            "enum": [
+              "sync",
+              "async"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "to"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "views": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]*$",
+              "description": "Lowercase id: letters, digits, \"-\" and \"_\"; starts with a letter or digit."
+            },
+            "description": "Node ids this guided view focuses; the rest are dimmed."
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "nodes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "kind",
+    "title",
+    "nodes",
+    "edges"
+  ],
+  "additionalProperties": false,
+  "title": "stackmap diagram",
+  "description": "Agent-authored diagram. Layout is computed by stackmap; never give coordinates.",
+  "$id": "https://raw.githubusercontent.com/hyamero/stackmap/main/packages/schema/stackmap.schema.json"
+}

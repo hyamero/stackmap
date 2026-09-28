@@ -1,0 +1,22 @@
+{
+  "name": "@stackmap/schema",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./stackmap.schema.json": "./stackmap.schema.json"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "schema:emit": "bun scripts/emit-schema.ts"
+  },
+  "dependencies": {
+    "@stackmap/core": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0"
+  }
+}
