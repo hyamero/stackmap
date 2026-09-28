@@ -124,6 +124,15 @@ for (const theme of ['light', 'dark'] as const) {
       expect(inked, 'edge ink inside the HTTPS label pill').toBe(0);
     });
 
+    test('React Flow attribution stays, on a transparent chip in muted text', async ({ page }) => {
+      await page.goto('/?page=sample');
+      const link = page.locator('.react-flow__attribution a');
+      await expect(link).toHaveText('React Flow');
+      const muted = await tokenRgb(page, '--sm-text-muted');
+      expect(await page.locator('.react-flow__attribution').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+      expect(await link.evaluate((el) => getComputedStyle(el).color)).toBe(`rgb(${muted.join(', ')})`);
+    });
+
     test('handle dots are drawn only where an edge attaches', async ({ page }) => {
       await page.goto('/?page=sample');
       await expect(page.locator('.react-flow__edge-path')).toHaveCount(9);

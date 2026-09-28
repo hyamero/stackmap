@@ -38,6 +38,15 @@ body {
   border: 1.5px solid var(--sm-handle);
 }
 
+/* Kept visible per React Flow's MIT attribution request; restyled so dark mode has no light chip. */
+.react-flow .react-flow__attribution {
+  background: transparent;
+}
+
+.react-flow .react-flow__attribution a {
+  color: var(--sm-text-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
