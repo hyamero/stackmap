@@ -62,6 +62,29 @@ describe('NodeCard', () => {
     );
   });
 
+  it('carries title on the stat value, statsNote and CTA label', () => {
+    const longStat = '1,234,567 requests';
+    const longNote = 'a very long stats note that will overflow the fixed-width stats panel';
+    const longCta = 'Open this extremely long external cluster dashboard link';
+    render(
+      <NodeCard
+        node={{
+          id: 'y',
+          type: 'service',
+          card: {
+            title: 'svc',
+            stats: [{ value: longStat, label: 'Requests' }],
+            statsNote: longNote,
+            cta: { label: longCta, href: 'https://example.com' },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(longStat)).toHaveAttribute('title', longStat);
+    expect(screen.getByText(longNote)).toHaveAttribute('title', longNote);
+    expect(screen.getByText(longCta)).toHaveAttribute('title', longCta);
+  });
+
   it('opens the CTA in a new tab safely', () => {
     render(<NodeCard node={rich} />);
     const link = screen.getByRole('link', { name: /open cluster/i });

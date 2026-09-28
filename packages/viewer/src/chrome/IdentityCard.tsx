@@ -9,8 +9,14 @@ export function IdentityCard({ draft }: { draft: DiagramDraft }) {
         <Workflow size={17} strokeWidth={1.75} aria-hidden="true" />
       </div>
       <div className="min-w-0 pr-4">
-        <div className="truncate text-[14px] leading-5 font-medium text-fg">{draft.title}</div>
-        {draft.subtitle && <div className="truncate text-[12.5px] leading-4 text-fg-muted">{draft.subtitle}</div>}
+        <div className="truncate text-[14px] leading-5 font-medium text-fg" title={draft.title}>
+          {draft.title}
+        </div>
+        {draft.subtitle && (
+          <div className="truncate text-[12.5px] leading-4 text-fg-muted" title={draft.subtitle}>
+            {draft.subtitle}
+          </div>
+        )}
       </div>
       <IconButton label="Diagram menu">
         <Ellipsis size={17} strokeWidth={1.75} />

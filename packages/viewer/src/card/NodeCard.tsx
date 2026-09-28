@@ -87,7 +87,9 @@ export function NodeCard({ node }: { node: DiagramNode }) {
             >
               {card.stats!.map((stat, i) => (
                 <div key={i} className="flex min-w-0 flex-col justify-center rounded-lg bg-stage px-2.5">
-                  <span className="truncate text-[15px] leading-5 font-medium text-fg tabular-nums">{stat.value}</span>
+                  <span className="truncate text-[15px] leading-5 font-medium text-fg tabular-nums" title={stat.value}>
+                    {stat.value}
+                  </span>
                   <span className="truncate text-[11px] leading-4 text-fg-muted" title={stat.label}>
                     {stat.label}
                   </span>
@@ -97,7 +99,9 @@ export function NodeCard({ node }: { node: DiagramNode }) {
             {card.statsNote && (
               <div className="flex items-center gap-1.5 px-3 text-[11.5px] text-fg-muted" style={{ height: CARD.statsNote }}>
                 <GitBranch size={12} strokeWidth={1.75} aria-hidden="true" />
-                <span className="truncate">{card.statsNote}</span>
+                <span className="truncate" title={card.statsNote}>
+                  {card.statsNote}
+                </span>
               </div>
             )}
           </div>
@@ -124,7 +128,9 @@ export function NodeCard({ node }: { node: DiagramNode }) {
             className="flex h-9 items-center justify-between rounded-lg px-3 text-[13px] font-medium text-fg"
             style={{ background: tint('tile') }}
           >
-            <span className="truncate">{card.cta.label}</span>
+            <span className="truncate" title={card.cta.label}>
+              {card.cta.label}
+            </span>
             <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: tint('accent') }} />
           </a>
         </div>
