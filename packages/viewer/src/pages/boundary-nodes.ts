@@ -3,7 +3,7 @@ import { cardTextSlots, measureText, type CardData, type DiagramNode } from '@st
 // Every slot filled with text ~2px under (fits) and ~2px over (truncates) its budget, so the browser test
 // that pins cardTextSlots to the rendered card has cases on both sides of each boundary.
 // No spaces: trailing whitespace collapses in the browser and would skew the edge cases.
-const FILLER = 'Boundary-text-for-budget-checks-abcdefghijklmnopqrstuvwxyz-0123456789-'.repeat(4);
+const FILLER = /* @__PURE__ */ 'Boundary-text-for-budget-checks-abcdefghijklmnopqrstuvwxyz-0123456789-'.repeat(4);
 const template: CardData = {
   title: FILLER,
   subtitle: FILLER,
