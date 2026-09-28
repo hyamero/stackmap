@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { cardTextSlots, measureText, type FontFace } from '@stackmap/core';
+import { boundaryNodes } from '../src/pages/boundary-nodes';
 import { GALLERY_SECTIONS } from '../src/pages/gallery-nodes';
 
 // Browser ground truth for the headless card-fit measure (M1): the generated table must match what
@@ -73,7 +74,7 @@ test('a card slot truncates exactly when its measured text exceeds its budget', 
   );
   const mismatches: string[] = [];
   let checked = 0;
-  for (const [, nodes] of GALLERY_SECTIONS) {
+  for (const [, nodes] of [...GALLERY_SECTIONS, ['Boundary', boundaryNodes()] as const]) {
     for (const node of nodes) {
       const slots = cardTextSlots(node.card);
       const dom = rendered[node.id]!;

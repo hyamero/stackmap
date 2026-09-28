@@ -1,7 +1,11 @@
 import type { DiagramNode } from '@stackmap/core';
 import { NodeCard } from '../card/NodeCard';
 import type { ThemeChoice } from '../theme/theme';
+import { boundaryNodes } from './boundary-nodes';
 import { GALLERY_SECTIONS } from './gallery-nodes';
+
+// Boundary cards back the card-fit browser test (dev server only); they would ship the metrics table.
+const sections = import.meta.env.DEV ? [...GALLERY_SECTIONS, ['Boundary', boundaryNodes()] as const] : GALLERY_SECTIONS;
 
 export function GalleryPage({ theme, onToggleTheme }: { theme: ThemeChoice; onToggleTheme: () => void }) {
   return (
@@ -16,7 +20,7 @@ export function GalleryPage({ theme, onToggleTheme }: { theme: ThemeChoice; onTo
           {theme === 'dark' ? 'Light' : 'Dark'} theme
         </button>
       </header>
-      {GALLERY_SECTIONS.map(([label, nodes]) => (
+      {sections.map(([label, nodes]) => (
         <section key={label} className="mb-10">
           <h2 className="mb-4 text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase">{label}</h2>
           <div className="grid grid-cols-[repeat(auto-fill,280px)] items-start gap-6">

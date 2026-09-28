@@ -23,6 +23,8 @@ if (external.length) fail(`external references: ${external.slice(0, 5).join('  '
 if (!html.includes('data:font/woff2')) fail('Geist fonts are not inlined');
 if (/elkjs|org\.eclipse\.elk/.test(html)) fail('elkjs leaked into the viewer bundle');
 if (/@xyflow|react-flow__/.test(html)) fail('React Flow leaked into the viewer bundle');
+// The headless metrics table (~120 KB) is for the CLI's card-fit rule; the viewer measures with the browser.
+if (/sans500tnum/.test(html)) fail('Geist metrics table leaked into the viewer bundle');
 
 const kb = statSync(new URL('index.html', dist)).size / 1024;
 if (kb > BUDGET_KB) fail(`index.html is ${kb.toFixed(0)} KB, budget ${BUDGET_KB} KB`);
