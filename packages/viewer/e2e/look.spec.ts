@@ -50,6 +50,8 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page.locator('.react-flow__node-card')).toHaveCount(10);
       await expect(page.locator('.react-flow__node-frame')).toHaveCount(3);
       await page.evaluate(() => document.fonts.ready);
+      const zoom = await page.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('.react-flow__viewport')!).transform).a);
+      expect(zoom, 'fitView zoom').toBeGreaterThanOrEqual(0.6);
       await page.screenshot({ path: `${OUT}/grouped-${theme}.png` });
     });
 

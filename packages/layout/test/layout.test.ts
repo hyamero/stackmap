@@ -94,6 +94,19 @@ describe('layoutDiagram', () => {
     expect(ys).toEqual([...ys].sort((a, b) => a - b));
   });
 
+  it('wraps the grouped sample instead of laying it out as one long strip', async () => {
+    const { width, height } = (await layoutDiagram(groupedPlatform)).bounds;
+    expect(width / height).toBeLessThanOrEqual(2.6);
+  });
+
+  it('keeps a short chain on one row', async () => {
+    const out = await layoutDiagram(
+      draft({ nodes: [node('a'), node('b'), node('c')], edges: [{ id: 'ab', from: 'a', to: 'b' }, { id: 'bc', from: 'b', to: 'c' }] }),
+    );
+    expect(out.nodes.b!.y).toBe(out.nodes.a!.y);
+    expect(out.nodes.c!.y).toBe(out.nodes.a!.y);
+  });
+
   it('lays out top-down when direction is DOWN', async () => {
     const out = await layoutDiagram(
       draft({ direction: 'DOWN', nodes: [node('a'), node('b')], edges: [{ id: 'e', from: 'a', to: 'b' }] }),

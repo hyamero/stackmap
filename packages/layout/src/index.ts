@@ -14,6 +14,7 @@ const rootOptions = (direction: Direction): Record<string, string> => ({
   'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
   'elk.padding': '[top=40,left=40,bottom=40,right=40]',
   'elk.spacing.nodeNode': '40',
+  'elk.spacing.edgeNode': '20',
   'elk.layered.spacing.nodeNodeBetweenLayers': '120',
   'elk.layered.spacing.edgeNodeBetweenLayers': '24',
   'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
@@ -23,6 +24,19 @@ const rootOptions = (direction: Direction): Record<string, string> => ({
   'org.eclipse.elk.json.shapeCoords': 'ROOT',
   'org.eclipse.elk.json.edgeCoords': 'ROOT',
 });
+
+/**
+ * Layout width (padding included) past which a ~1060px canvas fits the diagram below ~60% zoom, so the
+ * layout is redone with wrapping. ELK's own wrap decision is scale-free (aspect ratio only) and would
+ * also fold a short two-node chain, hence the width gate.
+ */
+const MAX_UNWRAPPED_WIDTH = 1600;
+
+const wrapOptions: Record<string, string> = {
+  'elk.layered.wrapping.strategy': 'SINGLE_EDGE',
+  'elk.aspectRatio': '1.4',
+  'elk.layered.wrapping.additionalEdgeSpacing': '40',
+};
 
 // One fixed in/out port per node is what makes fan-in/fan-out collapse into shared trunks.
 function ports(id: string, width: number, height: number, direction: Direction): ElkPort[] {
@@ -54,7 +68,13 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
     groupNodes.set(g.id, {
       id: `${GROUP_PREFIX}${g.id}`,
       children: [],
-      layoutOptions: { 'elk.padding': `[top=${GROUP_LABEL_BAND},left=24,bottom=24,right=24]` },
+      layoutOptions: {
+        'elk.padding': `[top=${GROUP_LABEL_BAND},left=24,bottom=24,right=24]`,
+        // Spacing doesn't inherit into containers. ELK's 20px layer gap can't fit a label pill plus an
+        // arrowhead, and its 10px edge-node gap routes edges flush under cards.
+        'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+        'elk.spacing.edgeNode': '20',
+      },
     });
   }
   const containerOf = (groupId: string | undefined, owner: string): ElkNode => {
@@ -86,7 +106,11 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
     root.edges!.push({ id: e.id, sources: [`${e.from}:out`], targets: [`${e.to}:in`] });
   }
 
-  const result = await new ELK().layout(root);
+  const elk = new ELK();
+  let result = await elk.layout(structuredClone(root));
+  if ((result.width ?? 0) > MAX_UNWRAPPED_WIDTH) {
+    result = await elk.layout({ ...structuredClone(root), layoutOptions: { ...root.layoutOptions, ...wrapOptions } });
+  }
 
   const nodes: Record<string, Rect> = {};
   const groups: Record<string, Rect> = {};
