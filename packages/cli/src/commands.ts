@@ -14,7 +14,7 @@ export interface CommandResult {
   stderr: string;
 }
 
-function validateFile(path: string): ValidationResult {
+export function validateFile(path: string): ValidationResult {
   const text = readText(path);
   let input: unknown;
   try {
@@ -61,14 +61,20 @@ export async function validateCommand(path: string, { json }: { json: boolean })
   }
 }
 
+/** Validate, lay out and embed: the HTML is present exactly when the diagram has no errors. */
+export async function buildHtml(path: string, template: string): Promise<ValidationResult & { html?: string }> {
+  const result = validateFile(path);
+  if (!result.ok || !result.diagram) return result;
+  return { ...result, html: embedDiagram(template, await layoutDiagram(result.diagram)) };
+}
+
 export async function deliverCommand(path: string, { template, out }: { template: string; out?: string }): Promise<CommandResult> {
   try {
-    const { ok, diagram, diagnostics } = validateFile(path);
-    // Diagnostics go to stderr so stdout carries only the receipt.
-    if (!ok || !diagram) return { code: 1, stdout: '', stderr: `${report(diagnostics)}${summary(diagnostics)}\n` };
     const target = out ?? path.slice(0, path.length - extname(path).length) + '.html';
     if (real(target) === real(path)) throw new CliError(`refusing to overwrite the input ${path}; pass -o <out.html>`);
-    const html = embedDiagram(template, await layoutDiagram(diagram));
+    const { html, diagnostics } = await buildHtml(path, template);
+    // Diagnostics go to stderr so stdout carries only the receipt.
+    if (html === undefined) return { code: 1, stdout: '', stderr: `${report(diagnostics)}${summary(diagnostics)}\n` };
     writeAtomic(target, html);
     const bytes = Buffer.byteLength(html);
     const sha = createHash('sha256').update(html).digest('hex');
