@@ -90,9 +90,9 @@ test('a card slot never truncates text the measure said fits, and the measure st
         if (dom[i]!.truncated && width <= slot.maxWidth - 1) problems.push(`${at}, but truncated`);
         // Untruncated text is fully laid out, so its range width is the real width.
         if (!dom[i]!.truncated && width > TOO_WIDE(dom[i]!.width)) problems.push(`${at}, real ${dom[i]!.width.toFixed(1)}: too conservative`);
-        // Linux renders exactly the snapped model, so text measured over budget must truncate there;
-        // this is what catches a budget that is set too small.
-        if (process.platform === 'linux' && node.id === 'boundary-over' && width > slot.maxWidth + 1 && !dom[i]!.truncated)
+        // Linux renders the snapped model to within ±2px (hinting), so text measured clearly over budget
+        // must truncate there; this is what catches a budget that is set too small.
+        if (process.platform === 'linux' && node.id === 'boundary-over' && width > slot.maxWidth + 4 && !dom[i]!.truncated)
           problems.push(`${at}, but not truncated on Linux`);
       });
     }

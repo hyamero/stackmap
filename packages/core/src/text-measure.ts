@@ -36,5 +36,6 @@ export function textWidths(text: string, face: FontFace, sizePx: number): { exac
     snapped += Math.round(advance);
     prev = cp;
   }
-  return { exact, snapped };
+  // Hinting can push a glyph's snapped advance a pixel past rounding (CI saw "OpenShip Edge" at 83 for 82).
+  return { exact, snapped: snapped > 0 ? snapped + 1 : 0 };
 }

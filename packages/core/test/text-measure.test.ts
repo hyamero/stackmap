@@ -12,7 +12,7 @@ describe('measureText', () => {
   });
 
   it('scales a glyph advance to the font size', () => {
-    expect(measureText('H', 'sans500', 10)).toBeCloseTo((faces.sans500[72]! * 10) / 1000, 6);
+    expect(exact('H', 'sans500', 10)).toBeCloseTo((faces.sans500[72]! * 10) / 1000, 6);
   });
 
   it('applies the pair kerning between adjacent glyphs', () => {
@@ -49,6 +49,9 @@ describe('measureText', () => {
     ['sans500', 13.5, 'commerce-api-1', 104],
     ['sans500tnum', 15, 'The quick brown fox jumps over the lazy dog', 318],
     ['sans500', 13, 'Primary shards', 92],
+    ['sans400', 11.5, 'OpenShip Edge', 83],
+    ['sans400', 11.5, 'Open cluster', 69],
+    ['sans500', 13, 'OpenShip Edge', 95],
   ] as const)('is never narrower than Linux rendering: %s %spx "%s"', (face, size, text, linux) => {
     expect(measureText(text, face, size)).toBeGreaterThanOrEqual(linux - 0.25);
   });
