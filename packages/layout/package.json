@@ -7,9 +7,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run && bun scripts/bun-smoke.ts",
     "typecheck": "tsc --noEmit",
-    "layout:samples": "tsx scripts/layout-samples.ts"
+    "layout:samples": "bun scripts/layout-samples.ts"
   },
   "dependencies": {
     "@stackmap/core": "workspace:*",

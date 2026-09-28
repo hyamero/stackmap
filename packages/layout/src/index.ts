@@ -1,10 +1,26 @@
-import ELK from 'elkjs/lib/elk.bundled.js';
+import { createRequire } from 'node:module';
+import ElkApi from 'elkjs/lib/elk-api.js';
+import ElkBundled from 'elkjs/lib/elk.bundled.js';
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import { cardSize, type DiagramDraft, type Direction, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
 
 /** Vertical space reserved at the top of a group for its label. */
 export const GROUP_LABEL_BAND = 48;
 const GROUP_PREFIX = 'group:';
+
+// elkjs's bundled build treats any runtime with a global `self` and no `document` as a web worker
+// (Bun, Deno), hijacks `self.onmessage` and never exports its in-process worker. Give those runtimes
+// a real Worker instead; Node keeps the in-process one.
+function createElk(): { elk: InstanceType<typeof ElkBundled>; dispose: () => void } {
+  const g = globalThis as { self?: unknown; document?: unknown; Worker?: unknown };
+  if (g.self === undefined || g.document !== undefined || g.Worker === undefined) {
+    return { elk: new ElkBundled(), dispose: () => {} };
+  }
+  const workerUrl = createRequire(import.meta.url).resolve('elkjs/lib/elk-worker.min.js');
+  const elk = new ElkApi({ workerUrl });
+  // A real Worker keeps the process alive until terminated; the in-process one has no terminate().
+  return { elk, dispose: () => elk.terminateWorker() };
+}
 
 const rootOptions = (direction: Direction): Record<string, string> => ({
   'elk.algorithm': 'layered',
@@ -106,10 +122,15 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
     root.edges!.push({ id: e.id, sources: [`${e.from}:out`], targets: [`${e.to}:in`] });
   }
 
-  const elk = new ELK();
-  let result = await elk.layout(structuredClone(root));
-  if ((result.width ?? 0) > MAX_UNWRAPPED_WIDTH) {
-    result = await elk.layout({ ...structuredClone(root), layoutOptions: { ...root.layoutOptions, ...wrapOptions } });
+  const { elk, dispose } = createElk();
+  let result: ElkNode;
+  try {
+    result = await elk.layout(structuredClone(root));
+    if ((result.width ?? 0) > MAX_UNWRAPPED_WIDTH) {
+      result = await elk.layout({ ...structuredClone(root), layoutOptions: { ...root.layoutOptions, ...wrapOptions } });
+    }
+  } finally {
+    dispose();
   }
 
   const nodes: Record<string, Rect> = {};
