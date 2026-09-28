@@ -1,0 +1,112 @@
+import { createHash } from 'node:crypto';
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
+import { deliverCommand, validateCommand } from '../src/commands';
+import { EMPTY_DATA_BLOCK } from '../src/embed';
+
+const TEMPLATE = `<!doctype html><title>stackmap</title><div id="root"></div>${EMPTY_DATA_BLOCK}`;
+let dir: string;
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), 'stackmap-cli-'));
+});
+const file = (name: string, content: unknown) => {
+  const p = join(dir, name);
+  writeFileSync(p, typeof content === 'string' ? content : JSON.stringify(content));
+  return p;
+};
+const broken = { ...commerceApi, edges: [...commerceApi.edges, { id: 'dangling', from: 'edge', to: 'nowhere' }] };
+
+describe('validate', () => {
+  it('exits 0 with a one-line summary for a valid diagram', async () => {
+    const r = await validateCommand(file('d.json', commerceApi), { json: false });
+    expect(r).toEqual({ code: 0, stdout: '✓ valid: no diagnostics\n', stderr: '' });
+  });
+
+  it('exits 1 and names each diagnostic with its fixes', async () => {
+    const r = await validateCommand(file('d.json', broken), { json: false });
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain('error  refs/unknown-node  /edges/9/to');
+    expect(r.stdout).toContain('Unknown node "nowhere"');
+    expect(r.stdout).toContain('fix: add node "nowhere" or remove the edge');
+    expect(r.stdout.trimEnd().split('\n').at(-1)).toBe('✗ 1 error');
+  });
+
+  it('--json prints the machine-readable result', async () => {
+    const r = await validateCommand(file('d.json', broken), { json: true });
+    const out = JSON.parse(r.stdout);
+    expect(r.code).toBe(1);
+    expect(out.ok).toBe(false);
+    expect(out.diagnostics[0]).toMatchObject({ code: 'refs/unknown-node', subject: '/edges/9/to' });
+  });
+
+  it('reports invalid JSON as a diagnostic with line and column', async () => {
+    const r = await validateCommand(file('d.json', '{\n  "kind": "architecture",\n  "title": }'), { json: true });
+    expect(r.code).toBe(1);
+    expect(JSON.parse(r.stdout).diagnostics).toMatchObject([{ code: 'schema/invalid-json', subject: '', evidence: { line: 3, column: 12 } }]);
+  });
+
+  it('exits 2 without a stack trace when the file cannot be read', async () => {
+    for (const p of [join(dir, 'missing.json'), dir]) {
+      const r = await validateCommand(p, { json: false });
+      expect(r.code).toBe(2);
+      expect(r.stderr).toMatch(/^stackmap: cannot read .+\n$/);
+      expect(r.stderr).not.toContain('    at ');
+    }
+  });
+});
+
+describe('deliver', () => {
+  it('writes the HTML next to the input and prints a sha256 receipt', async () => {
+    const input = file('platform.json', groupedPlatform);
+    const r = await deliverCommand(input, { template: TEMPLATE });
+    const out = join(dir, 'platform.html');
+    const bytes = readFileSync(out);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toBe(`delivered ${out} · sha256 ${createHash('sha256').update(bytes).digest('hex')} · ${bytes.length} bytes\n`);
+    expect(bytes.toString()).toContain('<title>Platform · stackmap</title>');
+  });
+
+  it('is byte-identical across runs', async () => {
+    const input = file('d.json', commerceApi);
+    const a = await deliverCommand(input, { template: TEMPLATE, out: join(dir, 'a.html') });
+    const b = await deliverCommand(input, { template: TEMPLATE, out: join(dir, 'b.html') });
+    expect(readFileSync(join(dir, 'a.html'))).toEqual(readFileSync(join(dir, 'b.html')));
+    expect(a.stdout.split(' · ')[1]).toBe(b.stdout.split(' · ')[1]);
+  });
+
+  it('writes nothing when validation fails, and prints why', async () => {
+    const r = await deliverCommand(file('d.json', broken), { template: TEMPLATE });
+    expect(r.code).toBe(1);
+    expect(r.stdout).toContain('refs/unknown-node');
+    expect(readdirSync(dir)).toEqual(['d.json']);
+  });
+
+  it('prints warnings but still delivers', async () => {
+    const withWarning = { ...commerceApi, nodes: commerceApi.nodes.map((n, i) => (i === 0 ? { ...n, card: { ...n.card, brand: 'postgres' } } : n)) };
+    const r = await deliverCommand(file('d.json', withWarning), { template: TEMPLATE });
+    expect(r.code).toBe(0);
+    expect(r.stderr).toContain('warning  refs/unknown-brand');
+    expect(r.stdout).toMatch(/^delivered /);
+  });
+
+  it('keeps the previous file intact and leaves no temp file when the write fails', async () => {
+    const input = file('d.json', commerceApi);
+    const outDir = join(dir, 'out');
+    mkdirSync(outDir);
+    const out = join(outDir, 'd.html');
+    writeFileSync(out, 'previous');
+    chmodSync(outDir, 0o500);
+    try {
+      const r = await deliverCommand(input, { template: TEMPLATE, out });
+      expect(r.code).toBe(2);
+      expect(r.stderr).toMatch(/^stackmap: cannot write /);
+    } finally {
+      chmodSync(outDir, 0o700);
+    }
+    expect(readFileSync(out, 'utf8')).toBe('previous');
+    expect(readdirSync(outDir)).toEqual(['d.html']);
+  });
+});

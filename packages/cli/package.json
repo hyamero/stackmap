@@ -1,0 +1,35 @@
+{
+  "name": "@hyamero/stackmap",
+  "version": "0.1.0",
+  "description": "Validate agent-authored architecture diagrams and deliver them as one offline HTML viewer",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "stackmap": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsup && cp ../viewer/dist/index.html dist/viewer.html",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "smoke": "bun run --filter @stackmap/viewer build && bun run build && node scripts/smoke.mjs",
+    "e2e": "bun run --filter @stackmap/viewer build && bun run build && playwright test"
+  },
+  "dependencies": {
+    "elkjs": "^0.12.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@stackmap/core": "workspace:*",
+    "@stackmap/layout": "workspace:*",
+    "@stackmap/schema": "workspace:*",
+    "@stackmap/viewer": "workspace:*",
+    "tsup": "^8.5.1",
+    "zod": "^4.6.5"
+  }
+}
