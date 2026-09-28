@@ -67,7 +67,7 @@ A card is a fixed 280px-wide tile. Only `title` is required; add sections when t
 - `footer` — two short facts, left and right (region, protocol, ownership), with optional `icon`: `region`, `secure`, `members`.
 - `cta` — a link out (`href`, http(s) only): a dashboard, a runbook.
 
-Text never wraps; it truncates, and truncation is a validation **error** (`card-fit/overflow`) measured with the real font. Typical budgets for ordinary words: title ≈ 28 characters, subtitle ≈ 32, a row label + value together ≈ 36 (value alone ≤ 22), stat values ≈ 5 and labels ≈ 8 with three tiles (≈ 17 with two), stats note ≈ 36, footer items ≈ 15 with an icon and ≈ 19 without, CTA label ≈ 32. Wide letters (`W`, `M`) and non-Latin scripts fit fewer; the diagnostic gives the exact `maxChars` for your text. Put long detail in `evidence` notes instead.
+Text never wraps; it truncates, and truncation is a validation **error** (`card-fit/overflow`) measured with the real font. Typical budgets for ordinary words: title ≈ 28 characters, subtitle ≈ 32, a row label + value together ≈ 35 (value alone ≤ 21), stat values ≈ 5 and labels ≈ 8 with three tiles (≈ 16 with two), stats note ≈ 36, footer items ≈ 14 with an icon and ≈ 17 without, CTA label ≈ 32. Wide letters (`W`, `M`) and non-Latin scripts fit fewer; the diagnostic gives the exact `maxChars` for your text. Put long detail in `evidence` notes instead.
 
 ## Repository diagrams
 
