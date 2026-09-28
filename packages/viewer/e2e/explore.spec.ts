@@ -288,3 +288,16 @@ test('with reduced motion the camera jumps instead of animating', async ({ page 
   await page.waitForTimeout(20);
   expect((await viewportOf(page)).k).toBeCloseTo(before.k * 1.2, 3);
 });
+
+test('a view fits its members clear of the toolbar and zoom bar', async ({ page }) => {
+  await page.getByRole('tab', { name: 'Data tier' }).click();
+  await settle(page);
+  const panels = await Promise.all((await page.locator('.sm-panel').all()).map((l) => l.boundingBox()));
+  for (const id of ['orders', 'sessions']) {
+    const c = (await card(page, id).boundingBox())!;
+    for (const p of panels.filter((b) => b !== null)) {
+      const overlap = c.x < p.x + p.width && p.x < c.x + c.width && c.y < p.y + p.height && p.y < c.y + c.height;
+      expect(overlap, `${id} under a panel`).toBe(false);
+    }
+  }
+});

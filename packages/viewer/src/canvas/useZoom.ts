@@ -24,9 +24,6 @@ export interface ViewportApi extends Camera {
   camera: Camera;
 }
 
-// Stage bands covered by the top-left toolbar row and the bottom-left zoom bar (15px inset + panel + gap).
-const OVERLAY_BANDS = { top: 80, bottom: 76 };
-
 const duration = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
 const toZoom = (t: Transform) => zoomIdentity.translate(t.x, t.y).scale(t.k);
 
@@ -102,11 +99,14 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
   const fitRect = useCallback(
     (r: Rect) =>
       animate((z, el) => {
-        const t = fitTransform(r, { width: el.clientWidth, height: el.clientHeight });
-        const k = Math.min(t.k, 1);
-        const cx = r.x + r.width / 2;
-        const cy = r.y + r.height / 2;
-        const next = { x: el.clientWidth / 2 - cx * k, y: el.clientHeight / 2 - cy * k, k };
+        const size = { width: el.clientWidth, height: el.clientHeight };
+        const t = fitTransform(r, size, { inset: CHROME_INSET });
+        // A view of two cards shouldn't blow up to 200%; cap at 100% and centre between the chrome bands.
+        const band = size.height - CHROME_INSET.top - CHROME_INSET.bottom;
+        const next =
+          t.k <= 1
+            ? t
+            : { x: (size.width - r.width) / 2 - r.x, y: CHROME_INSET.top + (band - r.height) / 2 - r.y, k: 1 };
         select(el).transition().duration(duration()).call(z.transform, toZoom(next));
       }),
     [animate],
@@ -123,7 +123,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
         const margin = 24 / k;
         const full = viewportRect(current.current, { width: el.clientWidth, height: el.clientHeight });
         // Treat the overlay bands as off-screen so a focused card never ends up under the chrome.
-        const v = { ...full, y: full.y + OVERLAY_BANDS.top / k, height: full.height - (OVERLAY_BANDS.top + OVERLAY_BANDS.bottom) / k };
+        const v = { ...full, y: full.y + CHROME_INSET.top / k, height: full.height - (CHROME_INSET.top + CHROME_INSET.bottom) / k };
         const shift = (lo: number, size: number, vlo: number, vsize: number) =>
           lo - margin < vlo ? lo - margin - vlo : lo + size + margin > vlo + vsize ? lo + size + margin - (vlo + vsize) : 0;
         const dx = shift(r.x, r.width, v.x, v.width);
