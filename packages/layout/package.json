@@ -1,0 +1,18 @@
+{
+  "name": "@stackmap/layout",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "layout:samples": "tsx scripts/layout-samples.ts"
+  },
+  "dependencies": {
+    "@stackmap/core": "workspace:*",
+    "elkjs": "^0.12.0"
+  }
+}
