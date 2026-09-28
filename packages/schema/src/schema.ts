@@ -9,7 +9,7 @@ export const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 export const LIMITS = { rows: 6, stats: 3, evidence: 8, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50 } as const;
 export const VISIBLE_TEXT = /\S/;
 
-const id = z.string().regex(ID_PATTERN).meta({ description: 'Lowercase id: letters, digits, "-" and "_"; starts with a letter or digit.' });
+const id = z.string().regex(ID_PATTERN);
 const text = z.string().regex(VISIBLE_TEXT);
 // A regex rather than z.url(): it carries into the JSON Schema, and only http(s) may become a link.
 export const HTTP_URL = /^https?:\/\/\S+$/;
@@ -55,7 +55,7 @@ const Evidence = z.strictObject({
 const Node = z.strictObject({
   id,
   type: z.enum(NODE_TYPES).meta({ description: 'Sets the card color. Never color by brand.' }),
-  group: id.optional(),
+  group: id.optional().meta({ description: 'Id of the group the node sits in.' }),
   card: Card,
   evidence: z
     .array(Evidence)
@@ -66,13 +66,17 @@ const Node = z.strictObject({
 
 const Edge = z.strictObject({
   id,
-  from: id,
-  to: id,
+  from: id.meta({ description: 'Source node id.' }),
+  to: id.meta({ description: 'Target node id.' }),
   label: text.max(LIMITS.edgeLabel).optional().meta({ description: 'Short label; use sparingly.' }),
   kind: z.enum(['sync', 'async']).optional().meta({ description: 'async edges render dashed.' }),
 });
 
-const Group = z.strictObject({ id, label: text, parent: id.optional() });
+const Group = z.strictObject({
+  id,
+  label: text.meta({ description: 'Shown small-caps above the frame.' }),
+  parent: id.optional().meta({ description: 'Id of the enclosing group, for nesting.' }),
+});
 
 const View = z.strictObject({
   id,

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://raw.githubusercontent.com/hyamero/stackmap/main/packages/schema/stackmap.schema.json",
+  "kind": "architecture",
+  "title": "Bookshop",
+  "subtitle": "Web storefront and order pipeline",
+  "direction": "DOWN",
+  "groups": [
+    { "id": "edge", "label": "Edge" },
+    { "id": "app", "label": "App tier" },
+    { "id": "data", "label": "Data tier" }
+  ],
+  "nodes": [
+    { "id": "web", "type": "client", "card": { "title": "Storefront", "subtitle": "Next.js", "brand": "nextdotjs" } },
+    { "id": "cdn", "type": "gateway", "group": "edge", "card": { "title": "CDN", "subtitle": "Cloudflare", "brand": "cloudflare" } },
+    {
+      "id": "api",
+      "type": "service",
+      "group": "app",
+      "card": {
+        "title": "shop-api",
+        "subtitle": "REST API · Node.js",
+        "brand": "nodedotjs",
+        "rows": [
+          { "label": "Instances", "value": "3" },
+          { "label": "Port", "value": ":8080", "mono": true }
+        ],
+        "footer": { "left": { "text": "eu-west-1", "icon": "region" }, "right": { "text": "HTTPS", "icon": "secure" } }
+      },
+      "evidence": [{ "file": "services/api/src/server.ts", "line": 12, "note": "Express app and routes" }]
+    },
+    { "id": "worker", "type": "service", "group": "app", "card": { "title": "order-worker", "subtitle": "Fulfilment jobs" } },
+    { "id": "jobs", "type": "queue", "group": "app", "card": { "title": "jobs", "subtitle": "RabbitMQ", "brand": "rabbitmq" } },
+    {
+      "id": "db",
+      "type": "database",
+      "group": "data",
+      "card": {
+        "title": "Orders DB",
+        "subtitle": "PostgreSQL",
+        "brand": "postgresql",
+        "stats": [
+          { "value": "1", "label": "Primary" },
+          { "value": "2", "label": "Replicas" }
+        ],
+        "statsNote": "Streaming replication"
+      }
+    },
+    { "id": "cache", "type": "cache", "group": "data", "card": { "title": "Sessions", "subtitle": "Redis", "brand": "redis" } },
+    { "id": "stripe", "type": "external", "card": { "title": "Stripe", "subtitle": "Payments API", "brand": "stripe" } }
+  ],
+  "edges": [
+    { "id": "web-cdn", "from": "web", "to": "cdn", "label": "HTTPS" },
+    { "id": "cdn-api", "from": "cdn", "to": "api" },
+    { "id": "api-db", "from": "api", "to": "db" },
+    { "id": "api-cache", "from": "api", "to": "cache" },
+    { "id": "api-jobs", "from": "api", "to": "jobs", "kind": "async", "label": "enqueue" },
+    { "id": "jobs-worker", "from": "jobs", "to": "worker", "kind": "async" },
+    { "id": "worker-db", "from": "worker", "to": "db" },
+    { "id": "api-stripe", "from": "api", "to": "stripe" }
+  ],
+  "views": [
+    { "id": "checkout", "label": "Checkout path", "caption": "What a purchase touches", "nodes": ["web", "cdn", "api", "stripe", "db"] },
+    { "id": "state", "label": "State", "caption": "Where data lives", "nodes": ["db", "cache", "jobs"] }
+  ]
+}

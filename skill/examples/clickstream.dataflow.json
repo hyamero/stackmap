@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/hyamero/stackmap/main/packages/schema/stackmap.schema.json",
+  "kind": "dataflow",
+  "title": "Clickstream analytics",
+  "subtitle": "From SDK events to dashboards",
+  "direction": "DOWN",
+  "groups": [
+    { "id": "ingest", "label": "Ingest" },
+    { "id": "warehouse", "label": "Warehouse" }
+  ],
+  "nodes": [
+    { "id": "sdk", "type": "client", "card": { "title": "Web SDK", "subtitle": "Browser events" } },
+    { "id": "collector", "type": "gateway", "group": "ingest", "card": { "title": "Collector", "subtitle": "HTTP ingest", "rows": [{ "label": "Peak", "value": "40k ev/s" }] } },
+    { "id": "stream", "type": "queue", "group": "ingest", "card": { "title": "events", "subtitle": "Kafka topic", "rows": [{ "label": "Partitions", "value": "24" }] } },
+    { "id": "enrich", "type": "service", "group": "ingest", "card": { "title": "Enricher", "subtitle": "Stream processor" } },
+    { "id": "archive", "type": "storage", "card": { "title": "Raw archive", "subtitle": "Object storage" } },
+    { "id": "dwh", "type": "database", "group": "warehouse", "card": { "title": "Warehouse", "subtitle": "Snowflake", "brand": "snowflake" } },
+    { "id": "models", "type": "service", "group": "warehouse", "card": { "title": "dbt models", "subtitle": "Hourly build" } },
+    { "id": "bi", "type": "client", "card": { "title": "Dashboards", "subtitle": "Grafana", "brand": "grafana" } }
+  ],
+  "edges": [
+    { "id": "sdk-collector", "from": "sdk", "to": "collector", "label": "batch POST" },
+    { "id": "collector-stream", "from": "collector", "to": "stream", "kind": "async" },
+    { "id": "stream-enrich", "from": "stream", "to": "enrich", "kind": "async" },
+    { "id": "stream-archive", "from": "stream", "to": "archive", "kind": "async", "label": "raw" },
+    { "id": "enrich-dwh", "from": "enrich", "to": "dwh" },
+    { "id": "dwh-models", "from": "dwh", "to": "models" },
+    { "id": "models-bi", "from": "models", "to": "bi" }
+  ]
+}
