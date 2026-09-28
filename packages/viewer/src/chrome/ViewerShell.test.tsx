@@ -1,23 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { commerceApiLayout } from '../samples/commerce-api.layout';
 import { ViewerShell } from './ViewerShell';
-
-beforeAll(() => {
-  // React Flow needs ResizeObserver and DOMMatrixReadOnly, which jsdom lacks.
-  globalThis.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver;
-  globalThis.DOMMatrixReadOnly ??= class {
-    m22: number;
-    constructor(transform?: string) {
-      const scale = transform?.match(/scale\(([\d.]+)\)/)?.[1];
-      this.m22 = scale === undefined ? 1 : Number(scale);
-    }
-  } as unknown as typeof DOMMatrixReadOnly;
-});
 
 describe('ViewerShell', () => {
   it('shows title, kind badge and counts', () => {
@@ -45,6 +29,14 @@ describe('ViewerShell', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={onToggle} />);
     fireEvent.click(screen.getByRole('button', { name: 'Switch to dark theme' }));
     expect(onToggle).toHaveBeenCalledOnce();
+  });
+
+  it('renders the scene: one named group per card and one path per edge', () => {
+    const { container } = render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
+    expect(screen.getByRole('group', { name: 'Orders, Database' })).toBeInTheDocument();
+    expect(container.querySelectorAll('.sm-card')).toHaveLength(6);
+    expect(container.querySelectorAll('path.sm-edge-path')).toHaveLength(9);
+    expect(screen.getByText('100%')).toBeInTheDocument(); // zero-size stage in jsdom → identity transform
   });
 
   it('has no editor controls', () => {

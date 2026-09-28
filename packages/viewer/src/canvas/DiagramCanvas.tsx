@@ -1,71 +1,62 @@
-import { Background, BackgroundVariant, MiniMap, Panel, ReactFlow, ReactFlowProvider } from '@xyflow/react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { LaidOutDiagram } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
-import type { ThemeChoice } from '../theme/theme';
-import { ArrowMarker } from './ArrowMarker';
-import { CardNode } from './CardNode';
-import { FrameNode } from './FrameNode';
-import { RoutedEdge } from './RoutedEdge';
-import { toFlow, type CardFlowNode } from './to-flow';
+import { CanvasPanel } from './CanvasPanel';
+import { Minimap } from './Minimap';
+import { toScene } from './scene';
+import { SceneLayers } from './SceneLayers';
+import { useZoom } from './useZoom';
+import type { Transform } from './viewport';
+import { ViewportProvider } from './ViewportContext';
 
-const nodeTypes = { card: CardNode, frame: FrameNode };
-const edgeTypes = { routed: RoutedEdge };
+const GRID = 20;
 
-// Viewer is read-only (Q13): the library's default aria copy invites moving, deleting, connecting
-// or selecting nodes for editing, none of which this canvas supports.
-const ARIA_LABEL_CONFIG = {
-  'node.a11yDescription.default': 'Press enter or space to view details about this read-only diagram node.',
-  'node.a11yDescription.keyboardDisabled': 'Press enter or space to view details about this read-only diagram node.',
-  'edge.a11yDescription.default': 'A connection between two diagram nodes.',
-};
+// Dot grid that pans and scales with the diagram, like the M0 React Flow background.
+function gridStyle({ x, y, k }: Transform): CSSProperties {
+  const gap = GRID * k;
+  const r = Math.max(0.5, 1.2 * k);
+  return {
+    backgroundImage: `radial-gradient(circle, var(--sm-grid) ${r}px, transparent ${r + 0.5}px)`,
+    backgroundSize: `${gap}px ${gap}px`,
+    backgroundPosition: `${x % gap}px ${y % gap}px`,
+  };
+}
 
-export function DiagramCanvas({
-  diagram,
-  theme,
-  children,
-}: {
-  diagram: LaidOutDiagram;
-  theme: ThemeChoice;
-  children?: ReactNode;
-}) {
-  const { nodes, edges } = useMemo(() => toFlow(diagram), [diagram]);
+export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; children?: ReactNode }) {
+  const scene = useMemo(() => toScene(diagram), [diagram]);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const viewport = useZoom(stageRef, scene.content);
   const [minimap, setMinimap] = useState(false);
+  const { x, y, k } = viewport.transform;
+
   return (
-    <ReactFlowProvider>
-      <ArrowMarker />
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        colorMode={theme}
-        ariaLabelConfig={ARIA_LABEL_CONFIG}
-        fitView
-        fitViewOptions={{ padding: 0.15 }}
-        minZoom={0.2}
-        maxZoom={2}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        edgesFocusable={false}
-        deleteKeyCode={null}
-        style={{ background: 'transparent' }}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="var(--sm-grid)" />
-        {minimap && (
-          <MiniMap
-            pannable
-            zoomable
-            bgColor="var(--sm-panel)"
-            maskColor="rgb(0 0 0 / 0.08)"
-            nodeColor={(n) => (n.type === 'card' ? `var(--sm-${(n as CardFlowNode).data.node.type}-accent)` : 'transparent')}
-          />
-        )}
-        <Panel position="bottom-left">
+    <ViewportProvider value={viewport}>
+      <div className="relative size-full">
+        <div
+          ref={stageRef}
+          role="region"
+          aria-label="Diagram canvas"
+          className="sm-stage absolute inset-0 cursor-grab overflow-hidden active:cursor-grabbing"
+          style={gridStyle(viewport.transform)}
+        >
+          <div
+            className="sm-viewport absolute top-0 left-0 origin-top-left"
+            style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
+          >
+            <SceneLayers scene={scene} />
+          </div>
+        </div>
+        {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}
+        <CanvasPanel position="bottom-left">
           <ZoomBar minimapOn={minimap} onToggleMinimap={() => setMinimap((v) => !v)} />
-        </Panel>
+        </CanvasPanel>
+        {minimap && (
+          <CanvasPanel position="bottom-right">
+            <Minimap scene={scene} />
+          </CanvasPanel>
+        )}
         {children}
-      </ReactFlow>
-    </ReactFlowProvider>
+      </div>
+    </ViewportProvider>
   );
 }

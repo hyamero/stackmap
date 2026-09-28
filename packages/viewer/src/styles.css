@@ -28,23 +28,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.react-flow__handle.sm-handle {
+.sm-handle {
+  position: absolute;
   width: 7px;
   height: 7px;
-  min-width: 0;
-  min-height: 0;
   border-radius: 9999px;
   background: var(--sm-stage);
   border: 1.5px solid var(--sm-handle);
-}
-
-/* Kept visible per React Flow's MIT attribution request; restyled so dark mode has no light chip. */
-.react-flow .react-flow__attribution {
-  background: transparent;
-}
-
-.react-flow .react-flow__attribution a {
-  color: var(--sm-text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

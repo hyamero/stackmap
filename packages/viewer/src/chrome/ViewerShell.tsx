@@ -1,6 +1,6 @@
-import { Panel } from '@xyflow/react';
 import { ChevronRight } from 'lucide-react';
 import type { LaidOutDiagram } from '@stackmap/core';
+import { CanvasPanel } from '../canvas/CanvasPanel';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
 import type { ThemeChoice } from '../theme/theme';
 import { IdentityCard } from './IdentityCard';
@@ -62,11 +62,11 @@ export function ViewerShell({
           className="relative min-w-0 flex-1 overflow-hidden rounded-[20px] bg-stage"
           style={{ boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
         >
-          <DiagramCanvas diagram={diagram} theme={theme}>
-            <Panel position="top-left" className="flex gap-2">
+          <DiagramCanvas diagram={diagram}>
+            <CanvasPanel position="top-left" className="flex gap-2">
               <IdentityCard draft={draft} />
               <Toolbar theme={theme} onToggleTheme={onToggleTheme} />
-            </Panel>
+            </CanvasPanel>
           </DiagramCanvas>
         </section>
         <Inspector draft={draft} />
