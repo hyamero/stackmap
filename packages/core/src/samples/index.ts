@@ -49,7 +49,7 @@ export const commerceApi: DiagramDraft = {
         ],
         statsNote: '2 replication links',
         footer: { left: { text: 'EU West', icon: 'region' }, right: { text: '3 members', icon: 'members' } },
-        cta: { label: 'Open cluster' },
+        cta: { label: 'Open cluster', href: 'https://console.example.com/clusters/orders' },
       },
     },
     {
@@ -65,7 +65,7 @@ export const commerceApi: DiagramDraft = {
         ],
         statsNote: '3 replication links',
         footer: { left: { text: 'EU West', icon: 'region' }, right: { text: '6 members', icon: 'members' } },
-        cta: { label: 'Open cluster' },
+        cta: { label: 'Open cluster', href: 'https://console.example.com/clusters/sessions' },
       },
     },
   ],

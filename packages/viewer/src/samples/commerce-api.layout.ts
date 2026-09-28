@@ -147,7 +147,8 @@ export const commerceApiLayout: LaidOutDiagram = {
             }
           },
           "cta": {
-            "label": "Open cluster"
+            "label": "Open cluster",
+            "href": "https://console.example.com/clusters/orders"
           }
         }
       },
@@ -180,7 +181,8 @@ export const commerceApiLayout: LaidOutDiagram = {
             }
           },
           "cta": {
-            "label": "Open cluster"
+            "label": "Open cluster",
+            "href": "https://console.example.com/clusters/sessions"
           }
         }
       }
