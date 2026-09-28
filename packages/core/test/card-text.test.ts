@@ -44,7 +44,8 @@ describe('cardTextSlots', () => {
     expect(slot(card, '/footer/right/text')!.maxWidth).toBe(118);
   });
 
-  it('the CTA label leaves room for its arrow', () => {
-    expect(slot({ title: 't', cta: { label: 'Open cluster' } }, '/cta/label')).toMatchObject({ face: 'sans500', size: 13, maxWidth: 217 });
+  it('a linked CTA label leaves room for its arrow; an unlinked one (no arrow) gets it back', () => {
+    expect(slot({ title: 't', cta: { label: 'Open', href: 'https://x.dev' } }, '/cta/label')).toMatchObject({ face: 'sans500', size: 13, maxWidth: 217 });
+    expect(slot({ title: 't', cta: { label: 'Open' } }, '/cta/label')).toMatchObject({ maxWidth: 232 });
   });
 });
