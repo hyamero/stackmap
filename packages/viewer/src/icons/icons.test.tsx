@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import * as simpleIcons from 'simple-icons';
 import { describe, expect, it } from 'vitest';
 import { BRAND_SLUGS, NODE_TYPES } from '@stackmap/core';
 import { BRANDED_SLUGS, BrandIcon, hasBrand } from './BrandIcon';
@@ -23,6 +24,15 @@ describe('BrandIcon', () => {
 
   it('renders exactly the allowlist the validator checks against', () => {
     expect(BRANDED_SLUGS).toEqual([...BRAND_SLUGS]);
+  });
+
+  it('ships only CC0 marks (Q21)', () => {
+    const bySlug = new Map(Object.values(simpleIcons).map((i) => [i.slug, i]));
+    const restricted = BRANDED_SLUGS.filter((s) => {
+      const license = (bySlug.get(s) as { license?: { type: string } } | undefined)?.license;
+      return license !== undefined && license.type !== 'CC0-1.0';
+    });
+    expect(restricted).toEqual([]);
   });
 
   it('hasBrand rejects unknown and prototype slugs', () => {
