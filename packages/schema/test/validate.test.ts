@@ -95,6 +95,11 @@ describe('validateDiagram', () => {
       expect(diags(base({ nodes }))[0]).toMatchObject({ code: 'schema/too_big', subject: '/nodes', allowedFixes: ['keep at most 500 items'] });
     });
 
+    it('a key that belongs one level down says where to move it', () => {
+      const [d] = diags(base({ nodes: [node('a', { brand: 'redis' } as never), node('b')] }));
+      expect(d).toMatchObject({ subject: '/nodes/0', allowedFixes: ['move "brand" into "card"'] });
+    });
+
     it('limits say how far to cut', () => {
       const stats = Array.from({ length: 4 }, (_, i) => ({ value: String(i), label: 'x' }));
       expect(diags(base({ nodes: [node('a', { card: { title: 'a', stats } })] }))[0]).toMatchObject({

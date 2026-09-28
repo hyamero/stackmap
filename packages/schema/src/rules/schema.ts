@@ -14,11 +14,22 @@ function valueAt(input: unknown, path: readonly PropertyKey[]): unknown {
 type JsonSchemaNode = { properties?: Record<string, JsonSchemaNode>; items?: JsonSchemaNode };
 let jsonSchema: JsonSchemaNode | undefined;
 
-/** Property names allowed on the object at `path`, read from the emitted JSON Schema. */
-function keysAt(path: readonly PropertyKey[]): string[] {
+function schemaAt(path: readonly PropertyKey[]): JsonSchemaNode | undefined {
   let node: JsonSchemaNode | undefined = (jsonSchema ??= buildJsonSchema() as JsonSchemaNode);
   for (const key of path) node = typeof key === 'number' ? node?.items : node?.properties?.[String(key)];
-  return Object.keys(node?.properties ?? {});
+  return node;
+}
+
+/** Property names allowed on the object at `path`, read from the emitted JSON Schema. */
+const keysAt = (path: readonly PropertyKey[]) => Object.keys(schemaAt(path)?.properties ?? {});
+
+/** The child object of `path` that does accept `key` (e.g. a node's `brand` belongs in `card`). */
+function childAccepting(path: readonly PropertyKey[], key: string): string | undefined {
+  const props = schemaAt(path)?.properties ?? {};
+  return Object.keys(props).find((k) => {
+    const child = props[k]!.items ?? props[k]!;
+    return child.properties !== undefined && key in child.properties;
+  });
 }
 
 const article = (t: string) => (/^[aeiou]/.test(t) ? `an ${t}` : `a ${t}`);
@@ -57,7 +68,9 @@ function fixes(issue: z.core.$ZodIssue, received: unknown): string[] {
       const allowed = keysAt(issue.path);
       return issue.keys.map((k) => {
         const near = closest(k, allowed, 1)[0];
-        return near ? `rename "${k}" to "${near}"` : `remove "${k}" (not valid here; allowed: ${allowed.join(', ')})`;
+        if (near) return `rename "${k}" to "${near}"`;
+        const home = childAccepting(issue.path, k);
+        return home ? `move "${k}" into "${home}"` : `remove "${k}" (not valid here; allowed: ${allowed.join(', ')})`;
       });
     }
     default:
