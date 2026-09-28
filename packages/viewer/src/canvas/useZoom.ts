@@ -3,7 +3,7 @@ import 'd3-transition';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { Point, Rect } from '@stackmap/core';
-import { readStoredViewport } from '../live';
+import { clearStoredViewport, readStoredViewport } from '../live';
 import { CHROME_INSET, fitTransform, MAX_ZOOM, MIN_ZOOM, viewportRect, ZOOM_STEP, type Size, type Transform } from './viewport';
 
 /** Camera moves. Stable across renders, so consumers don't re-render on every pan/zoom frame. */
@@ -56,6 +56,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     const size = { width: el.clientWidth, height: el.clientHeight };
     setStage(size);
     sel.call(z.transform, toZoom(stored ?? fitTransform(content, size, { inset: CHROME_INSET })));
+    if (stored) clearStoredViewport();
 
     const observer =
       typeof ResizeObserver === 'undefined'

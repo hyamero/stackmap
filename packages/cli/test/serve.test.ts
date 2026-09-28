@@ -1,4 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { request } from 'node:http';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -58,6 +60,17 @@ const page = async (url: string) => (await fetch(url)).text();
 const titleOf = (html: string) => /<title>(.*?)<\/title>/.exec(html)?.[1];
 const withTitle = (title: string) => ({ ...commerceApi, title });
 
+const raw = (url: string, method: string, host?: string) =>
+  new Promise<number>((resolve, reject) => {
+    const req = request(url, { method, headers: host ? { host } : {} }, (res) => {
+      res.resume();
+      resolve(res.statusCode!);
+    });
+    req.on('error', reject);
+    req.end();
+  });
+const buildOf = (html: string) => JSON.parse(/id="stackmap-live">(.*?)<\/script>/.exec(html)![1]!).build as string;
+
 describe('serve', () => {
   it('serves the live viewer on 127.0.0.1 and sends the current diagnostics to a new client', async () => {
     write(commerceApi);
@@ -65,11 +78,53 @@ describe('serve', () => {
     expect(server.url).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
     const html = await page(server.url);
     expect(titleOf(html)).toBe('Commerce API · stackmap');
-    expect(html).toContain(`<script type="application/json" id="${LIVE_BLOCK_ID}">{"events":"/events"}</script>`);
+    expect(html).toMatch(new RegExp(`<script type="application/json" id="${LIVE_BLOCK_ID}">\\{"events":"/events","build":"[0-9a-f]{16}"\\}</script>`));
     const sse = await subscribe(server.url);
-    expect(sse.hello).toEqual({ event: 'diagnostics', data: JSON.stringify({ ok: true, diagnostics: [] }) });
+    expect(sse.hello.event).toBe('diagnostics');
+    expect(JSON.parse(sse.hello.data)).toEqual({ ok: true, diagnostics: [], build: buildOf(html) });
     await sse.close();
     expect((await fetch(`${server.url}/nope`)).status).toBe(404);
+  });
+
+  it('refuses a foreign Host header (DNS rebinding) and answers HEAD', async () => {
+    write(commerceApi);
+    server = await serve(file, { template: TEMPLATE, port: 0 });
+    const port = new URL(server.url).port;
+    expect(await raw(server.url, 'GET', `evil.example:${port}`)).toBe(403);
+    expect(await raw(`${server.url}/events`, 'GET', 'evil.example')).toBe(403);
+    expect(await raw(server.url, 'GET', `localhost:${port}`)).toBe(200);
+    expect(await raw(server.url, 'HEAD')).toBe(200);
+  });
+
+  it('stamps the page and every diagnostics event with the build id, so a stale page can tell', async () => {
+    write(commerceApi);
+    server = await serve(file, { template: TEMPLATE, port: 0 });
+    const first = buildOf(await page(server.url));
+    const sse = await subscribe(server.url);
+    expect(JSON.parse(sse.hello.data).build).toBe(first);
+    write(withTitle('Commerce v2'));
+    await sse.next(isReload);
+    const second = buildOf(await page(server.url));
+    expect(second).not.toBe(first);
+    await sse.close();
+    // A client that connects later still learns the current build from the greeting.
+    const late = await subscribe(server.url);
+    expect(JSON.parse(late.hello.data).build).toBe(second);
+    await late.close();
+  });
+
+  it('does not overflow past port 65535 when the port is busy', async () => {
+    write(commerceApi);
+    const blocker = createServer();
+    const listening = await new Promise<boolean>((resolve) => {
+      blocker.once('error', () => resolve(false));
+      blocker.listen(65535, '127.0.0.1', () => resolve(true));
+    });
+    try {
+      if (listening) await expect(serve(file, { template: TEMPLATE, port: 65535 })).rejects.toThrow(/cannot listen/);
+    } finally {
+      blocker.close();
+    }
   });
 
   it('reloads on a good edit, keeps the last good page on a broken one, recovers when fixed', async () => {

@@ -62,6 +62,35 @@ test('the PNG shows every card, even when zoomed in on one corner', async ({ pag
   expect(drawn.every((n) => n > 20)).toBe(true);
 });
 
+test('edges are drawn in the export', async ({ page }) => {
+  const { bytes } = await exportAs(page, /^PNG\s*1×/);
+  const edge = commerceApiLayout.edges['e-edge-2']!; // straight horizontal run from the gateway
+  const origin = { x: Math.min(...rects.map((r) => r.x)), y: Math.min(...rects.map((r) => r.y)) };
+  const inked = await page.evaluate(
+    async ({ b64, a, b }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      [c.width, c.height] = [img.width, img.height];
+      const ctx = c.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const bg = ctx.getImageData(2, 2, 1, 1).data;
+      const mid = { x: Math.round((a.x + b.x) / 2), y: Math.round((a.y + b.y) / 2) };
+      const d = ctx.getImageData(mid.x - 3, mid.y - 3, 7, 7).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i]! - bg[0]!) + Math.abs(d[i + 1]! - bg[1]!) + Math.abs(d[i + 2]! - bg[2]!) > 30) n++;
+      return n;
+    },
+    {
+      b64: bytes.toString('base64'),
+      a: { x: edge[0]!.x - origin.x + 32, y: edge[0]!.y - origin.y + 32 },
+      b: { x: edge[1]!.x - origin.x + 32, y: edge[1]!.y - origin.y + 32 },
+    },
+  );
+  expect(inked).toBeGreaterThan(3);
+});
+
 test('SVG is a foreignObject snapshot with the fonts embedded', async ({ page }) => {
   const { name, bytes } = await exportAs(page, /^SVG/);
   expect(name).toBe('commerce-api.svg');
@@ -71,6 +100,8 @@ test('SVG is a foreignObject snapshot with the fonts embedded', async ({ page })
   expect(svg).toContain('<foreignObject');
   expect(svg).toContain('OpenShip Edge');
   expect(svg).toMatch(/@font-face[^}]*Geist/);
+  // Only rendering-relevant inline styles: the unfiltered snapshot of this sample was 1.47 MB.
+  expect(bytes.length).toBeLessThan(600_000);
 });
 
 test('the export menu is keyboard operable and closes on Escape', async ({ page }) => {

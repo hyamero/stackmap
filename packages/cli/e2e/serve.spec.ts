@@ -10,10 +10,12 @@ let url: string;
 let file: string;
 const write = (content: unknown) => writeFileSync(file, typeof content === 'string' ? content : JSON.stringify(content));
 
-async function start(initial: unknown) {
-  file = join(mkdtempSync(join(tmpdir(), 'stackmap-live-')), 'd.json');
-  write(initial);
-  proc = spawn('node', [new URL('../dist/cli.js', import.meta.url).pathname, 'serve', file, '--port', '0']);
+async function start(initial: unknown, port = '0') {
+  if (initial !== undefined) {
+    file = join(mkdtempSync(join(tmpdir(), 'stackmap-live-')), 'd.json');
+    write(initial);
+  }
+  proc = spawn('node', [new URL('../dist/cli.js', import.meta.url).pathname, 'serve', file, '--port', port]);
   url = await new Promise<string>((resolve, reject) => {
     proc.stdout!.on('data', (b: Buffer) => {
       const m = /serving (http:\/\/127\.0\.0\.1:\d+)/.exec(b.toString());
@@ -75,4 +77,18 @@ test('serving an invalid file shows the waiting state, then the diagram once fix
   await expect(page.getByRole('status').filter({ hasText: 'error' })).toContainText('waiting for a valid diagram');
   write(commerceApi);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Commerce API');
+});
+
+test('a page open across a serve restart shows it is disconnected, then picks up the new build', async ({ page }) => {
+  await start(commerceApi);
+  await page.goto(url);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Commerce API');
+  const port = new URL(url).port;
+  const stopped = new Promise((resolve) => proc.once('exit', resolve));
+  proc.kill('SIGINT');
+  await stopped;
+  await expect(page.getByText(/Disconnected from/)).toBeVisible();
+  write({ ...commerceApi, title: 'After restart' });
+  await start(undefined, port);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('After restart', { timeout: 10_000 });
 });

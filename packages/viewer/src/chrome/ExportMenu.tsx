@@ -24,22 +24,23 @@ export function ExportMenu() {
     return () => removeEventListener('pointerdown', onDown);
   }, [open]);
 
-  const run = async (label: string, job: () => Promise<void>) => {
+  const run = async (job: () => Promise<string>) => {
     setOpen(false);
     setStatus({ kind: 'busy' });
     try {
-      await job();
-      setStatus({ kind: 'done', text: label });
+      setStatus({ kind: 'done', text: await job() });
     } catch (e) {
       setStatus({ kind: 'error', text: `Export failed: ${(e as Error).message}` });
     }
     button.current?.focus();
   };
+  // A diagram past the canvas limit is exported smaller; say so rather than pretend it's 2×.
+  const scaled = (asked: number, got: number) => (got < asked ? ` at ${got.toFixed(2)}× (browser canvas limit)` : '');
   const png = (scale: 1 | 2) =>
-    run(`Saved PNG ${scale}×`, async () => {
-      const url = URL.createObjectURL(await exportPng(content, scale));
-      download(url, exportFileName(draft.title, scale === 2 ? '2x.png' : 'png'));
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    run(async () => {
+      const { blob, scale: got } = await exportPng(content, scale);
+      download(blob, exportFileName(draft.title, scale === 2 ? '2x.png' : 'png'));
+      return `Saved PNG ${scale}×${scaled(scale, got)}`;
     });
   const items = [
     { label: 'PNG', hint: '1×', act: () => png(1) },
@@ -48,15 +49,22 @@ export function ExportMenu() {
       label: 'Copy PNG',
       hint: '2×',
       act: () =>
-        run('Copied PNG', async () => {
+        run(async () => {
           if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('clipboard not available here');
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': exportPng(content, 2) })]);
+          const png = exportPng(content, 2);
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': png.then((p) => p.blob) })]);
+          const { scale } = await png;
+          return `Copied PNG${scaled(2, scale)}`;
         }),
     },
     {
       label: 'SVG',
       hint: 'snapshot',
-      act: () => run('Saved SVG', async () => download(await exportSvg(content), exportFileName(draft.title, 'svg'))),
+      act: () =>
+        run(async () => {
+          download(await exportSvg(content), exportFileName(draft.title, 'svg'));
+          return 'Saved SVG';
+        }),
     },
   ];
 
@@ -84,6 +92,10 @@ export function ExportMenu() {
         <div
           role="menu"
           aria-label="Export"
+          // Tab (or any focus move) out of the menu closes it.
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+          }}
           className={`${PANEL_CLASS} absolute top-full right-0 z-20 mt-2 w-[200px] p-1.5`}
           style={PANEL_STYLE}
           onKeyDown={(e) => {
@@ -91,6 +103,8 @@ export function ExportMenu() {
             const i = items.indexOf(document.activeElement as HTMLElement);
             if (e.key === 'ArrowDown') items[(i + 1) % items.length]?.focus();
             else if (e.key === 'ArrowUp') items[(i - 1 + items.length) % items.length]?.focus();
+            else if (e.key === 'Home') items[0]?.focus();
+            else if (e.key === 'End') items.at(-1)?.focus();
             else if (e.key === 'Escape') {
               setOpen(false);
               button.current?.focus();

@@ -15,6 +15,13 @@ export function useLiveStatus(): LiveStatus | null {
 export const isLive = () => readLiveConfig(document) !== null;
 
 export function LiveToast({ status, hasDiagram }: { status: LiveStatus | null; hasDiagram: boolean }) {
+  if (status?.disconnected) {
+    return (
+      <div role="status" aria-live="polite" className={`${PANEL_CLASS} fixed bottom-6 left-1/2 z-50 -translate-x-1/2 px-4 py-3 font-sans text-[13px] text-fg-muted`} style={PANEL_STYLE}>
+        Disconnected from <code className="font-mono text-fg">stackmap serve</code> · retrying…
+      </div>
+    );
+  }
   if (!status || status.ok) return null;
   const errors = status.diagnostics.filter((d) => d.severity === 'error');
   return (
