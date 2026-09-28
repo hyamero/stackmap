@@ -19,6 +19,7 @@ jobs:
   check:
     name: test · typecheck · build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -37,6 +38,7 @@ jobs:
   e2e:
     name: e2e · visual
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # The same image the visual baselines were generated in, so fonts rasterise identically.
     container: mcr.microsoft.com/playwright:v1.63.0-noble
     env:

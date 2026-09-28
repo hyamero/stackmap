@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { FONT_METRICS } from '../src/font-metrics.gen';
-import { measureText } from '../src/text-measure';
+import { measureText, textWidths } from '../src/text-measure';
+
+const exact = (t: string, f: Parameters<typeof measureText>[1], size: number) => textWidths(t, f, size).exact;
 
 const { faces, kerning } = FONT_METRICS;
 
@@ -16,11 +18,13 @@ describe('measureText', () => {
   it('applies the pair kerning between adjacent glyphs', () => {
     const av = kerning.sans400[65 * 0x10000 + 86]!;
     expect(av).toBeLessThan(0);
-    expect(measureText('AV', 'sans400', 1000)).toBeCloseTo(faces.sans400[65]! + faces.sans400[86]! + av, 6);
+    expect(exact('AV', 'sans400', 1000)).toBeCloseTo(faces.sans400[65]! + faces.sans400[86]! + av, 6);
   });
 
-  it('scales linearly with size', () => {
-    expect(measureText('orders-svc', 'sans400', 24)).toBeCloseTo(2 * measureText('orders-svc', 'sans400', 12), 6);
+  it('the fractional model scales linearly with size; the Linux one snaps each glyph', () => {
+    expect(exact('orders-svc', 'sans400', 24)).toBeCloseTo(2 * exact('orders-svc', 'sans400', 12), 6);
+    expect(Number.isInteger(textWidths('orders-svc', 'sans400', 11.5).snapped)).toBe(true);
+    expect(measureText('orders-svc', 'sans400', 12)).toBe(Math.max(exact('orders-svc', 'sans400', 12), textWidths('orders-svc', 'sans400', 12).snapped));
   });
 
   it('measures mono text at a fixed 0.6em per glyph', () => {
@@ -28,10 +32,24 @@ describe('measureText', () => {
   });
 
   it('measures code points outside the table wide: 1.1em, emoji 1.3em, astral ones counted once', () => {
-    expect(measureText('数', 'sans400', 10)).toBeCloseTo(11, 6);
-    expect(measureText('🚀', 'sans400', 10)).toBeCloseTo(13, 6);
-    expect(measureText('✅', 'sans400', 10)).toBeCloseTo(13, 6);
-    expect(measureText('🇩🇪', 'sans400', 10)).toBeCloseTo(26, 6);
-    expect(measureText('a🚀', 'sans400', 10)).toBeCloseTo(13 + (faces.sans400[97]! * 10) / 1000, 6);
+    expect(exact('数', 'sans400', 10)).toBeCloseTo(11, 6);
+    expect(exact('🚀', 'sans400', 10)).toBeCloseTo(13, 6);
+    expect(exact('✅', 'sans400', 10)).toBeCloseTo(13, 6);
+    expect(exact('🇩🇪', 'sans400', 10)).toBeCloseTo(26, 6);
+    expect(exact('a🚀', 'sans400', 10)).toBeCloseTo(13 + (faces.sans400[97]! * 10) / 1000, 6);
+  });
+
+  // Linux Chromium snaps every glyph advance to whole pixels and skips kerning; these are the widths it
+  // rendered in CI (Playwright v1.63 image). The measure must never come in under either platform.
+  it.each([
+    ['sans400', 11.5, 'Round robin', 67],
+    ['sans400', 12, 'commerce-api-1', 94],
+    ['sans400', 12, 'PostgreSQL cluster', 112],
+    ['sans400', 12, 'The quick brown fox jumps over the lazy dog', 250],
+    ['sans500', 13.5, 'commerce-api-1', 104],
+    ['sans500tnum', 15, 'The quick brown fox jumps over the lazy dog', 318],
+    ['sans500', 13, 'Primary shards', 92],
+  ] as const)('is never narrower than Linux rendering: %s %spx "%s"', (face, size, text, linux) => {
+    expect(measureText(text, face, size)).toBeGreaterThanOrEqual(linux - 0.25);
   });
 });

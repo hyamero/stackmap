@@ -3,8 +3,10 @@ import { cardTextSlots, measureText, type FontFace } from '@stackmap/core';
 import { boundaryNodes } from '../src/pages/boundary-nodes';
 import { GALLERY_SECTIONS } from '../src/pages/gallery-nodes';
 
-// Browser ground truth for the headless card-fit measure (M1): the generated table must match what
-// Chromium renders, including kerning, within a small conservative margin.
+// Browser ground truth for the headless card-fit measure (M1). The measure is the wider of the macOS/
+// Windows layout (fractional, kerned) and the Linux one (whole-pixel advances, no kerning), so on any
+// platform it may run up to ~6% wide but must never come in narrower than what Chromium renders.
+const TOO_WIDE = (real: number) => real * 1.08 + 1;
 const CORPUS = [
   'commerce-api-1',
   'API · Instance 1',
@@ -50,29 +52,30 @@ test('headless text measure matches the browser within a conservative margin', a
       CORPUS.forEach((text, i) => {
         const ours = measureText(text, face, size);
         const real = browser[i]!;
-        // Never narrower than the browser (would hide an overflow), and never more than 2% + 0.5px wider.
-        if (ours < real - 0.25 || ours > real * 1.02 + 0.5) worst.push(`${face} ${size}px "${text}": ours ${ours.toFixed(2)} vs ${real.toFixed(2)}`);
+        // Never narrower than the browser (would hide an overflow), and never wildly wider.
+        if (ours < real - 0.25 || ours > TOO_WIDE(real)) worst.push(`${face} ${size}px "${text}": ours ${ours.toFixed(2)} vs ${real.toFixed(2)}`);
       });
     }
   }
   expect(worst).toEqual([]);
 });
 
-test('a card slot truncates exactly when its measured text exceeds its budget', async ({ page }) => {
+test('a card slot never truncates text the measure said fits, and the measure stays close', async ({ page }) => {
   await page.goto('/?page=gallery');
   await page.evaluate(() => document.fonts.ready);
   const rendered = await page.$$eval('[data-testid="node-card"]', (cards) =>
     Object.fromEntries(
       cards.map((card) => [
         card.getAttribute('data-node-id')!,
-        [...card.querySelectorAll<HTMLElement>('span[title], div[title]')].map((el) => ({
-          text: el.getAttribute('title')!,
-          truncated: el.scrollWidth > el.clientWidth,
-        })),
+        [...card.querySelectorAll<HTMLElement>('span[title], div[title]')].map((el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          return { text: el.getAttribute('title')!, truncated: el.scrollWidth > el.clientWidth, width: range.getBoundingClientRect().width };
+        }),
       ]),
     ),
   );
-  const mismatches: string[] = [];
+  const problems: string[] = [];
   let checked = 0;
   for (const [, nodes] of [...GALLERY_SECTIONS, ['Boundary', boundaryNodes()] as const]) {
     for (const node of nodes) {
@@ -81,14 +84,20 @@ test('a card slot truncates exactly when its measured text exceeds its budget', 
       expect(dom.map((d) => d.text), node.id).toEqual(slots.map((s) => s.text));
       slots.forEach((slot, i) => {
         const width = measureText(slot.text, slot.face, slot.size);
-        if (Math.abs(width - slot.maxWidth) < 1) return; // scrollWidth is integer-rounded
+        const at = `${node.id}${slot.path}: measured ${width.toFixed(1)} / budget ${slot.maxWidth.toFixed(1)}`;
         checked++;
-        if (width > slot.maxWidth !== dom[i]!.truncated)
-          mismatches.push(`${node.id}${slot.path}: measured ${width.toFixed(1)} / budget ${slot.maxWidth.toFixed(1)}, truncated=${dom[i]!.truncated}`);
+        // The dangerous direction: validation passed it, the browser cut it off.
+        if (dom[i]!.truncated && width <= slot.maxWidth - 1) problems.push(`${at}, but truncated`);
+        // Untruncated text is fully laid out, so its range width is the real width.
+        if (!dom[i]!.truncated && width > TOO_WIDE(dom[i]!.width)) problems.push(`${at}, real ${dom[i]!.width.toFixed(1)}: too conservative`);
+        // Linux renders exactly the snapped model, so text measured over budget must truncate there;
+        // this is what catches a budget that is set too small.
+        if (process.platform === 'linux' && node.id === 'boundary-over' && width > slot.maxWidth + 1 && !dom[i]!.truncated)
+          problems.push(`${at}, but not truncated on Linux`);
       });
     }
   }
-  expect(mismatches).toEqual([]);
+  expect(problems).toEqual([]);
   expect(checked).toBeGreaterThan(60);
 });
 
