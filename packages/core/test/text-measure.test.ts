@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { FONT_METRICS } from '../src/font-metrics.gen';
-import { measureText, textWidths } from '../src/text-measure';
+import { kerningPairs, measureText, textWidths } from '../src/text-measure';
 
 const exact = (t: string, f: Parameters<typeof measureText>[1], size: number) => textWidths(t, f, size).exact;
 
-const { faces, kerning } = FONT_METRICS;
+const { faces } = FONT_METRICS;
 
 describe('measureText', () => {
   it('is zero for an empty string', () => {
@@ -16,7 +16,7 @@ describe('measureText', () => {
   });
 
   it('applies the pair kerning between adjacent glyphs', () => {
-    const av = kerning.sans400[65 * 0x10000 + 86]!;
+    const av = kerningPairs('sans400')[65 * 0x10000 + 86]!;
     expect(av).toBeLessThan(0);
     expect(exact('AV', 'sans400', 1000)).toBeCloseTo(faces.sans400[65]! + faces.sans400[86]! + av, 6);
   });

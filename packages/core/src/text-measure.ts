@@ -1,3 +1,4 @@
+import { decodeKerning, type KerningPairs } from './font-metrics-codec';
 import { FONT_METRICS, type FontFace } from './font-metrics.gen';
 
 /** The faces NodeCard renders text in (Geist Sans 400/500, tabular-digit 500, Geist Mono 400). */
@@ -8,6 +9,14 @@ export type { FontFace };
 const FALLBACK_EM = 1.1;
 const EMOJI_EM = 1.3;
 const EMOJI = /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u;
+
+const decoded = new Map<FontFace, KerningPairs>();
+/** A face's pair adjustments in 1/1000 em, decoded from the shipped table on first use. */
+export function kerningPairs(face: FontFace): KerningPairs {
+  let pairs = decoded.get(face);
+  if (!pairs) decoded.set(face, (pairs = decodeKerning(FONT_METRICS.kerning, face)));
+  return pairs;
+}
 
 /**
  * Rendered width in CSS px, headless: the wider of how macOS/Windows Chromium lays the text out
@@ -22,7 +31,7 @@ export function measureText(text: string, face: FontFace, sizePx: number): numbe
 /** Both platform models, for tests and diagnostics: `exact` (kerned, fractional) and Linux's `snapped`. */
 export function textWidths(text: string, face: FontFace, sizePx: number): { exact: number; snapped: number } {
   const advances: Record<number, number | undefined> = FONT_METRICS.faces[face];
-  const kerning: Record<number, number | undefined> = FONT_METRICS.kerning[face];
+  const kerning: Record<number, number | undefined> = kerningPairs(face);
   const em = FONT_METRICS.unitsPerEm;
   let exact = 0;
   let snapped = 0;
