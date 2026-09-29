@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useExplore } from '../explore/ExploreContext';
+import { PlayButton } from './PlayButton';
 import { IconButton, PANEL_CLASS, PANEL_STYLE } from './ui';
 
 /** Presentation steps: Overview, then each authored view. */
@@ -55,6 +56,7 @@ export function PresentBar({ onExit }: { onExit: () => void }) {
             </IconButton>
           </>
         )}
+        <PlayButton />
         <IconButton label="End presentation (Esc)" onClick={onExit}>
           <X size={17} strokeWidth={1.75} />
         </IconButton>

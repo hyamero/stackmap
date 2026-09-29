@@ -1,38 +1,20 @@
 import { Download } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { canEncode, download, exportFileName, exportPng, exportRaster, exportSvg, exportVideo, videoExtension, videoType, type FlowEdge } from './export';
+import { canEncode, download, exportFileName, exportPng, exportRaster, exportSvg, exportVideo, videoExtension, videoType } from './export';
+import { useFlow } from '../motion/useFlow';
 import { popIn } from '../motion/motion';
 import { PANEL_CLASS, PANEL_STYLE } from './ui';
 import { useExplore } from '../explore/ExploreContext';
 import { useScene, useSceneContent } from '../canvas/ViewportContext';
-import type { Scene } from '../canvas/scene';
 
 type Status = { kind: 'idle' } | { kind: 'busy'; text?: string } | { kind: 'done'; text: string } | { kind: 'error'; text: string };
-
-/** The video's pulses: every edge, tinted by its source, setting off in reading order (time, for a sequence). */
-function flowEdges(scene: Scene): FlowEdge[] {
-  const css = getComputedStyle(document.documentElement);
-  const typeOf = new Map(scene.cards.map((c) => [c.node.id, c.node.type]));
-  const rect = new Map(scene.cards.map((c) => [c.node.id, c.rect]));
-  const along = (id: string, e: Scene['edges'][number]) => {
-    if (scene.kind === 'sequence') return e.points[0]!.y;
-    const r = rect.get(id)!;
-    return scene.direction === 'RIGHT' ? r.x : r.y;
-  };
-  const positions = scene.edges.map((e) => along(e.from, e));
-  const min = Math.min(...positions);
-  const span = Math.max(...positions) - min || 1;
-  return scene.edges.map((e, i) => ({
-    points: e.points,
-    color: css.getPropertyValue(`--sm-${typeOf.get(e.from)}-accent`).trim() || css.getPropertyValue('--sm-edge').trim(),
-    start: (positions[i]! - min) / span,
-  }));
-}
 
 export function ExportMenu() {
   const { draft } = useExplore();
   const content = useSceneContent();
   const scene = useScene();
+  // The video plays the same flow as the canvas: a route, a selection's connections, or everything shown.
+  const flow = useFlow(scene);
   // What this browser can write, checked once.
   const [formats] = useState(() => ({ jpeg: canEncode('image/jpeg'), webp: canEncode('image/webp'), video: videoType() }));
   const [open, setOpen] = useState(false);
@@ -125,7 +107,11 @@ export function ExportMenu() {
             hint: `flow · ${videoExtension(formats.video)}`,
             act: () =>
               run(async () => {
-                download(await exportVideo(content, flowEdges(scene), formats.video!), exportFileName(draft.title, videoExtension(formats.video!)));
+                const css = getComputedStyle(document.documentElement);
+                const typeOf = new Map(scene.cards.map((c) => [c.node.id, c.node.type]));
+                const colorOf = (p: { from: string }) => css.getPropertyValue(`--sm-${typeOf.get(p.from)}-accent`).trim() || css.getPropertyValue('--sm-edge').trim();
+                if (!flow.pulses.length) throw new Error('nothing to play: no connections are shown');
+                download(await exportVideo(content, flow, colorOf, formats.video!), exportFileName(draft.title, videoExtension(formats.video!)));
                 return 'Saved video';
               }, 'Recording…'),
           },

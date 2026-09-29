@@ -14,9 +14,11 @@ export interface ExploreState {
   route: { from: string; to: string } | null;
   /** picking a route's ends: the start is next (`from`), or the end after `start` */
   routing: { next: 'from' } | { next: 'to'; start: string } | null;
+  /** flow playback (P): pulses run along whatever is shown */
+  playing: boolean;
 }
 
-export const INITIAL: ExploreState = { selected: null, query: null, hiddenTypes: new Set(), trace: false, view: null, reveal: 0, route: null, routing: null };
+export const INITIAL: ExploreState = { selected: null, query: null, hiddenTypes: new Set(), trace: false, view: null, reveal: 0, route: null, routing: null, playing: false };
 
 export type ExploreAction =
   | { type: 'select'; id: string | null; reveal?: boolean }
@@ -26,6 +28,7 @@ export type ExploreAction =
   | { type: 'toggleTrace' }
   | { type: 'view'; id: string | null }
   | { type: 'toggleRoute' }
+  | { type: 'togglePlay' }
   | { type: 'replace'; state: ExploreState };
 
 export function explore(s: ExploreState, a: ExploreAction): ExploreState {
@@ -57,6 +60,8 @@ export function explore(s: ExploreState, a: ExploreAction): ExploreState {
       return s.route || s.routing ? s : { ...s, trace: !s.trace };
     case 'view':
       return { ...s, view: a.id };
+    case 'togglePlay':
+      return { ...s, playing: !s.playing };
     case 'replace':
       return a.state;
   }
@@ -86,6 +91,7 @@ export function parseHash(hash: string, known: Known): ExploreState {
     reveal: node && known.nodes.has(node) ? 1 : 0,
     hiddenTypes: new Set(lens),
     route,
+    playing: params.get('play') === '1',
   };
 }
 
@@ -95,5 +101,6 @@ export function formatHash(s: ExploreState): string {
   if (s.selected) parts.push(`node=${encodeURIComponent(s.selected)}`);
   if (s.hiddenTypes.size) parts.push(`lens=${[...s.hiddenTypes].sort().join(',')}`);
   if (s.route) parts.push(`route=${encodeURIComponent(s.route.from)}~${encodeURIComponent(s.route.to)}`);
+  if (s.playing) parts.push('play=1');
   return parts.length ? `#${parts.join('&')}` : '';
 }

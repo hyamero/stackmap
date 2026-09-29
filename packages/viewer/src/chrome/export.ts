@@ -1,5 +1,6 @@
 import { getFontEmbedCSS, toBlob, toCanvas, toSvg } from 'html-to-image';
 import type { Point, Rect as SceneRect } from '@stackmap/core';
+import { PULSE, pulseAt, type Flow, type FlowPulse } from '../motion/flow';
 import { settleAll } from '../motion/motion';
 
 /** Space around the diagram in exports, in diagram px. */
@@ -66,6 +67,8 @@ async function options(content: SceneRect, pixelRatio: number) {
       backgroundColor: stage,
       fontEmbedCSS: await fontCss,
       includeStyleProperties: includedStyles(node),
+      // Playing pulses are the live view's, not the diagram's: a still never shows one mid-edge.
+      filter: (el: HTMLElement) => !(el instanceof Element && el.hasAttribute('data-flow')),
       style: {
         transform: `translate(${EXPORT_PADDING - content.x}px, ${EXPORT_PADDING - content.y}px)`,
         width: `${width}px`,
@@ -142,35 +145,14 @@ export function videoType(): string | null {
 }
 export const videoExtension = (type: string) => (type.startsWith('video/mp4') ? 'mp4' : 'webm');
 
-/** The point `t` (0–1) of the way along a polyline. */
-export function pointAlong(points: Point[], t: number): Point {
-  const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i]!.x, p.y - points[i]!.y));
-  let left = Math.max(0, Math.min(1, t)) * lengths.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < lengths.length; i++) {
-    if (left <= lengths[i]! || i === lengths.length - 1) {
-      const f = lengths[i] ? Math.min(1, left / lengths[i]!) : 0;
-      return { x: points[i]!.x + (points[i + 1]!.x - points[i]!.x) * f, y: points[i]!.y + (points[i + 1]!.y - points[i]!.y) * f };
-    }
-    left -= lengths[i]!;
-  }
-  return points.at(-1)!;
-}
-
-export interface FlowEdge {
-  points: Point[];
-  /** CSS colour of the pulse (the source node's accent) */
-  color: string;
-  /** 0–1: when in the loop its pulse sets off, in reading order */
-  start: number;
-}
-
-export const VIDEO = { duration: 6000, period: 3000, travel: 1200, fps: 30, maxWidth: 1920, maxHeight: 1080 } as const;
+export const VIDEO = { duration: 6000, fps: 30, maxWidth: 1920, maxHeight: 1080 } as const;
 
 /**
- * A short video of the diagram with its flow animated: the snapshot every export uses, and a pulse running
- * along each connection in reading order, looping. Recorded from a canvas with MediaRecorder.
+ * A short video of the diagram with a flow playing on it: the snapshot every export uses, and the live canvas's
+ * pulses (`colorOf` resolving each one's tint), for whole loops of at least VIDEO.duration. Recorded from a
+ * canvas with MediaRecorder.
  */
-export async function exportVideo(content: SceneRect, edges: FlowEdge[], type: string): Promise<Blob> {
+export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (p: FlowPulse) => string, type: string): Promise<Blob> {
   const width = Math.ceil(content.width + 2 * EXPORT_PADDING);
   const height = Math.ceil(content.height + 2 * EXPORT_PADDING);
   // A frame the encoder can keep up with: the whole diagram inside 1920×1080.
@@ -184,20 +166,21 @@ export async function exportVideo(content: SceneRect, edges: FlowEdge[], type: s
   const ctx = out.getContext('2d');
   if (!ctx) throw new Error('no 2D canvas');
   const at = (p: Point) => ({ x: (p.x - content.x + EXPORT_PADDING) * scale, y: (p.y - content.y + EXPORT_PADDING) * scale });
-  const routes = edges.filter((e) => e.points.length > 1).map((e) => ({ ...e, points: e.points.map(at) }));
+  const pulses = flow.pulses.map((p) => ({ pulse: p, color: colorOf(p) }));
+  const duration = Math.ceil(VIDEO.duration / flow.period) * flow.period;
   const frame = (ms: number) => {
     ctx.drawImage(base, 0, 0);
-    for (const e of routes) {
-      const t = (((ms - e.start * (VIDEO.period - VIDEO.travel)) % VIDEO.period) + VIDEO.period) % VIDEO.period;
-      if (t > VIDEO.travel) continue;
-      const p = pointAlong(e.points, t / VIDEO.travel);
+    for (const { pulse, color } of pulses) {
+      const where = pulseAt(flow, pulse, ms);
+      if (!where) continue;
+      const p = at(where);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 4.5 * scale, 0, Math.PI * 2);
-      ctx.fillStyle = e.color;
-      ctx.globalAlpha = 0.25;
+      ctx.arc(p.x, p.y, PULSE.halo * scale, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = PULSE.haloOpacity;
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.5 * scale, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, PULSE.core * scale, 0, Math.PI * 2);
       ctx.globalAlpha = 1;
       ctx.fill();
     }
@@ -220,7 +203,7 @@ export async function exportVideo(content: SceneRect, edges: FlowEdge[], type: s
       const tick = () => {
         const ms = performance.now() - began;
         frame(ms);
-        if (ms < VIDEO.duration && !failure) requestAnimationFrame(tick);
+        if (ms < duration && !failure) requestAnimationFrame(tick);
         else resolve();
       };
       requestAnimationFrame(tick);
