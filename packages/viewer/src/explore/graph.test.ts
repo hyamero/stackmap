@@ -65,9 +65,9 @@ describe('routeBetween', () => {
   it('collects every node and edge on a directed walk (loops included), and one shortest path', () => {
     const route = routeBetween(r, 'b', 'y')!;
     expect(route.reversed).toBe(false);
-    // a is on the loop b → c → a → b, so a walk from b to y can pass it.
+    // a is on the loop b → c → a → b, so a walk from b to y can pass it; the edge back into b isn't lit.
     expect([...route.nodes].sort()).toEqual(['a', 'b', 'c', 'd', 'y']);
-    expect([...route.edges].sort()).toEqual(['ab', 'bc', 'bd', 'ca', 'cy', 'dy']);
+    expect([...route.edges].sort()).toEqual(['bc', 'bd', 'ca', 'cy', 'dy']);
     expect(route.steps).toHaveLength(2);
   });
 
@@ -81,5 +81,33 @@ describe('routeBetween', () => {
     expect(routeBetween(r, 'lone', 'a')).toBeNull();
     expect(routeBetween(r, 'a', 'a')).toBeNull();
     expect(routeBetween(r, 'a', 'ghost')).toBeNull();
+  });
+});
+
+describe('routeBetween, replies and time', () => {
+  const call = (id: string, from: string, to: string, kind?: string) => ({ id, from, to, kind });
+
+  it('leaves replies out unless nothing connects without them', () => {
+    const g = buildGraph(['a', 'b', 'c'], [call('ab', 'a', 'b'), call('bc', 'b', 'c'), call('cb', 'c', 'b', 'return'), call('ba', 'b', 'a', 'return')]);
+    expect([...routeBetween(g, 'a', 'c')!.edges].sort()).toEqual(['ab', 'bc']);
+    // Only replies lead from c back to a.
+    expect(routeBetween(g, 'c', 'a')).toMatchObject({ reversed: true, steps: ['ab', 'bc'] });
+  });
+
+  it('in a sequence follows messages in time order only', () => {
+    // user→web, web→api, api→db, db→api (reply), api→web (reply), web→user (reply)
+    const g = buildGraph(
+      ['user', 'web', 'api', 'db'],
+      [call('1', 'user', 'web'), call('2', 'web', 'api'), call('3', 'api', 'db'), call('4', 'db', 'api', 'return'), call('5', 'api', 'web', 'return'), call('6', 'web', 'user', 'return')],
+      { timed: true },
+    );
+    const route = routeBetween(g, 'user', 'db')!;
+    expect(route.steps).toEqual(['1', '2', '3']);
+    expect([...route.edges].sort()).toEqual(['1', '2', '3']);
+    // db → user runs through the replies, later in time.
+    expect(routeBetween(g, 'db', 'user')!.steps).toEqual(['4', '5', '6']);
+    // A message earlier than the one that reached a participant doesn't continue the route.
+    const late = buildGraph(['a', 'b', 'c'], [call('bc', 'b', 'c'), call('ab', 'a', 'b')], { timed: true });
+    expect(routeBetween(late, 'a', 'c')).toBeNull();
   });
 });

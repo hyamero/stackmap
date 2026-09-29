@@ -37,7 +37,7 @@ const knownOf = (d: DiagramDraft): Known => ({
 export function ExploreProvider({ draft, children }: { draft: DiagramDraft; children: ReactNode }) {
   const known = useMemo(() => knownOf(draft), [draft]);
   const [state, dispatch] = useReducer(explore, undefined, () => parseHash(location.hash, known));
-  const graph = useMemo(() => buildGraph(draft.nodes.map((n) => n.id), draft.edges), [draft]);
+  const graph = useMemo(() => buildGraph(draft.nodes.map((n) => n.id), draft.edges, { timed: draft.kind === 'sequence' }), [draft]);
   const em = useMemo(() => emphasis(draft, graph, state), [draft, graph, state]);
   const stateRef = useRef(state);
   stateRef.current = state;
