@@ -21,6 +21,8 @@ export function PresentBar({ onExit }: { onExit: () => void }) {
   const step = steps[at]!;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Space and Enter on a focused button press that button.
+      if ((e.key === ' ' || e.key === 'Enter') && e.target instanceof HTMLButtonElement) return;
       const to = { ArrowRight: at + 1, PageDown: at + 1, ' ': at + 1, ArrowLeft: at - 1, PageUp: at - 1, Home: 0, End: steps.length - 1 }[e.key];
       if (e.key === 'Escape') onExit();
       else if (to !== undefined) go(to);
@@ -43,12 +45,16 @@ export function PresentBar({ onExit }: { onExit: () => void }) {
         <span className="shrink-0 text-[13px] text-fg-muted tabular-nums">
           {at + 1} / {steps.length}
         </span>
-        <IconButton label="Previous step" onClick={() => go(at - 1)}>
-          <ChevronLeft size={18} strokeWidth={1.75} />
-        </IconButton>
-        <IconButton label="Next step" onClick={() => go(at + 1)}>
-          <ChevronRight size={18} strokeWidth={1.75} />
-        </IconButton>
+        {steps.length > 1 && (
+          <>
+            <IconButton label="Previous step" disabled={at === 0} onClick={() => go(at - 1)}>
+              <ChevronLeft size={18} strokeWidth={1.75} />
+            </IconButton>
+            <IconButton label="Next step" disabled={at === steps.length - 1} onClick={() => go(at + 1)}>
+              <ChevronRight size={18} strokeWidth={1.75} />
+            </IconButton>
+          </>
+        )}
         <IconButton label="End presentation (Esc)" onClick={onExit}>
           <X size={17} strokeWidth={1.75} />
         </IconButton>

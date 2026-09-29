@@ -56,11 +56,15 @@ describe('route picking', () => {
     expect(s).toMatchObject({ routing: { next: 'from' }, selected: null, trace: false });
     s = explore(s, { type: 'select', id: 'api' });
     s = explore(s, { type: 'select', id: null });
+    s = explore(s, { type: 'select', id: 'api' });
     expect(s.routing).toEqual({ next: 'to', start: 'api' });
     s = explore(s, { type: 'select', id: 'db' });
     expect(s).toMatchObject({ routing: null, route: { from: 'api', to: 'db' }, selected: null });
     expect(formatHash(s)).toBe('#route=api~db');
     expect(explore(s, { type: 'clear' }).route).toBeNull();
+    // Trace waits while a route is shown; a card click leaves the route for that card.
+    expect(explore(s, { type: 'toggleTrace' }).trace).toBe(false);
+    expect(explore(s, { type: 'select', id: 'db' })).toMatchObject({ route: null, selected: 'db' });
     expect(explore(s, { type: 'toggleRoute' }).route).toBeNull();
   });
 
@@ -68,5 +72,6 @@ describe('route picking', () => {
     expect(parseHash('#route=api~db', known).route).toEqual({ from: 'api', to: 'db' });
     expect(parseHash('#route=api~ghost', known).route).toBeNull();
     expect(parseHash('#route=api', known).route).toBeNull();
+    expect(parseHash('#route=api~api', known).route).toBeNull();
   });
 });

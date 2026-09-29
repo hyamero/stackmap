@@ -4,6 +4,7 @@ import { ZoomBar } from '../chrome/ZoomBar';
 import { useSceneReveal } from '../motion/useSceneReveal';
 import { useExplore } from '../explore/ExploreContext';
 import { routeBetween } from '../explore/graph';
+import { inMenu } from '../chrome/Toolbar';
 import { CanvasPanel } from './CanvasPanel';
 import { Minimap } from './Minimap';
 import { toScene, type Scene } from './scene';
@@ -118,12 +119,14 @@ export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: L
     });
     return () => cancelAnimationFrame(id);
   }, [chrome, state.view, explore.draft, scene, camera]);
-  // M toggles the radar from anywhere but a text field.
+  // M toggles the radar from anywhere but a text field or menu; not while presenting (it's hidden then).
+  const chromeRef = useRef(chrome);
+  chromeRef.current = chrome;
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== 'm' && e.key !== 'M') return;
+      if ((e.key !== 'm' && e.key !== 'M') || !chromeRef.current) return;
       const t = e.target as HTMLElement | null;
-      if (e.metaKey || e.ctrlKey || e.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
       e.preventDefault();
       setMinimap((v) => !v);
     };

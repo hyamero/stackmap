@@ -33,10 +33,13 @@ export function explore(s: ExploreState, a: ExploreAction): ExploreState {
     case 'select':
       // While picking a route, a card click picks an end; a click on empty canvas keeps picking.
       if (s.routing) {
-        if (a.id === null) return s;
+        // Picking the start again isn't an end: keep waiting for the other node.
+        if (a.id === null || (s.routing.next === 'to' && a.id === s.routing.start)) return s;
         if (s.routing.next === 'from') return { ...s, selected: null, routing: { next: 'to', start: a.id } };
         return { ...s, selected: null, routing: null, route: { from: s.routing.start, to: a.id }, reveal: s.reveal };
       }
+      // Selecting a card while a route is shown leaves the route for that card's details (null keeps the route).
+      if (s.route && a.id !== null) return { ...s, route: null, selected: a.id, reveal: a.reveal ? s.reveal + 1 : s.reveal };
       return { ...s, selected: a.id, reveal: a.reveal ? s.reveal + 1 : s.reveal };
     case 'clear':
       return { ...s, selected: null, query: null, route: null, routing: null };
@@ -50,7 +53,8 @@ export function explore(s: ExploreState, a: ExploreAction): ExploreState {
       return { ...s, hiddenTypes: hidden };
     }
     case 'toggleTrace':
-      return { ...s, trace: !s.trace };
+      // A route owns the emphasis while it is shown.
+      return s.route || s.routing ? s : { ...s, trace: !s.trace };
     case 'view':
       return { ...s, view: a.id };
     case 'replace':
@@ -71,7 +75,7 @@ export function parseHash(hash: string, known: Known): ExploreState {
   const view = params.get('view');
   const node = params.get('node');
   const [from, to] = (params.get('route') ?? '').split('~');
-  const route = from && to && known.nodes.has(from) && known.nodes.has(to) ? { from, to } : null;
+  const route = from && to && from !== to && known.nodes.has(from) && known.nodes.has(to) ? { from, to } : null;
   const lens = (params.get('lens') ?? '')
     .split(',')
     .filter((t): t is NodeType => (NODE_TYPES as readonly string[]).includes(t) && known.types.has(t as NodeType));

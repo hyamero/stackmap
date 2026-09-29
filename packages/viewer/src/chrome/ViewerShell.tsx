@@ -9,6 +9,7 @@ import type { ThemeChoice } from '../theme/theme';
 import { IdentityCard } from './IdentityCard';
 import { Inspector } from './Inspector';
 import { PresentBar } from './Presentation';
+import { inMenu } from './Toolbar';
 import { Toolbar } from './Toolbar';
 
 /** Below this width the inspector starts collapsed (Q27). */
@@ -97,7 +98,10 @@ export function ViewerShell({
   const shell = useRef<HTMLDivElement>(null);
   // Presentation (F): the stage alone, full screen where the browser allows it, stepping through the views.
   const [presenting, setPresenting] = useState(false);
+  const presentingRef = useRef(false);
+  presentingRef.current = presenting;
   const present = useCallback((on: boolean) => {
+    presentingRef.current = on;
     setPresenting(on);
     if (on) void shell.current?.requestFullscreen?.().catch(() => {});
     else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
@@ -105,13 +109,15 @@ export function ViewerShell({
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if ((e.key !== 'f' && e.key !== 'F') || e.metaKey || e.ctrlKey || e.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      if ((e.key !== 'f' && e.key !== 'F') || e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
       e.preventDefault();
       present(!presenting);
     };
     // Leaving full screen (Esc in the browser's own handling) ends the presentation too.
     const onFullscreen = () => {
       if (!document.fullscreenElement) setPresenting(false);
+      // A request that resolved after the presentation already ended (a quick F, F): leave full screen again.
+      else if (!presentingRef.current) void document.exitFullscreen().catch(() => {});
     };
     addEventListener('keydown', onKey);
     document.addEventListener('fullscreenchange', onFullscreen);
