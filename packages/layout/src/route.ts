@@ -31,7 +31,7 @@ const TRACK = 8;
 /** Cost of a side the request didn't ask for: a last resort, so every edge gets an orthogonal route. */
 const ANY_SIDE = 400;
 /** Cost of leaving through a side an arrow already enters, or entering one an edge leaves: reads as two-way. */
-const OPPOSED = 600;
+const OPPOSED = 5000;
 const SIDES: Side[] = ['right', 'bottom', 'left', 'top'];
 /** Cost of sharing a port slot with an edge of another tone: another slot is almost always better. */
 const MIXED_TONE = 300;
@@ -46,10 +46,11 @@ const SIDE_DIR: Record<Side, Dir> = { right: 0, bottom: 1, left: 2, top: 3 };
 const round = (n: number) => Math.round(n * 100) / 100;
 
 /** Port slots per side: the midpoint, then one either side, so edges of different tones leave separately. */
-const SLOTS = [0, -1, 1] as const;
+const SLOTS = [0, -1, 1, -2, 2] as const;
 type Slot = (typeof SLOTS)[number];
-const SLOT_GAP = { horizontal: 28, vertical: 16 };
-/** Cost of an off-centre slot: used only when the midpoint is taken by an edge that can't share it. */
+// ±2 slots stay on the card: 2 × 28 < 176 / 2, and 2 × 12 < 60 / 2.
+const SLOT_GAP = { horizontal: 28, vertical: 12 };
+/** Cost of an off-centre slot (per step out): used only when the midpoint is taken by an edge that can't share it. */
 const SLOT_COST = 24;
 
 export function portPoint(r: Rect, side: Side, slot: Slot = 0): Point {
@@ -124,24 +125,34 @@ interface Grid {
   pts: Point[];
   /** neighbour point index per direction, -1 when blocked */
   next: Int32Array;
+  /** search scratch, reused across searches: a state's dist/prev are valid when its stamp is the current search's */
+  dist: Float64Array;
+  prev: Int32Array;
+  stamp: Int32Array;
+  generation: number;
 }
 
 function buildGrid(xs: number[], ys: number[], blocked: Rect[]): Grid {
   const X = [...new Set(xs.map(round))].sort((a, b) => a - b);
   const Y = [...new Set(ys.map(round))].sort((a, b) => a - b);
+  // Per row and per column, only the obstacles that line crosses: keeps the build near-linear in grid size.
+  const rowHits = Y.map((y) => blocked.filter((r) => y > r.y && y < r.y + r.height));
+  const colHits = X.map((x) => blocked.filter((r) => x > r.x && x < r.x + r.width));
   const pts: Point[] = [];
   const index = new Int32Array(X.length * Y.length).fill(-1);
   for (let j = 0; j < Y.length; j++) {
+    const hits = rowHits[j]!;
     for (let i = 0; i < X.length; i++) {
-      const p = { x: X[i]!, y: Y[j]! };
-      if (blocked.some((r) => inside(p, r))) continue;
+      const x = X[i]!;
+      if (hits.some((r) => x > r.x && x < r.x + r.width)) continue;
       index[j * X.length + i] = pts.length;
-      pts.push(p);
+      pts.push({ x, y: Y[j]! });
     }
   }
   const next = new Int32Array(pts.length * 4).fill(-1);
-  const link = (a: number, b: number, dir: Dir) => {
-    if (blocked.some((r) => crosses(pts[a]!, pts[b]!, r))) return;
+  const link = (a: number, b: number, dir: Dir, along: Rect[]) => {
+    const [p, q] = [pts[a]!, pts[b]!];
+    if (along.some((r) => crosses(p, q, r))) return;
     next[a * 4 + dir] = b;
     next[b * 4 + ((dir + 2) % 4)] = a;
   };
@@ -153,7 +164,7 @@ function buildGrid(xs: number[], ys: number[], blocked: Rect[]): Grid {
         prev = -1;
         continue;
       }
-      if (prev >= 0) link(prev, k, 0);
+      if (prev >= 0) link(prev, k, 0, rowHits[j]!);
       prev = k;
     }
   }
@@ -165,20 +176,24 @@ function buildGrid(xs: number[], ys: number[], blocked: Rect[]): Grid {
         prev = -1;
         continue;
       }
-      if (prev >= 0) link(prev, k, 1);
+      if (prev >= 0) link(prev, k, 1, colHits[i]!);
       prev = k;
     }
   }
-  return { pts, next };
+  const states = pts.length * 4;
+  return { pts, next, dist: new Float64Array(states), prev: new Int32Array(states), stamp: new Int32Array(states), generation: 0 };
 }
 
 interface Used {
   from: string;
   to: string;
 }
-const stepKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+/** Numeric key of an undirected grid step (point indexes stay far below 2^26). */
+const stepKey = (a: number, b: number) => (a < b ? a * 67108864 + b : b * 67108864 + a);
 /** Cost of touching a point another, unrelated edge already runs through (a crossing or a merge). */
 const CROSS = 40;
+/** How far past its two cards a route's first search looks. */
+const REGION = 360;
 
 interface Port {
   side: Side;
@@ -212,26 +227,28 @@ export function routeEdges(
   const grid = buildGrid(xs, ys, blocked);
   const at = new Map(grid.pts.map((p, i) => [`${p.x},${p.y}`, i]));
   const find = (p: Point) => at.get(`${round(p.x)},${round(p.y)}`);
-  const usedSteps = new Map<string, Used[]>();
+  const usedSteps = new Map<number, Used[]>();
   const usedPoints = new Map<number, Used[]>();
   const out: Record<string, Point[]> = {};
 
   // Who uses each port slot: edges may share one only in the same direction and tone (a trunk).
-  const slotUse = new Map<string, { role: 'in' | 'out'; tones: Set<string> }>();
-  const ports = (choices: PortChoice[], node: string, role: 'in' | 'out', tone: string): Port[] => {
+  // Two edges between the same two cards never share one (they would draw as one line with two labels).
+  const slotUse = new Map<string, { role: 'in' | 'out'; tones: Set<string>; pairs: Set<string> }>();
+  const ports = (choices: PortChoice[], node: string, role: 'in' | 'out', tone: string, pair: string): Port[] => {
     const listed = new Map(choices.map((c) => [c.side, c.cost]));
     return SIDES.flatMap((side) =>
       SLOTS.map((slot) => {
         const use = slotUse.get(`${node}:${side}:${slot}`);
-        const clash = !use ? 0 : use.role !== role ? OPPOSED : use.tones.has(tone) ? 0 : MIXED_TONE;
-        return { side, slot, cost: (listed.get(side) ?? ANY_SIDE) + (slot ? SLOT_COST : 0) + clash };
+        const clash = !use ? 0 : use.role !== role ? OPPOSED : use.pairs.has(pair) || !use.tones.has(tone) ? MIXED_TONE : 0;
+        return { side, slot, cost: (listed.get(side) ?? ANY_SIDE) + Math.abs(slot) * SLOT_COST + clash };
       }),
     );
   };
-  const claim = (node: string, port: { side: Side; slot: Slot }, role: 'in' | 'out', tone: string) => {
+  const claim = (node: string, port: { side: Side; slot: Slot }, role: 'in' | 'out', tone: string, pair: string) => {
     const key = `${node}:${port.side}:${port.slot}`;
-    const use = slotUse.get(key) ?? { role, tones: new Set<string>() };
+    const use = slotUse.get(key) ?? { role, tones: new Set<string>(), pairs: new Set<string>() };
     use.tones.add(tone);
+    use.pairs.add(pair);
     slotUse.set(key, use);
   };
 
@@ -239,28 +256,38 @@ export function routeEdges(
     const src = nodes[req.from]!;
     const dst = nodes[req.to]!;
     const tone = req.tone ?? '';
-    const starts = ports(req.sources, req.from, 'out', tone).flatMap((c) => {
+    const pair = `${req.from}>${req.to}`;
+    // A self-loop leaves only by the sides it asks for, so the card's other sides remain to come back in by.
+    const self = req.from === req.to;
+    const leaveBy = self ? new Set(req.sources.map((c) => c.side)) : null;
+    const starts = ports(req.sources, req.from, 'out', tone, pair).filter((c) => !leaveBy || leaveBy.has(c.side)).flatMap((c) => {
       const k = find(stubPoint(src, c.side, c.slot));
       return k === undefined ? [] : [{ ...c, k }];
     });
     const goals = new Map<number, Port[]>();
-    for (const c of ports(req.targets, req.to, 'in', tone)) {
+    // A goal on a start point would be a route of no length: only a self-loop can offer one, and it must go round.
+    const startAt = new Set(starts.map((c) => c.k));
+    for (const c of ports(req.targets, req.to, 'in', tone, pair)) {
       const k = find(stubPoint(dst, c.side, c.slot));
-      if (k !== undefined) goals.set(k, [...(goals.get(k) ?? []), c]);
+      if (k !== undefined && !startAt.has(k) && !leaveBy?.has(c.side)) goals.set(k, [...(goals.get(k) ?? []), c]);
     }
     // Fan-out from one card and fan-in to one card share a trunk on purpose; only unrelated edges pay.
     const unrelated = (list: Used[] | undefined) => !!list?.some((u) => u.from !== req.from && u.to !== req.to);
-    const path = search(grid, starts, goals, (a, b, len) => (unrelated(usedSteps.get(stepKey(a, b))) ? SHARED * len : 0) + (unrelated(usedPoints.get(b)) ? CROSS : 0));
+    const extra = (a: number, b: number, len: number) => (unrelated(usedSteps.get(stepKey(a, b))) ? SHARED * len : 0) + (unrelated(usedPoints.get(b)) ? CROSS : 0);
+    // Search near the two cards first (most routes stay local); only a route that needs more room gets the grid.
+    const box = { x0: Math.min(src.x, dst.x) - REGION, y0: Math.min(src.y, dst.y) - REGION, x1: Math.max(src.x + src.width, dst.x + dst.width) + REGION, y1: Math.max(src.y + src.height, dst.y + dst.height) + REGION };
+    const path = search(grid, starts, goals, extra, box) ?? search(grid, starts, goals, extra);
     if (!path) {
-      // Boxed in (every stub blocked): an elbow, which may cross a card but is never diagonal.
+      // Boxed in (every stub blocked): out of the right side, into the left, square at both ends. It may cross a
+      // card, but it is never diagonal and never meets a card along its side.
       const a = portPoint(src, 'right');
       const b = portPoint(dst, 'left');
-      out[req.id] = [a, { x: b.x, y: a.y }, b];
+      out[req.id] = [a, { x: a.x + STUB, y: a.y }, { x: a.x + STUB, y: b.y }, { x: b.x - STUB, y: b.y }, b];
       continue;
     }
     const { points: gridPath, src: from, dst: to } = path;
-    claim(req.from, from, 'out', tone);
-    claim(req.to, to, 'in', tone);
+    claim(req.from, from, 'out', tone, pair);
+    claim(req.to, to, 'in', tone, pair);
     const me = { from: req.from, to: req.to };
     gridPath.forEach((k, i) => {
       usedPoints.set(k, [...(usedPoints.get(k) ?? []), me]);
@@ -276,11 +303,17 @@ function search(
   starts: (Port & { k: number })[],
   goals: Map<number, Port[]>,
   extra: (a: number, b: number, len: number) => number,
+  box?: { x0: number; y0: number; x1: number; y1: number },
 ): { points: number[]; src: Port; dst: Port } | null {
   if (!starts.length || !goals.size) return null;
-  const n = grid.pts.length * 4;
-  const dist = new Float64Array(n).fill(Infinity);
-  const prev = new Int32Array(n).fill(-1);
+  const gen = ++grid.generation;
+  const { stamp } = grid;
+  const distOf = (st: number) => (stamp[st] === gen ? grid.dist[st]! : Infinity);
+  const set = (st: number, d: number, from: number) => {
+    stamp[st] = gen;
+    grid.dist[st] = d;
+    grid.prev[st] = from;
+  };
   const srcOf = new Map<number, Port>();
   const heap = new Heap();
   const goalPts = [...goals.keys()].map((k) => grid.pts[k]!);
@@ -292,8 +325,8 @@ function search(
   };
   for (const s of starts) {
     const state = s.k * 4 + SIDE_DIR[s.side];
-    if (s.cost < dist[state]!) {
-      dist[state] = s.cost;
+    if (s.cost < distOf(state)) {
+      set(state, s.cost, -1);
       srcOf.set(state, s);
       heap.push(s.cost + h(s.k), state);
     }
@@ -304,7 +337,7 @@ function search(
     if (best && f >= best.cost) break;
     const k = state >> 2;
     const dir = (state & 3) as Dir;
-    const g = dist[state]!;
+    const g = distOf(state);
     if (f - h(k) > g + 1e-6) continue;
     for (const c of goals.get(k) ?? []) {
       // Arriving heading into the card costs nothing; any other heading needs one more bend.
@@ -318,12 +351,12 @@ function search(
       if (m < 0) continue;
       const a = grid.pts[k]!;
       const b = grid.pts[m]!;
+      if (box && (b.x < box.x0 || b.x > box.x1 || b.y < box.y0 || b.y > box.y1)) continue;
       const len = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
       const cost = g + len + extra(k, m, len) + (d === dir ? 0 : BEND);
       const next = m * 4 + d;
-      if (cost < dist[next]! - 1e-9) {
-        dist[next] = cost;
-        prev[next] = state;
+      if (cost < distOf(next) - 1e-9) {
+        set(next, cost, state);
         heap.push(cost + h(m), next);
       }
     }
@@ -335,7 +368,7 @@ function search(
   while (s >= 0) {
     points.push(s >> 2);
     first = s;
-    s = prev[s]!;
+    s = grid.prev[s]!;
   }
   points.reverse();
   return { points, src: srcOf.get(first)!, dst: best.port };
@@ -385,44 +418,27 @@ export function nudge(routes: Record<string, Point[]>, ends: Record<string, { fr
     }
     for (const segs of lines.values()) {
       if (segs.length < 2) continue;
-      // Union segments that overlap and belong to one trunk; then give each cluster of overlapping groups tracks.
-      const group = segs.map((_, i) => i);
-      const root = (i: number): number => (group[i] === i ? i : (group[i] = root(group[i]!)));
+      // Two overlapping segments may share a track only as a trunk: the same edge, or one source (or one target)
+      // with different far ends. Tracks are handed out greedily, so sharing is never transitive.
       const overlap = (a: Seg, b: Seg) => Math.min(a.hi, b.hi) - Math.max(a.lo, b.lo) > 0.5;
-      for (let a = 0; a < segs.length; a++)
-        for (let b = a + 1; b < segs.length; b++) {
-          const s = segs[a]!;
-          const t = segs[b]!;
-          if ((s.edge === t.edge || s.src === t.src || s.dst === t.dst) && overlap(s, t)) group[root(a)] = root(b);
-        }
-      const roots = [...new Set(segs.map((_, i) => root(i)))];
-      const span = new Map(roots.map((r) => [r, { lo: Infinity, hi: -Infinity }]));
-      segs.forEach((s, i) => {
-        const g = span.get(root(i))!;
-        g.lo = Math.min(g.lo, s.lo);
-        g.hi = Math.max(g.hi, s.hi);
-      });
-      const track = new Map<number, number>();
-      for (const r of roots) {
-        const me = span.get(r)!;
-        const taken = new Set(
-          roots.filter((o) => track.has(o) && Math.min(span.get(o)!.hi, me.hi) - Math.max(span.get(o)!.lo, me.lo) > 0.5).map((o) => track.get(o)!),
-        );
+      const mayShare = (a: Seg, b: Seg) => a.edge === b.edge || ((a.src === b.src) !== (a.dst === b.dst));
+      const track = new Map<Seg, number>();
+      for (const seg of segs) {
         let t = 0;
-        while (taken.has(t)) t++;
-        track.set(r, t);
+        while (segs.some((o) => track.get(o) === t && overlap(o, seg) && !mayShare(o, seg))) t++;
+        track.set(seg, t);
       }
-      segs.forEach((s, i) => {
-        const t = track.get(root(i))!;
-        if (!t) return;
+      for (const seg of segs) {
+        const t = track.get(seg)!;
+        if (!t) continue;
         const off = (t % 2 ? 1 : -1) * Math.ceil(t / 2) * TRACK;
-        const pts = out[s.edge]!;
+        const pts = out[seg.edge]!;
         const axis = vertical ? 'x' : 'y';
         // Moving a point next to a port stretches or shrinks that port's run; keep room for the arrowhead.
         const run = (j: number, port: number) => Math.abs(pts[j]![axis] + off - pts[port]![axis]);
-        if ((s.i === 1 && run(1, 0) < MIN_RUN) || (s.i + 1 === pts.length - 2 && run(s.i + 1, pts.length - 1) < MIN_RUN)) return;
-        for (const j of [s.i, s.i + 1]) pts[j]![axis] = round(s.at + off);
-      });
+        if ((seg.i === 1 && run(1, 0) < MIN_RUN) || (seg.i + 1 === pts.length - 2 && run(seg.i + 1, pts.length - 1) < MIN_RUN)) continue;
+        for (const j of [seg.i, seg.i + 1]) pts[j]![axis] = round(seg.at + off);
+      }
     }
   }
   return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, simplify(v)]));

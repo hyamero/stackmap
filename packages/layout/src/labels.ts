@@ -29,15 +29,17 @@ export function findLabelSpot(points: Point[], text: string, cards: Rect[], take
     const len = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     const room = horizontal ? len >= w + 16 : len >= LABEL_H + 16;
     if (!room) continue;
-    // On the line first; a vertical run may also carry the pill just beside it (right, then left).
-    const sides = horizontal ? [0] : [0, w / 2 + 4, -(w / 2 + 4)];
-    search: for (const side of sides) {
+    // On the line first; else just beside it: right then left of a vertical run, above then below a horizontal one
+    // (a pause/resume pair on parallel runs gets one pill above and one below).
+    const beside = horizontal ? LABEL_H / 2 + 3 : w / 2 + 4;
+    const offsets: [number, number][] = horizontal ? [[0, 0], [0, -beside], [0, beside]] : [[0, 0], [beside, 0], [-beside, 0]];
+    search: for (const [dx, dy] of offsets) {
       for (const t of [0.5, 0.35, 0.65, 0.2, 0.8]) {
-        const p = { x: round(a.x + (b.x - a.x) * t + side), y: round(a.y + (b.y - a.y) * t) };
+        const p = { x: round(a.x + (b.x - a.x) * t + dx), y: round(a.y + (b.y - a.y) * t + dy) };
         const pill = pillAt(p);
         if (cards.some((r) => overlaps(pill, r)) || taken.some((r) => overlaps(pill, r))) continue;
         // Longer and horizontal runs first; off-centre and off-line spots lose a little.
-        const score = (horizontal ? 2 : 1) * len - Math.abs(t - 0.5) * 40 - (side ? 30 : 0);
+        const score = (horizontal ? 2 : 1) * len - Math.abs(t - 0.5) * 40 - (dx || dy ? 30 : 0);
         if (!best || score > best.score) best = { p, score };
         break search;
       }

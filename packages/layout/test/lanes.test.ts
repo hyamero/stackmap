@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DiagramDraft, LaidOutDiagram, Point, Rect } from '@stackmap/core';
 import { GALLERY } from '@stackmap/core/gallery';
 import { assignColumns, backEdges } from '../src/lanes';
+import { labelWidth } from '../src/labels';
 import { layoutDiagram } from '../src/index';
 
 const inside = (p: Point, r: Rect, pad = 0) => p.x > r.x + pad && p.x < r.x + r.width - pad && p.y > r.y + pad && p.y < r.y + r.height - pad;
@@ -136,5 +137,49 @@ describe('lane columns', () => {
     const back = out.edges.back!;
     expect(go[0]).not.toEqual(back.at(-1));
     expect(go.at(-1)).not.toEqual(back[0]);
+  });
+
+  it('a later phase reaching an earlier one through an unphased step still lays out compactly', () => {
+    const d: DiagramDraft = {
+      kind: 'workflow',
+      title: 'Agent',
+      lanes: [
+        { id: 'agent', label: 'Agent' },
+        { id: 'tools', label: 'Tools' },
+      ],
+      phases: [
+        { id: 'plan', label: 'Plan', nodes: ['policy'] },
+        { id: 'exec', label: 'Execute', nodes: ['tool'] },
+      ],
+      nodes: [n('tool', 'agent'), n('trace', 'tools'), n('policy', 'agent')],
+      edges: [
+        { id: 'e1', from: 'tool', to: 'trace' },
+        { id: 'e2', from: 'trace', to: 'policy' },
+      ],
+    };
+    const col = assignColumns(d, backEdges(d));
+    expect(backEdges(d).has('e2')).toBe(true);
+    expect(Math.max(...col.values())).toBeLessThanOrEqual(2);
+  });
+
+  it('keeps the labels of a pause/resume pair and of parallel edges apart', async () => {
+    const d = lanes({
+      nodes: [n('run', 'a'), n('pause', 'a')],
+      edges: [
+        { id: 'p', from: 'run', to: 'pause', label: 'pause' },
+        { id: 'r', from: 'pause', to: 'run', label: 'resume', kind: 'return' },
+        { id: 'p2', from: 'run', to: 'pause', label: 'suspend job' },
+      ],
+    });
+    const out = await layoutDiagram(d);
+    const pill = (id: string, text: string) => {
+      const c = out.labels![id]!;
+      const w = labelWidth(text);
+      return { x: c.x - w / 2, y: c.y - 10, width: w, height: 20 };
+    };
+    const pills = [pill('p', 'pause'), pill('r', 'resume'), pill('p2', 'suspend job')];
+    const hit = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    for (let i = 0; i < pills.length; i++) for (let j = i + 1; j < pills.length; j++) expect(hit(pills[i]!, pills[j]!), `${i} × ${j}`).toBe(false);
+    expect(out.edges.p).not.toEqual(out.edges.p2);
   });
 });

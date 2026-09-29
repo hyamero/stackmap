@@ -1,5 +1,7 @@
-import { cardSize, type DiagramDraft, type DiagramEdge, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
+import { assignColumns, backEdges, cardSize, COMPACT, type DiagramDraft, type DiagramEdge, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
 import { labelWidth, placeLabel } from './labels';
+
+export { assignColumns, backEdges } from '@stackmap/core';
 import { nudge, routeEdges, STUB, type PortChoice, type RouteRequest } from './route';
 
 // Swimlane layout for workflow and lifecycle diagrams: lanes are full-width rows in draft order, columns
@@ -13,7 +15,8 @@ const LANE_PAD_TOP = 20;
 /** Room under a lane's cards for the channel same-lane back edges take. */
 const LANE_PAD_BOTTOM = 28;
 const LANE_GAP = 16;
-const STACK_GAP = 28;
+/** Gap between stacked cards: two port stubs must fit between them, or the facing ports drop out of the grid. */
+const STACK_GAP = 2 * STUB + 4;
 const MIN_GUTTER = 64;
 const MAX_GUTTER = 176;
 /** Header band above the lanes, when there are phases. */
@@ -28,89 +31,6 @@ export const START_MARK = 28;
 
 const round = (n: number) => Math.round(n * 100) / 100;
 const roundRect = (r: Rect): Rect => ({ x: round(r.x), y: round(r.y), width: round(r.width), height: round(r.height) });
-
-/** Edges that don't push their target to a later column: replies, and whatever closes a cycle. */
-export function backEdges(draft: DiagramDraft): Set<string> {
-  const back = new Set(draft.edges.filter((e) => e.kind === 'return' || e.from === e.to).map((e) => e.id));
-  const phaseOf = new Map<string, number>();
-  draft.phases?.forEach((p, i) => p.nodes?.forEach((n) => phaseOf.has(n) || phaseOf.set(n, i)));
-  for (const e of draft.edges) {
-    const a = phaseOf.get(e.from);
-    const b = phaseOf.get(e.to);
-    if (a !== undefined && b !== undefined && b < a) back.add(e.id);
-  }
-  // DFS in draft order; an edge into a node still on the stack closes a cycle.
-  const out = new Map(draft.nodes.map((n) => [n.id, [] as DiagramEdge[]]));
-  for (const e of draft.edges) if (!back.has(e.id)) out.get(e.from)?.push(e);
-  const state = new Map<string, 1 | 2>();
-  const visit = (id: string) => {
-    state.set(id, 1);
-    for (const e of out.get(id) ?? []) {
-      const s = state.get(e.to);
-      if (s === 1) back.add(e.id);
-      else if (s === undefined && out.has(e.to)) visit(e.to);
-    }
-    state.set(id, 2);
-  };
-  const hasIn = new Set(draft.edges.filter((e) => !back.has(e.id)).map((e) => e.to));
-  for (const n of draft.nodes) if (!hasIn.has(n.id) && !state.has(n.id)) visit(n.id);
-  for (const n of draft.nodes) if (!state.has(n.id)) visit(n.id);
-  return back;
-}
-
-/**
- * Column per node: longest path over forward edges. Within a lane a successor moves one column right; across
- * lanes it may stay in the same column (a straight drop). A phase starts after the previous phase ends.
- */
-export function assignColumns(draft: DiagramDraft, back: Set<string>): Map<string, number> {
-  const laneOf = new Map(draft.nodes.map((n) => [n.id, n.lane]));
-  const laneIndex = new Map((draft.lanes ?? []).map((l, i) => [l.id, i]));
-  const forward = draft.edges.filter((e) => !back.has(e.id) && laneOf.has(e.from) && laneOf.has(e.to));
-  const phases = (draft.phases ?? []).map((p) => (p.nodes ?? []).filter((n) => laneOf.has(n)));
-  const phaseOf = new Map<string, number>();
-  phases.forEach((ns, i) => ns.forEach((n) => phaseOf.has(n) || phaseOf.set(n, i)));
-  // Cross-lane edges that must still step right: their straight drop would run through a card.
-  const step = new Set<string>();
-  const settle = () => {
-    const col = new Map(draft.nodes.map((n) => [n.id, 0]));
-    const starts = phases.map(() => 0);
-    // Monotone: columns only grow, and the forward edges are acyclic, so this settles (bounded for safety).
-    for (let round = 0; round < draft.nodes.length * 4 + 8; round++) {
-      let changed = false;
-      const raise = (id: string, to: number) => {
-        if (to > col.get(id)!) {
-          col.set(id, to);
-          changed = true;
-        }
-      };
-      for (const [id, p] of phaseOf) raise(id, starts[p]!);
-      for (const e of forward) raise(e.to, col.get(e.from)! + (laneOf.get(e.from) === laneOf.get(e.to) || step.has(e.id) ? 1 : 0));
-      for (let p = 1; p < phases.length; p++) {
-        const prevEnd = Math.max(starts[p - 1]!, ...phases[p - 1]!.map((n) => col.get(n)!));
-        if (prevEnd + 1 > starts[p]!) {
-          starts[p] = prevEnd + 1;
-          changed = true;
-        }
-      }
-      if (!changed) break;
-    }
-    return col;
-  };
-  let col = settle();
-  for (let pass = 0; pass < forward.length; pass++) {
-    // Stepping right is worth a column only inside the existing width; past it, routing around is cheaper.
-    const last = Math.max(...col.values());
-    const blocked = forward.find((e) => {
-      if (step.has(e.id) || col.get(e.from) !== col.get(e.to) || col.get(e.from)! + 1 > last) return false;
-      const [a, b] = [laneIndex.get(laneOf.get(e.from)!)!, laneIndex.get(laneOf.get(e.to)!)!].sort((x, y) => x - y);
-      return draft.nodes.some((n) => n.id !== e.from && n.id !== e.to && col.get(n.id) === col.get(e.from) && laneIndex.get(n.lane!)! > a! && laneIndex.get(n.lane!)! < b!);
-    });
-    if (!blocked) break;
-    step.add(blocked.id);
-    col = settle();
-  }
-  return col;
-}
 
 function portChoices(sameLane: boolean, dCol: number, dLane: number, isBack: boolean): { sources: PortChoice[]; targets: PortChoice[] } {
   const c = (side: PortChoice['side'], cost: number): PortChoice => ({ side, cost });
@@ -138,12 +58,18 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
   const col = assignColumns(draft, back);
   const size = new Map(nodes.map((n) => [n.id, cardSize(n.card, 'compact')]));
   const cols = Math.max(0, ...nodes.map((n) => col.get(n.id)!)) + 1;
-  const cardW = Math.max(...[...size.values()].map((s) => s.width));
+  const cardW = Math.max(COMPACT.width, ...[...size.values()].map((s) => s.width));
 
-  // A gutter wide enough for the widest label on an edge between neighbouring columns of one lane.
+  // A gutter wide enough for the labels on edges between neighbouring columns of one lane, either way; a
+  // pause/resume pair side by side needs room for both.
   const laneOf = new Map(nodes.map((n) => [n.id, n.lane!]));
-  const neighbourLabels = draft.edges.filter((e) => e.label && !back.has(e.id) && laneOf.get(e.from) === laneOf.get(e.to) && col.get(e.to)! - col.get(e.from)! === 1);
-  const gutter = Math.min(MAX_GUTTER, Math.max(MIN_GUTTER, ...neighbourLabels.map((e) => labelWidth(e.label!) + 24)));
+  const pairKey = (e: DiagramEdge) => [e.from, e.to].sort().join('|');
+  const neighbourLabels = new Map<string, number>();
+  for (const e of draft.edges) {
+    if (!e.label || laneOf.get(e.from) !== laneOf.get(e.to) || Math.abs(col.get(e.to)! - col.get(e.from)!) !== 1) continue;
+    neighbourLabels.set(pairKey(e), (neighbourLabels.get(pairKey(e)) ?? 8) + labelWidth(e.label) + 16);
+  }
+  const gutter = Math.min(MAX_GUTTER, Math.max(MIN_GUTTER, ...neighbourLabels.values()));
 
   const hasStart = nodes.some((n) => n.type === 'start' && col.get(n.id) === 0);
   const x0 = PAD + LANE_HEAD + (hasStart ? START_MARK : 0);
@@ -212,7 +138,8 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
   const obstacles: Rect[] = [];
   for (const lane of lanes) {
     const r = laneRects[lane.id]!;
-    obstacles.push({ x: r.x, y: r.y, width: LANE_HEAD - 8, height: r.height });
+    // The rail label (the viewer caps it at LANE_HEAD - 32) and no more: column 0's left stubs sit just past it.
+    obstacles.push({ x: r.x, y: r.y, width: LANE_HEAD - 28, height: r.height });
   }
   for (const g of draft.groups ?? []) {
     const r = groupRects[g.id];
@@ -225,8 +152,11 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
   }
 
   const requests: RouteRequest[] = draft.edges
-    .filter((e) => rects[e.from] && rects[e.to] && e.from !== e.to)
+    .filter((e) => rects[e.from] && rects[e.to])
     .map((e) => {
+      // A self-transition leaves on the right and comes back in underneath (or on top), around the corner.
+      if (e.from === e.to)
+        return { id: e.id, from: e.from, to: e.to, tone: `${e.tone ?? ''}:self`, sources: [{ side: 'right' as const, cost: 0 }], targets: [{ side: 'bottom' as const, cost: 0 }, { side: 'top' as const, cost: 20 }], order: 2e6 };
       const dLane = laneIndex.get(laneOf.get(e.to)!)! - laneIndex.get(laneOf.get(e.from)!)!;
       const dCol = col.get(e.to)! - col.get(e.from)!;
       const isBack = back.has(e.id) || dCol < 0;
@@ -250,7 +180,6 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
   const edges: Record<string, Point[]> = {};
   for (const e of draft.edges) {
     if (routed[e.id]) edges[e.id] = routed[e.id]!.map((p) => ({ x: round(p.x), y: round(p.y) }));
-    else if (e.from === e.to && rects[e.from]) edges[e.id] = selfLoop(rects[e.from]!);
   }
 
   const cards = Object.values(rects);
@@ -269,15 +198,4 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
     labels,
     bounds: { width: round(bandX + bandW + PAD), height: round(height) },
   };
-}
-
-/** A self-transition: out of the top, round over the card, back into the top. */
-function selfLoop(r: Rect): Point[] {
-  const cx = r.x + r.width / 2;
-  return [
-    { x: round(cx + 24), y: r.y },
-    { x: round(cx + 24), y: round(r.y - STUB - 8) },
-    { x: round(cx - 24), y: round(r.y - STUB - 8) },
-    { x: round(cx - 24), y: r.y },
-  ];
 }
