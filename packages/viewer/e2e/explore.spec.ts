@@ -286,9 +286,21 @@ test('with reduced motion the camera jumps instead of animating', async ({ page 
   await page.reload();
   await expect(page.locator('.sm-card')).toHaveCount(6);
   const before = await viewportOf(page);
+  // The first scale that differs from the start must already be the final one: an animation would show steps.
+  const firstChange = page.evaluate(
+    (k0) =>
+      new Promise<number>((resolve) => {
+        const tick = () => {
+          const k = new DOMMatrix(getComputedStyle(document.querySelector('.sm-viewport')!).transform).a;
+          if (k !== k0) resolve(k);
+          else requestAnimationFrame(tick);
+        };
+        tick();
+      }),
+    before.k,
+  );
   await page.getByRole('button', { name: 'Zoom in' }).click();
-  await page.waitForTimeout(20);
-  expect((await viewportOf(page)).k).toBeCloseTo(before.k * 1.2, 3);
+  expect(await firstChange).toBeCloseTo(before.k * 1.2, 3);
 });
 
 test('a view fits its members clear of the toolbar and zoom bar', async ({ page }) => {
