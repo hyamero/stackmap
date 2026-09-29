@@ -1,7 +1,7 @@
 {
   "name": "@hyamero/stackmap",
   "version": "0.1.0",
-  "description": "Validate agent-authored architecture diagrams and deliver them as one offline HTML viewer",
+  "description": "Architecture diagrams your coding agent writes, as one offline HTML file",
   "keywords": [
     "architecture",
     "diagram",

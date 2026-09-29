@@ -1,8 +1,9 @@
-# stackmap
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.svg">
+  <img alt="stackmap: architecture diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="640">
+</picture>
 
-**Architecture and data-flow diagrams that your coding agent writes, delivered as one offline HTML file.**
-
-You ask your agent to diagram a codebase or a system. It writes a small typed JSON, `stackmap` validates it with repair hints the agent acts on, lays it out, and hands you a single self-contained viewer — pan and zoom, search, trace upstream and downstream, guided views, dark and light themes, PNG/SVG export. No server, no account, nothing to install to open it.
+You ask your agent to diagram a codebase or a system. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and hands you a single self-contained viewer — pan and zoom, search, trace upstream and downstream, guided views, dark and light themes, PNG/SVG export. No server, no account, nothing to install to open it.
 
 <p align="center">
   <img src="assets/readme/viewer-light.png" alt="stackmap viewer in light mode: a Commerce API topology with the Orders database selected and its upstream traced; the inspector shows its details, connections and source evidence" width="49%" />
@@ -85,6 +86,8 @@ cd packages/cli && bunx playwright test               # delivered-file + live-se
 | `packages/viewer` | React viewer, built into one self-contained HTML template |
 | `packages/cli` | `@hyamero/stackmap`: validate · deliver · serve |
 | `skill/` | the agent skill that `npx skills add` installs |
+
+The mark, lockups, icons and social card are in [`assets/brand/`](assets/brand/), with the rules for using them.
 
 Visual regression baselines are Linux-only and are checked in CI. Regenerate them with the CI workflow's *update-visual* run (it uploads them as an artifact), or locally with `bun run --filter @stackmap/viewer visual:update` (Playwright's Linux image in Docker). `bun run --filter @stackmap/viewer metrics:gen` regenerates the font metrics after a font change.
 

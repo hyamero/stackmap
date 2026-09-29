@@ -7,6 +7,7 @@ import { embedDiagram } from './embed';
 import { formatDiagnostic, summary } from './format';
 import { CliError, readText, writeAtomic } from './io';
 import { locateJsonError } from './json-error';
+import { plain, type Style } from './style';
 
 export interface CommandResult {
   code: 0 | 1 | 2;
@@ -68,7 +69,10 @@ export async function buildHtml(path: string, template: string): Promise<Validat
   return { ...result, html: embedDiagram(template, await layoutDiagram(result.diagram)) };
 }
 
-export async function deliverCommand(path: string, { template, out }: { template: string; out?: string }): Promise<CommandResult> {
+export async function deliverCommand(
+  path: string,
+  { template, out, style = plain }: { template: string; out?: string; style?: Style },
+): Promise<CommandResult> {
   try {
     const target = out ?? path.slice(0, path.length - extname(path).length) + '.html';
     if (real(target) === real(path)) throw new CliError(`refusing to overwrite the input ${path}; pass -o <out.html>`);
@@ -78,7 +82,7 @@ export async function deliverCommand(path: string, { template, out }: { template
     writeAtomic(target, html);
     const bytes = Buffer.byteLength(html);
     const sha = createHash('sha256').update(html).digest('hex');
-    return { code: 0, stdout: `delivered ${target} · sha256 ${sha} · ${bytes} bytes\n`, stderr: report(diagnostics) };
+    return { code: 0, stdout: `delivered ${style.path(target)} · sha256 ${sha} · ${bytes} bytes\n`, stderr: report(diagnostics) };
   } catch (e) {
     return failure(e);
   }
