@@ -426,6 +426,86 @@ export const eventStream: DiagramDraft = {
   ],
 };
 
+export const cacheMiss: DiagramDraft = {
+  kind: 'sequence',
+  title: 'Cache miss request',
+  subtitle: 'Dashboard load when the cache is cold',
+  phases: [
+    { id: 'request', label: 'Request', edges: ['open', 'get', 'verify', 'claims'] },
+    { id: 'fallback', label: 'Fallback', edges: ['read', 'miss', 'query', 'rows'] },
+    { id: 'respond', label: 'Response and trace', edges: ['set', 'emit', 'json', 'render'] },
+  ],
+  nodes: [
+    { id: 'user', type: 'client', card: { title: 'User', subtitle: 'Browser session' } },
+    { id: 'web', type: 'client', card: { title: 'Web app', subtitle: 'React UI', brand: 'react' } },
+    { id: 'api', type: 'service', card: { title: 'API', subtitle: 'Request handler' } },
+    { id: 'auth', type: 'security', card: { title: 'Auth', subtitle: 'JWT verify' } },
+    { id: 'redis', type: 'cache', card: { title: 'Redis', subtitle: 'Cache', brand: 'redis' } },
+    { id: 'db', type: 'database', card: { title: 'Postgres', subtitle: 'Source of truth', brand: 'postgresql' } },
+    { id: 'trace', type: 'queue', card: { title: 'Trace', subtitle: 'Async event' } },
+  ],
+  edges: [
+    { id: 'open', from: 'user', to: 'web', label: 'open page' },
+    { id: 'get', from: 'web', to: 'api', label: 'GET /dashboard', tone: 'main' },
+    { id: 'verify', from: 'api', to: 'auth', label: 'verify JWT', tone: 'security' },
+    { id: 'claims', from: 'auth', to: 'api', label: 'claims ok', kind: 'return' },
+    { id: 'read', from: 'api', to: 'redis', label: 'read cache' },
+    { id: 'miss', from: 'redis', to: 'api', label: 'miss', kind: 'return' },
+    { id: 'query', from: 'api', to: 'db', label: 'query profile', tone: 'main' },
+    { id: 'rows', from: 'db', to: 'api', label: 'rows', kind: 'return' },
+    { id: 'set', from: 'api', to: 'redis', label: 'set cache', kind: 'async' },
+    { id: 'emit', from: 'api', to: 'trace', label: 'emit trace', kind: 'async' },
+    { id: 'json', from: 'api', to: 'web', label: '200 JSON', kind: 'return' },
+    { id: 'render', from: 'web', to: 'user', label: 'render', kind: 'return' },
+  ],
+  views: [{ id: 'fallback', label: 'Fallback', caption: 'The database is read only after the cache misses.', nodes: ['api', 'redis', 'db'] }],
+  notes: [
+    { title: 'Happy path', items: ['Web app → API → data source → response', 'Replies are quieter than forward calls', 'Activation bars show how long each part is busy'] },
+    { title: 'Policy and fallback', items: ['JWT verification is a security interaction', 'The cache miss is visible without overpowering the main path'] },
+    { title: 'Async trace', items: ['Trace emission is fire-and-forget', 'It never blocks the response'] },
+  ],
+};
+
+export const asyncJob: DiagramDraft = {
+  kind: 'sequence',
+  title: 'Async job roundtrip',
+  subtitle: 'Accept now, work in the background, notify later',
+  phases: [
+    { id: 'accept', label: 'Accept', edges: ['post', 'enqueue', 'accepted'] },
+    { id: 'work', label: 'Background work', edges: ['deliver', 'perform', 'result', 'retry', 'persist'] },
+    { id: 'notify', label: 'Notify and reconcile', edges: ['completed', 'webhook', 'poll', 'status', 'state', 'final'] },
+  ],
+  nodes: [
+    { id: 'client', type: 'client', card: { title: 'Client', subtitle: 'Mobile app' } },
+    { id: 'api', type: 'service', card: { title: 'Jobs API', subtitle: 'Request edge' } },
+    { id: 'queue', type: 'queue', card: { title: 'Queue', subtitle: 'Durable work', brand: 'rabbitmq' } },
+    { id: 'worker', type: 'service', card: { title: 'Worker', subtitle: 'Background' } },
+    { id: 'provider', type: 'external', card: { title: 'Provider', subtitle: 'External API' } },
+    { id: 'store', type: 'database', card: { title: 'Job store', subtitle: 'Source of truth', brand: 'postgresql' } },
+    { id: 'notifier', type: 'queue', card: { title: 'Notifier', subtitle: 'Webhook' } },
+  ],
+  edges: [
+    { id: 'post', from: 'client', to: 'api', label: 'POST /jobs', tone: 'main' },
+    { id: 'enqueue', from: 'api', to: 'queue', label: 'enqueue job', kind: 'async', tone: 'main' },
+    { id: 'accepted', from: 'api', to: 'client', label: '202 + job id', kind: 'return' },
+    { id: 'deliver', from: 'queue', to: 'worker', label: 'deliver', tone: 'main' },
+    { id: 'perform', from: 'worker', to: 'provider', label: 'perform work' },
+    { id: 'result', from: 'provider', to: 'worker', label: 'result or timeout', kind: 'return' },
+    { id: 'retry', from: 'worker', to: 'queue', label: 'retry if timeout', kind: 'async', tone: 'error' },
+    { id: 'persist', from: 'worker', to: 'store', label: 'persist final state', tone: 'main' },
+    { id: 'completed', from: 'worker', to: 'notifier', label: 'job.completed', kind: 'async' },
+    { id: 'webhook', from: 'notifier', to: 'client', label: 'signed webhook', kind: 'async', tone: 'security' },
+    { id: 'poll', from: 'client', to: 'api', label: 'GET /jobs/:id' },
+    { id: 'status', from: 'api', to: 'store', label: 'read status' },
+    { id: 'state', from: 'store', to: 'api', label: 'completed', kind: 'return' },
+    { id: 'final', from: 'api', to: 'client', label: '200 final result', kind: 'return' },
+  ],
+  notes: [
+    { title: 'Latency contract', items: ['The client gets 202 before any work starts', 'Retries stay inside the background phase'] },
+    { title: 'Reconciliation', items: ['The webhook is signed', 'Polling reads the job store, the source of truth'] },
+  ],
+};
+
 export const GALLERY = {
   'release-delivery': releaseDelivery,
   'incident-response': incidentResponse,
@@ -436,4 +516,6 @@ export const GALLERY = {
   'web-app': webApp,
   'product-analytics': productAnalytics,
   'event-stream': eventStream,
+  'cache-miss': cacheMiss,
+  'async-job': asyncJob,
 } as const satisfies Record<string, DiagramDraft>;

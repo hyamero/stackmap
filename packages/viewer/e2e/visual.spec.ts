@@ -11,6 +11,7 @@ const PAGES = {
   workflow: '/?page=release-delivery',
   lifecycle: '/?page=agent-run',
   stages: '/?page=product-analytics',
+  sequence: '/?page=cache-miss',
 } as const;
 
 for (const theme of ['light', 'dark'] as const) {

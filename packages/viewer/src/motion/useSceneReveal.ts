@@ -27,8 +27,10 @@ export function useSceneReveal(root: RefObject<HTMLElement | null>, scene: Scene
 
     const fresh = (key: string) => !prev?.has(key);
     const q = <T extends Element>(sel: string) => el.querySelector<T & HTMLElement>(sel);
-    const pos = (r: Parameters<typeof flowPosition>[1]) => flowPosition(scene.direction, r);
-    const start = (r: Parameters<typeof flowPosition>[1]) => flowPosition(scene.direction, { ...r, width: 0, height: 0 });
+    // A sequence reads in time: participants arrive together, then messages draw top to bottom.
+    const sequence = scene.kind === 'sequence';
+    const pos = (r: Parameters<typeof flowPosition>[1]) => (sequence ? 0 : flowPosition(scene.direction, r));
+    const start = (r: Parameters<typeof flowPosition>[1]) => (sequence ? 0 : flowPosition(scene.direction, { ...r, width: 0, height: 0 }));
     const centre = new Map(scene.cards.map((c) => [c.node.id, pos(c.rect)]));
 
     const targets: RevealTargets = { items: [], edges: [] };
@@ -49,7 +51,15 @@ export function useSceneReveal(root: RefObject<HTMLElement | null>, scene: Scene
       if (!path) continue;
       const label = q(`[data-edge-label="${CSS.escape(e.id)}"]`) ?? undefined;
       // Dashed and dotted connections fade in: drawing them would show a solid line that snaps to dashes.
-      targets.edges.push({ el: path as unknown as SVGPathElement, from: centre.get(e.from) ?? 0, to: centre.get(e.to) ?? 0, async: e.kind !== 'sync', label });
+      const at = sequence ? e.points[0]!.y : undefined;
+      targets.edges.push({ el: path as unknown as SVGPathElement, from: at ?? centre.get(e.from) ?? 0, to: at ?? centre.get(e.to) ?? 0, async: e.kind !== 'sync', label });
+    }
+    // A sequence's activation bars arrive with the message that opens them.
+    if (sequence) {
+      el.querySelectorAll<SVGRectElement>('[data-activation]').forEach((bar, i) => {
+        const a = scene.activations[i];
+        if (a && fresh(`n:${a.node}`)) targets.items.push({ el: bar as unknown as HTMLElement, at: 0, kind: 'frame' });
+      });
     }
     const motion = revealScene(targets);
     return () => motion.cancel();

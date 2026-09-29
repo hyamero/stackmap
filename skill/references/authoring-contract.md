@@ -14,7 +14,7 @@ How to model a system as a stackmap diagram. The [schema reference](schema.md) s
 - `kind: "async"` for queues, events, fire-and-forget and callbacks — it renders dashed. Don't use it for "happens at build time" or "optional"; say that in a label or in the node's subtitle.
 - `kind: "return"` for a reply, a roll back or a retry that loops back to an earlier step — it renders dotted, and layout never lets it push its target to a later column.
 - **`tone`** marks the few edges the reader must tell apart: `main` for the happy path (drawn in ink), `security` for a trust crossing or a policy check, `error` for a failure path. Leave the rest untoned; a diagram where everything has a tone has none.
-- **Edge labels** (≤ 24 chars) only where the relationship isn't obvious from the two ends: a protocol (`gRPC`), a verb (`enqueue`), a topic. Most edges need none.
+- **Edge labels** (≤ 24 chars) only where the relationship isn't obvious from the two ends: a protocol (`gRPC`), a verb (`enqueue`), a topic. Most edges need none — except in sequences, where every message is labelled.
 - **Direction.** `RIGHT` (default) reads as a request path and suits 2–4 stages. Prefer `DOWN` for tiered or grouped systems (edge → app → data) and for anything with more than ~5 stages; it avoids long wrap-around edges.
 - **Groups** are boundaries a reader should see: tiers, trust zones, VPCs, clusters, teams. Nest with `parent`. A group with one node is usually noise.
 - **Stages** (`phases` with `nodes`) in `architecture` and `dataflow` are an ordered pipeline (sources → ingest → process → store → consume): each stage is drawn as a band, in flow order. Stage members must be ungrouped; use stages *or* groups for a node, not both.
@@ -43,6 +43,19 @@ Read Mermaid for topology and meaning, then write fresh stackmap JSON — don't 
 | `<br/>` detail in a label | `subtitle` or a card row |
 | `classDef`, `style`, `linkStyle` | ignore |
 
+A Mermaid `sequenceDiagram` becomes `kind: "sequence"`:
+
+| Mermaid | stackmap |
+|---|---|
+| `participant A as Label`, `actor A` | node (participant) in the order declared; `actor` is usually a `client` |
+| `A->>B: text`, `A->B: text` | edge `from: "a", to: "b", label: "text"` (a call) |
+| `B-->>A: text`, `B-->A: text` | the same with `kind: "return"` |
+| `A-)B: text` | the same with `kind: "async"` |
+| `A->>A: text` | a self-call (`from` and `to` the same) |
+| `rect … end`, a `Note over` spanning a stretch | a phase with those messages in `edges` |
+| `activate` / `deactivate`, `+` / `-` | leave out: bars are derived from calls and replies |
+| `alt`, `opt`, `loop`, `par` | not supported: draw the main case and say the others in `notes` |
+
 ## Workflows and lifecycles
 
 Both are drawn as **swimlanes**: `lanes` are full-width rows in the order you list them, and stackmap picks the columns from the edges (a step's successor in the same lane moves right; a hand-off to another lane may drop straight down). Every node needs a `lane`.
@@ -64,6 +77,17 @@ Both are drawn as **swimlanes**: `lanes` are full-width rows in the order you li
 | `neutral` | anything else |
 
 A `success` or `failure` state with no outgoing transition is drawn as an end state. A retry is a `return` edge back to the state it retries.
+
+## Sequences
+
+One scenario, told in time. `nodes` are the participants, left to right in the order you list them; `edges` are the messages, top to bottom in array order. stackmap spaces the lifelines for the labels and draws the activation bars itself — never give positions.
+
+- **Participants:** three to eight. Order them the way the request travels (caller first, stores and third parties last) so most arrows point right.
+- **Messages:** label every one, briefly (`GET /dashboard`, `read cache`, `202 + job id`). A call is plain; `"kind": "return"` is its reply, from the callee back to the caller, after it; `"kind": "async"` is fire-and-forget. A message from a participant to itself is a self-call (drawn as a loop).
+- **Activation bars** follow from the messages: a call opens a bar on the callee, and its reply closes it. A call that arrives while the callee is waiting on its own call (a callback) nests a bar inside. A bar nobody closes ends where its participant was last busy (sending or receiving) once someone else calls it, or at its last message. A reply that answers nothing is a warning (`semantics/unmatched-return`).
+- **Phases** (`phases` with `edges`) band stretches of time: *Request, Fallback, Response*. List each band's messages: a band runs from its first to its last message (anything in between it doesn't list is a warning), and bands must follow each other.
+- `tone` works as elsewhere: `main` for the happy path, `security` for auth checks, `error` for retries and failures.
+- Cards are compact (title, subtitle, brand, tag). No groups or lanes.
 
 ## Compact cards
 

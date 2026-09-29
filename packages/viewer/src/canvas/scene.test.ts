@@ -110,4 +110,17 @@ describe('toScene', () => {
     expect(staged.compact).toBe(true);
     expect(staged.phases.map((p) => p.id)).toEqual(['sources', 'ingest', 'process', 'store', 'consume']);
   });
+
+  it('sequence: lifelines under every participant, activation bars, text labels, no dots', () => {
+    const d = galleryLayouts['cache-miss']!;
+    const seq = toScene(d);
+    expect(seq.phaseStyle).toBe('time');
+    expect(seq.labelStyle).toBe('text');
+    expect(seq.handles).toEqual([]);
+    expect(seq.lifelines.map((l) => l.node)).toEqual(d.draft.nodes.map((n) => n.id));
+    expect(seq.activations.length).toBe(d.sequence!.activations.length);
+    // Fit frames the lifelines too, not just the cards at the top.
+    const bottom = Math.max(...seq.lifelines.map((l) => l.bottom));
+    expect(seq.content.y + seq.content.height).toBeGreaterThanOrEqual(bottom);
+  });
 });

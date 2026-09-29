@@ -38,3 +38,16 @@ test('a staged dataflow draws its stages as bands', async ({ page }) => {
   await expect(page.locator('[data-phase-id]')).toHaveCount(5);
   await expect(page.locator('[data-testid="step-card"]')).toHaveCount(10);
 });
+
+test('a sequence draws lifelines, activation bars and time bands, and selecting lights its messages', async ({ page }) => {
+  await page.goto('/?page=cache-miss');
+  await expect(page.locator('[data-lifeline]')).toHaveCount(7);
+  await expect(page.locator('[data-activation="api"]')).toHaveCount(1);
+  await expect(page.locator('[data-phase-id]')).toHaveCount(3);
+  await expect(page.getByText('Sequence', { exact: true })).toBeVisible();
+  await page.locator('.sm-card[data-card-id="redis"]').click();
+  await expect(page.locator('path[data-edge-id="read"]')).toHaveAttribute('data-tint', 'service');
+  await expect(page.locator('path[data-edge-id="miss"]')).toHaveAttribute('data-tint', 'cache');
+  await page.getByRole('tab', { name: 'Fallback' }).click();
+  await expect(page.locator('[data-lifeline="user"]')).toHaveAttribute('data-dim', 'true');
+});

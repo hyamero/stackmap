@@ -159,6 +159,37 @@ describe('kind rules', () => {
     ]);
   });
 
+  it('sequence: replies must answer a call, and time bands follow each other', () => {
+    const seq = (edges: unknown[], phases?: unknown[]) => ({
+      kind: 'sequence',
+      title: 'T',
+      nodes: [
+        { id: 'a', type: 'client', card: { title: 'A' } },
+        { id: 'b', type: 'service', card: { title: 'B' } },
+      ],
+      edges,
+      ...(phases ? { phases } : {}),
+    });
+    const call = { id: 'c', from: 'a', to: 'b' };
+    const reply = { id: 'r', from: 'b', to: 'a', kind: 'return' };
+    expect(codes(seq([call, reply]))).toEqual([]);
+    expect(codes(seq([reply, call]))).toEqual(['warning:semantics/unmatched-return@/edges/0']);
+    expect(codes(seq([{ ...call, kind: 'async' }, reply]))).toEqual(['warning:semantics/unmatched-return@/edges/1']);
+    // A self-call is fine, and draws no self-loop warning.
+    expect(codes(seq([call, { id: 's', from: 'b', to: 'b', label: 'cache' }, reply]))).toEqual([]);
+    const bands = [
+      { id: 'p', label: 'P', edges: ['c', 'r'] },
+      { id: 'q', label: 'Q', edges: ['r2'] },
+    ];
+    expect(codes(seq([call, reply, { ...call, id: 'c2' }, { ...reply, id: 'r2' }], bands))).toEqual([]);
+    expect(codes(seq([call, { ...call, id: 'c2' }, reply, { ...reply, id: 'r2' }], [{ id: 'p', label: 'P', edges: ['c', 'r'] }, { id: 'q', label: 'Q', edges: ['c2'] }]))).toEqual([
+      'warning:semantics/phase-gap@/phases/0/edges',
+      'error:semantics/phase-overlap@/phases/1',
+    ]);
+    expect(codes({ ...seq([call]), groups: [{ id: 'g', label: 'G' }] })).toContain('error:semantics/groups-for-kind@/groups');
+    expect(codes(seq([call, { ...call, id: 'c2' }, reply, { ...reply, id: 'r2' }], [{ id: 'p', label: 'P', edges: ['c', 'r'] }]))).toContain('warning:semantics/phase-gap@/phases/0/edges');
+  });
+
   it('warns that lane kinds ignore direction', () => {
     expect(codes(workflow({ direction: 'DOWN' }))).toEqual(['warning:semantics/direction-ignored@/direction']);
   });

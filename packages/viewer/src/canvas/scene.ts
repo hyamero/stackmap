@@ -62,6 +62,21 @@ export interface SceneEdge {
   mid?: Point;
 }
 
+export interface SceneLifeline {
+  node: string;
+  type: NodeType;
+  x: number;
+  top: number;
+  bottom: number;
+}
+
+export interface SceneActivation {
+  node: string;
+  type: NodeType;
+  rect: Rect;
+  depth: number;
+}
+
 /** A connection dot where an edge meets a card, tinted by that card's type. */
 export interface SceneHandle {
   node: string;
@@ -86,6 +101,11 @@ export interface Scene {
   edges: SceneEdge[];
   /** Lane layouts attach edges anywhere on a card, so dots sit at the route ends. ELK layouts: null (fixed ports). */
   handles: SceneHandle[] | null;
+  /** sequence: one lifeline per participant and the activation bars on them */
+  lifelines: SceneLifeline[];
+  activations: SceneActivation[];
+  /** pill: a chip on the line; text: plain text above it (sequence messages) */
+  labelStyle: 'pill' | 'text';
 }
 
 function need<T>(value: T | undefined, what: string): T {
@@ -167,7 +187,17 @@ export function toScene(d: LaidOutDiagram): Scene {
   });
 
   const typeOf = new Map(d.draft.nodes.map((n) => [n.id, n.type]));
-  let handles: SceneHandle[] | null = null;
+  const sequence = d.draft.kind === 'sequence';
+  const lifelines: SceneLifeline[] = sequence
+    ? d.draft.nodes.flatMap((n) => {
+        const l = d.sequence?.lifelines[n.id];
+        return l ? [{ node: n.id, type: n.type, ...l }] : [];
+      })
+    : [];
+  const activations: SceneActivation[] = (d.sequence?.activations ?? []).flatMap((a) =>
+    typeOf.has(a.participant) ? [{ node: a.participant, type: typeOf.get(a.participant)!, rect: a.rect, depth: a.depth }] : [],
+  );
+  let handles: SceneHandle[] | null = sequence ? [] : null;
   if (lanes) {
     const seen = new Set<string>();
     handles = [];
@@ -190,12 +220,24 @@ export function toScene(d: LaidOutDiagram): Scene {
     compact: usesCompactCards(d.draft),
     phaseStyle: lanes ? 'header' : d.draft.kind === 'sequence' ? 'time' : 'band',
     bounds: d.bounds,
-    content: union([...laneList.map((l) => l.rect), ...phases.map((p) => p.rect), ...frames.map((f) => f.rect), ...cards.map((c) => c.rect)]),
+    content: union([
+      ...laneList.map((l) => l.rect),
+      ...phases.map((p) => p.rect),
+      ...frames.map((f) => f.rect),
+      ...cards.map((c) => c.rect),
+      ...lifelines.map((l) => ({ x: l.x, y: l.top, width: 0, height: l.bottom - l.top })),
+      // Labels can reach past everything else (a self-call's label on the last lifeline). The viewer can't ship
+      // the font metrics, so their boxes are a generous estimate: 7px a character plus padding.
+      ...edges.flatMap((e) => (e.label && e.mid ? [{ x: e.mid.x - (e.label.length * 7 + 16) / 2, y: e.mid.y - 10, width: e.label.length * 7 + 16, height: 20 }] : [])),
+    ]),
     lanes: laneList,
     phases,
     frames,
     cards,
     edges,
     handles,
+    lifelines,
+    activations,
+    labelStyle: sequence ? 'text' : 'pill',
   };
 }

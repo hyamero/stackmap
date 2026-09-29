@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json",
+  "kind": "sequence",
+  "title": "Checkout request",
+  "subtitle": "Card payment with a fraud check",
+  "phases": [
+    { "id": "authorize", "label": "Authorize", "edges": ["pay", "score", "ok", "charge", "captured"] },
+    { "id": "confirm", "label": "Confirm", "edges": ["receipt", "done"] }
+  ],
+  "nodes": [
+    { "id": "web", "type": "client", "card": { "title": "Web app", "subtitle": "Checkout page" } },
+    { "id": "api", "type": "service", "card": { "title": "Orders API", "subtitle": "Payments route" } },
+    { "id": "fraud", "type": "security", "card": { "title": "Fraud check", "subtitle": "Risk score" } },
+    { "id": "stripe", "type": "external", "card": { "title": "Stripe", "subtitle": "Payments API", "brand": "stripe" } },
+    { "id": "mail", "type": "queue", "card": { "title": "Mail queue", "subtitle": "Receipts" } }
+  ],
+  "edges": [
+    { "id": "pay", "from": "web", "to": "api", "label": "POST /pay", "tone": "main" },
+    { "id": "score", "from": "api", "to": "fraud", "label": "score order", "tone": "security" },
+    { "id": "ok", "from": "fraud", "to": "api", "label": "low risk", "kind": "return" },
+    { "id": "charge", "from": "api", "to": "stripe", "label": "create charge", "tone": "main" },
+    { "id": "captured", "from": "stripe", "to": "api", "label": "captured", "kind": "return" },
+    { "id": "receipt", "from": "api", "to": "mail", "label": "send receipt", "kind": "async" },
+    { "id": "done", "from": "api", "to": "web", "label": "200 paid", "kind": "return" }
+  ]
+}

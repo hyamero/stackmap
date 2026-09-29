@@ -114,6 +114,63 @@ export function kindDiagnostics(d: DiagramDraft): Diagnostic[] {
 
   out.push(...phaseDiagnostics(d));
   if (lanes && d.lanes?.length) out.push(...laneGroupDiagnostics(d));
+  if (d.kind === 'sequence') out.push(...sequenceDiagnostics(d));
+  return out;
+}
+
+/** Replies that answer nothing, and time bands that overlap (each band spans its first to its last message). */
+function sequenceDiagnostics(d: DiagramDraft): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  // Calls still waiting for a reply, per (caller → callee) pair.
+  const waiting = new Map<string, number>();
+  d.edges.forEach((e, i) => {
+    if (e.from === e.to) return;
+    if (e.kind !== 'return') {
+      if (e.kind !== 'async') waiting.set(`${e.from}>${e.to}`, (waiting.get(`${e.from}>${e.to}`) ?? 0) + 1);
+      return;
+    }
+    const key = `${e.to}>${e.from}`;
+    const open = waiting.get(key) ?? 0;
+    if (open > 0) waiting.set(key, open - 1);
+    else
+      out.push({
+        ...error('semantics/unmatched-return', `/edges/${i}`, `Reply "${e.id}" answers no earlier call from "${e.to}" to "${e.from}"`, { id: e.id }, [
+          `add the call from "${e.to}" to "${e.from}" before it`,
+          'remove "kind": "return" if it is a call of its own',
+        ]),
+        severity: 'warning',
+      });
+  });
+
+  const row = new Map(d.edges.map((e, i) => [e.id, i]));
+  const spans = (d.phases ?? []).flatMap((p, i) => {
+    const rows = (p.edges ?? []).flatMap((id) => (row.has(id) ? [row.get(id)!] : []));
+    return rows.length ? [{ i, id: p.id, first: Math.min(...rows), last: Math.max(...rows) }] : [];
+  });
+  // A band spans its first to its last message: messages in between it doesn't list are in it anyway.
+  for (const sp of spans) {
+    const listed = new Set(d.phases![sp.i]!.edges);
+    const unlisted = d.edges.slice(sp.first, sp.last + 1).filter((e) => !listed.has(e.id)).map((e) => e.id);
+    if (unlisted.length)
+      out.push({
+        ...error('semantics/phase-gap', `/phases/${sp.i}/edges`, `Phase "${sp.id}" also covers ${unlisted.map((x) => `"${x}"`).join(', ')}, between its first and last message`, { id: sp.id, unlisted }, [
+          `add ${unlisted.map((x) => `"${x}"`).join(', ')} to the phase`,
+          'reorder the messages so the band is contiguous',
+        ]),
+        severity: 'warning',
+      });
+  }
+  for (let k = 1; k < spans.length; k++) {
+    const prev = spans[k - 1]!;
+    const cur = spans[k]!;
+    if (cur.first <= prev.last)
+      out.push(
+        error('semantics/phase-overlap', `/phases/${cur.i}`, `Phase "${cur.id}" starts before phase "${prev.id}" ends; time bands follow each other`, { id: cur.id, previous: prev.id }, [
+          `list only messages after "${d.edges[prev.last]!.id}" in "${cur.id}"`,
+          'reorder the phases to follow the messages',
+        ]),
+      );
+  }
   return out;
 }
 
