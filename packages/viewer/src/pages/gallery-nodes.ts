@@ -1,4 +1,4 @@
-import { NODE_TYPES, TYPE_LABELS, type DiagramNode, type NodeType } from '@stackmap/core';
+import { INFRA_TYPES, NODE_TYPES, TYPE_LABELS, type DiagramNode, type NodeType } from '@stackmap/core';
 
 const BRAND: Partial<Record<NodeType, string>> = {
   client: 'nextdotjs',
@@ -55,8 +55,22 @@ const stress: DiagramNode = {
   },
 };
 
+// Full cards only ever carry component types; lifecycle states are always compact.
 export const GALLERY_SECTIONS: [string, DiagramNode[]][] = [
-  ['Bare', NODE_TYPES.map(bare)],
-  ['Rich', NODE_TYPES.map(rich)],
+  ['Bare', INFRA_TYPES.map(bare)],
+  ['Rich', INFRA_TYPES.map(rich)],
   ['Stress', [stress]],
+];
+
+const TAGS: Partial<Record<NodeType, string>> = { security: 'human gate', decision: 'gate', waiting: 'pause', failure: 'terminal' };
+const step = (type: NodeType): DiagramNode => ({
+  id: `step-${type}`,
+  type,
+  card: { title: TYPE_LABELS[type], subtitle: 'Step subtitle', ...(TAGS[type] ? { tag: TAGS[type] } : {}) },
+});
+
+/** Compact cards (workflow steps, lifecycle states, participants), every type, with and without a tag. */
+export const COMPACT_SECTIONS: [string, DiagramNode[]][] = [
+  ['Compact', NODE_TYPES.map(step)],
+  ['Compact stress', [{ id: 'step-stress', type: 'service', card: { title: 'a-very-long-step-name', subtitle: 'An equally long subtitle here', tag: 'a tag that is far too long' } }]],
 ];

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
-import type { LaidOutDiagram } from '@stackmap/core';
+import { KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '../canvas/CanvasPanel';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
 import { ExploreProvider, useExplore } from '../explore/ExploreContext';
@@ -10,7 +10,6 @@ import { IdentityCard } from './IdentityCard';
 import { Inspector } from './Inspector';
 import { Toolbar } from './Toolbar';
 
-const KIND_LABEL = { architecture: 'Architecture', dataflow: 'Dataflow' } as const;
 /** Below this width the inspector starts collapsed (Q27). */
 const INSPECTOR_BREAKPOINT = 1100;
 
@@ -114,7 +113,7 @@ export function ViewerShell({
               className="shrink-0 rounded-lg bg-panel px-2 py-0.5 text-[13px] text-fg-muted"
               style={{ boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
             >
-              {KIND_LABEL[draft.kind]}
+              {KIND_LABELS[draft.kind]}
             </span>
           </div>
           <ViewTabs />

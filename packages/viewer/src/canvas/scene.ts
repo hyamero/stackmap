@@ -1,20 +1,44 @@
 import {
+  isLaneKind,
+  usesCompactCards,
   polylineMidpoint,
   roundedOrthogonalPath,
+  type DiagramKind,
   type DiagramNode,
   type Direction,
+  type EdgeKind,
+  type EdgeTone,
   type LaidOutDiagram,
+  type NodeType,
   type Point,
   type Rect,
 } from '@stackmap/core';
 
 export const EDGE_RADIUS = 10;
 
+/** Height of a group frame's label band: ELK layouts reserve 48px (GROUP_LABEL_BAND), lane layouts 28px. */
+const FRAME_BAND = { elk: 48, lanes: 28 } as const;
+
 export interface SceneFrame {
   id: string;
   label: string;
   rect: Rect;
   depth: number;
+  band: number;
+  tone?: 'security';
+}
+
+export interface SceneLane {
+  id: string;
+  label: string;
+  rect: Rect;
+  tone?: 'exception';
+}
+
+export interface ScenePhase {
+  id: string;
+  label: string;
+  rect: Rect;
 }
 
 export interface SceneCard {
@@ -22,6 +46,8 @@ export interface SceneCard {
   rect: Rect;
   hasIn: boolean;
   hasOut: boolean;
+  /** lifecycle: an end state (success or failure with no way out) */
+  final: boolean;
 }
 
 export interface SceneEdge {
@@ -30,19 +56,36 @@ export interface SceneEdge {
   to: string;
   points: Point[];
   path: string;
-  kind: 'sync' | 'async';
+  kind: EdgeKind;
+  tone?: EdgeTone;
   label?: string;
   mid?: Point;
 }
 
+/** A connection dot where an edge meets a card, tinted by that card's type. */
+export interface SceneHandle {
+  node: string;
+  type: NodeType;
+  at: Point;
+}
+
 export interface Scene {
+  kind: DiagramKind;
   direction: Direction;
+  /** step, state and participant cards instead of full node cards */
+  compact: boolean;
+  /** lane kinds: headers over columns; architecture/dataflow: stage bands; sequence: time bands */
+  phaseStyle: 'header' | 'band' | 'time';
   bounds: { width: number; height: number };
-  /** Union of card and frame rects — what "fit to screen" frames. */
+  /** Union of everything drawn except edges — what "fit to screen" frames. */
   content: Rect;
+  lanes: SceneLane[];
+  phases: ScenePhase[];
   frames: SceneFrame[];
   cards: SceneCard[];
   edges: SceneEdge[];
+  /** Lane layouts attach edges anywhere on a card, so dots sit at the route ends. ELK layouts: null (fixed ports). */
+  handles: SceneHandle[] | null;
 }
 
 function need<T>(value: T | undefined, what: string): T {
@@ -60,7 +103,9 @@ function union(rects: Rect[]): Rect {
 }
 
 export function toScene(d: LaidOutDiagram): Scene {
-  const groups = d.draft.groups ?? [];
+  const lanes = isLaneKind(d.draft.kind);
+  // Lane layouts leave empty groups out (nothing to frame).
+  const groups = (d.draft.groups ?? []).filter((g) => !lanes || d.groups[g.id]);
   const parentOf = new Map(groups.map((g) => [g.id, g.parent]));
   const depthOf = (id: string): number => {
     let depth = 0;
@@ -73,7 +118,14 @@ export function toScene(d: LaidOutDiagram): Scene {
   // Parents first: a child frame painted before its parent disappears under the parent's fill.
   const frames: SceneFrame[] = groups
     .map((g, order) => ({
-      frame: { id: g.id, label: g.label, rect: need(d.groups[g.id], `group '${g.id}'`), depth: depthOf(g.id) },
+      frame: {
+        id: g.id,
+        label: g.label,
+        rect: need(d.groups[g.id], `group '${g.id}'`),
+        depth: depthOf(g.id),
+        band: lanes ? FRAME_BAND.lanes : FRAME_BAND.elk,
+        tone: g.tone,
+      },
       order,
     }))
     .sort((a, b) => a.frame.depth - b.frame.depth || a.order - b.order)
@@ -81,11 +133,13 @@ export function toScene(d: LaidOutDiagram): Scene {
 
   const targets = new Set(d.draft.edges.map((e) => e.to));
   const sources = new Set(d.draft.edges.map((e) => e.from));
+  const exits = new Set(d.draft.edges.filter((e) => e.from !== e.to).map((e) => e.from));
   const cards: SceneCard[] = d.draft.nodes.map((node) => ({
     node,
     rect: need(d.nodes[node.id], `node '${node.id}'`),
     hasIn: targets.has(node.id),
     hasOut: sources.has(node.id),
+    final: (node.type === 'success' || node.type === 'failure') && !exits.has(node.id),
   }));
 
   const edges: SceneEdge[] = d.draft.edges.map((e) => {
@@ -97,17 +151,51 @@ export function toScene(d: LaidOutDiagram): Scene {
       points,
       path: roundedOrthogonalPath(points, EDGE_RADIUS),
       kind: e.kind ?? 'sync',
+      tone: e.tone,
       label: e.label,
-      mid: e.label ? polylineMidpoint(points) : undefined,
+      mid: e.label ? (d.labels?.[e.id] ?? polylineMidpoint(points)) : undefined,
     };
   });
 
+  const laneList: SceneLane[] = (d.draft.lanes ?? []).flatMap((l) => {
+    const rect = d.lanes?.[l.id];
+    return rect ? [{ id: l.id, label: l.label, rect, tone: l.tone }] : [];
+  });
+  const phases: ScenePhase[] = (d.draft.phases ?? []).flatMap((p) => {
+    const rect = d.phases?.[p.id];
+    return rect ? [{ id: p.id, label: p.label, rect }] : [];
+  });
+
+  const typeOf = new Map(d.draft.nodes.map((n) => [n.id, n.type]));
+  let handles: SceneHandle[] | null = null;
+  if (lanes) {
+    const seen = new Set<string>();
+    handles = [];
+    for (const e of edges) {
+      for (const [node, at] of [
+        [e.from, e.points[0]!],
+        [e.to, e.points.at(-1)!],
+      ] as const) {
+        const key = `${node}:${at.x},${at.y}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        handles.push({ node, type: typeOf.get(node)!, at });
+      }
+    }
+  }
+
   return {
-    direction: d.draft.direction ?? 'RIGHT',
+    kind: d.draft.kind,
+    direction: lanes ? 'RIGHT' : (d.draft.direction ?? 'RIGHT'),
+    compact: usesCompactCards(d.draft),
+    phaseStyle: lanes ? 'header' : d.draft.kind === 'sequence' ? 'time' : 'band',
     bounds: d.bounds,
-    content: union([...frames.map((f) => f.rect), ...cards.map((c) => c.rect)]),
+    content: union([...laneList.map((l) => l.rect), ...phases.map((p) => p.rect), ...frames.map((f) => f.rect), ...cards.map((c) => c.rect)]),
+    lanes: laneList,
+    phases,
     frames,
     cards,
     edges,
+    handles,
   };
 }

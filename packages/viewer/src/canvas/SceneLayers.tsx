@@ -1,11 +1,13 @@
 import { memo, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { ShieldCheck, TriangleAlert } from 'lucide-react';
 import { TYPE_LABELS, type Rect } from '@stackmap/core';
 import { NodeCard } from '../card/NodeCard';
+import { StepCard } from '../card/StepCard';
 import type { Emphasis, NodeEmphasis } from '../explore/emphasis';
 import { useExploreDispatch } from '../explore/ExploreContext';
 import { neighbourInDirection, type Direction } from '../explore/graph';
-import { arrowMarkerId, ArrowMarkerDefs } from './ArrowMarker';
-import type { Scene, SceneCard, SceneFrame } from './scene';
+import { arrowMarkerId, ArrowMarkerDefs, edgeStroke, type EdgeColor } from './ArrowMarker';
+import type { Scene, SceneCard, SceneEdge, SceneFrame, SceneLane, ScenePhase } from './scene';
 import { useCamera } from './ViewportContext';
 
 const ARROWS: Record<string, Direction> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
@@ -30,25 +32,91 @@ function handleStyle(side: 'in' | 'out', horizontal: boolean): CSSProperties {
     : { left: '50%', bottom: 0, transform: 'translate(-50%, 50%)' };
 }
 
-function Frame({ frame }: { frame: SceneFrame }) {
-  // Q18: groups aren't in the refs — thin dashed container, faint fill, sentence-case label in the 48px band.
+function Frame({ frame, compact }: { frame: SceneFrame; compact: boolean }) {
+  // Q18: groups aren't in the refs — thin dashed container, faint fill, sentence-case label in the label band.
+  // A trust boundary (`tone: security`) takes the security tint and a shield.
+  const secure = frame.tone === 'security';
   return (
     <div
       data-frame-id={frame.id}
-      className="sm-frame absolute rounded-[18px] border border-dashed"
-      style={{ ...place(frame.rect), borderColor: 'var(--sm-group-border)', background: 'var(--sm-group-fill)' }}
+      data-tone={frame.tone}
+      className={`sm-frame absolute border border-dashed ${compact ? 'rounded-[14px]' : 'rounded-[18px]'}`}
+      style={{
+        ...place(frame.rect),
+        borderColor: secure ? 'var(--sm-security-accent)' : 'var(--sm-group-border)',
+        // Lane layouts put groups on the lane band; a second fill would read as a lane of its own.
+        background: compact ? 'transparent' : 'var(--sm-group-fill)',
+      }}
     >
-      <div className="flex h-12 items-center px-5 text-[12.5px] font-medium text-fg-muted">
+      <div
+        className={`flex items-center gap-1.5 font-medium text-fg-muted ${compact ? 'px-3 text-[12px]' : 'px-5 text-[12.5px]'}`}
+        style={{ height: frame.band }}
+      >
+        {secure && <ShieldCheck size={13} strokeWidth={1.75} aria-hidden="true" style={{ color: 'var(--sm-security-accent)' }} />}
         {frame.label}
       </div>
     </div>
   );
 }
 
+/** A swimlane: a full-width band with its label in the left rail (layout's LANE_HEAD). Exception lanes are dashed. */
+function Lane({ lane }: { lane: SceneLane }) {
+  const exception = lane.tone === 'exception';
+  return (
+    <div
+      data-lane-id={lane.id}
+      data-tone={lane.tone}
+      className="sm-lane absolute rounded-2xl"
+      style={{
+        ...place(lane.rect),
+        background: 'var(--sm-group-fill)',
+        boxShadow: exception ? undefined : 'inset 0 0 0 1px var(--sm-panel-border)',
+        border: exception ? '1px dashed var(--sm-group-border)' : undefined,
+      }}
+    >
+      <div className="flex w-[136px] items-start gap-1.5 px-4 pt-4 text-[12.5px] leading-[18px] font-medium break-words text-fg-muted">
+        {exception && <TriangleAlert size={13} strokeWidth={1.75} aria-hidden="true" className="mt-[2.5px] shrink-0" />}
+        <span className="min-w-0">{lane.label}</span>
+      </div>
+    </div>
+  );
+}
+
+/** A phase header over the columns it spans (label and hairline), or a stage band around its nodes. */
+function Phase({ phase, style, direction }: { phase: ScenePhase; style: Scene['phaseStyle']; direction: Scene['direction'] }) {
+  if (style === 'band') {
+    return (
+      <div
+        data-phase-id={phase.id}
+        className="sm-phase absolute rounded-[18px] border border-dashed"
+        style={{ ...place(phase.rect), borderColor: 'var(--sm-group-border)', background: 'var(--sm-group-fill)' }}
+      >
+        <div className={`flex h-11 items-center px-5 text-[12.5px] font-medium text-fg-muted ${direction === 'RIGHT' ? 'justify-center' : ''}`}>{phase.label}</div>
+      </div>
+    );
+  }
+  return (
+    <div data-phase-id={phase.id} className="sm-phase absolute flex items-start justify-center" style={place(phase.rect)}>
+      <span className="mt-1.5 text-[13px] font-medium text-fg">{phase.label}</span>
+      <span aria-hidden="true" className="absolute right-0 bottom-2 left-0 h-px" style={{ background: 'var(--sm-group-border)' }} />
+    </div>
+  );
+}
+
+// What an edge looks like at rest: tones pick the colour and weight, kinds the dash (Q26 + gallery parity).
+function edgeLook(e: SceneEdge, tint: EdgeColor): { color: EdgeColor; width: number; dash?: string } {
+  const color: EdgeColor = tint ?? (e.tone === 'main' ? 'ink' : e.tone === 'security' ? 'security' : e.tone === 'error' ? 'failure' : null);
+  const width = tint ? 1.75 : e.tone === 'main' ? 1.75 : e.tone ? 1.5 : 1.25;
+  const dash = e.kind === 'async' ? '5 4' : e.kind === 'return' ? '1 4' : undefined;
+  return { color, width, dash };
+}
+
 // Memoised with stable props: an explorer change re-renders only the cards whose emphasis changed.
 const Card = memo(function Card({
   card,
   horizontal,
+  compact,
+  handles,
   state,
   rects,
   tabbable,
@@ -56,13 +124,16 @@ const Card = memo(function Card({
 }: {
   card: SceneCard;
   horizontal: boolean;
+  compact: boolean;
+  /** false: the scene draws dots at the route ends instead (lane layouts) */
+  handles: boolean;
   state: NodeEmphasis;
   rects: Record<string, Rect>;
   /** roving tabindex: one card is the canvas's tab stop, arrows move between the rest */
   tabbable: boolean;
   onFocused: (id: string) => void;
 }) {
-  const { node, rect, hasIn, hasOut } = card;
+  const { node, rect, hasIn, hasOut, final } = card;
   const dispatch = useExploreDispatch();
   const camera = useCamera();
   const accent = { '--sm-handle': `var(--sm-${node.type}-accent)` } as CSSProperties;
@@ -103,9 +174,9 @@ const Card = memo(function Card({
       }}
       onKeyDown={onKeyDown}
     >
-      <NodeCard node={node} />
-      {hasIn && <span aria-hidden="true" data-handle="in" className="sm-handle" style={handleStyle('in', horizontal)} />}
-      {hasOut && <span aria-hidden="true" data-handle="out" className="sm-handle" style={handleStyle('out', horizontal)} />}
+      {compact ? <StepCard node={node} final={final} /> : <NodeCard node={node} />}
+      {handles && hasIn && <span aria-hidden="true" data-handle="in" className="sm-handle" style={handleStyle('in', horizontal)} />}
+      {handles && hasOut && <span aria-hidden="true" data-handle="out" className="sm-handle" style={handleStyle('out', horizontal)} />}
     </div>
   );
 });
@@ -123,13 +194,20 @@ export const SceneLayers = memo(function SceneLayers({
   selected: string | null;
 }) {
   const horizontal = scene.direction === 'RIGHT';
+  const typeOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.node.type])), [scene]);
   const rects = useMemo(() => Object.fromEntries(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
   const [lastFocused, setLastFocused] = useState<string | null>(null);
   const tabStop = selected ?? (lastFocused && rects[lastFocused] ? lastFocused : scene.cards[0]?.node.id);
   return (
     <>
+      {scene.lanes.map((l) => (
+        <Lane key={l.id} lane={l} />
+      ))}
+      {scene.phases.map((p) => (
+        <Phase key={p.id} phase={p} style={scene.phaseStyle} direction={scene.direction} />
+      ))}
       {scene.frames.map((f) => (
-        <Frame key={f.id} frame={f} />
+        <Frame key={f.id} frame={f} compact={scene.compact} />
       ))}
       <svg
         aria-hidden="true"
@@ -140,24 +218,42 @@ export const SceneLayers = memo(function SceneLayers({
         <ArrowMarkerDefs />
         {scene.edges.map((e) => {
           const { dim, tint } = emphasis.edges.get(e.id) ?? { dim: false, tint: null };
+          const look = edgeLook(e, tint);
           return (
             <path
               key={e.id}
               data-edge-id={e.id}
               data-dim={dim || undefined}
               data-tint={tint ?? undefined}
+              data-tone={e.tone}
+              data-kind={e.kind === 'sync' ? undefined : e.kind}
               className="sm-edge-path"
               d={e.path}
               fill="none"
-              markerEnd={`url(#${arrowMarkerId(tint)})`}
+              markerEnd={`url(#${arrowMarkerId(look.color, e.kind === 'return')})`}
               style={{
-                stroke: tint ? `var(--sm-${tint}-accent)` : 'var(--sm-edge)',
-                strokeWidth: tint ? 1.75 : 1.25,
-                strokeDasharray: e.kind === 'async' ? '5 4' : undefined,
+                stroke: edgeStroke(look.color),
+                strokeWidth: look.width,
+                strokeDasharray: look.dash,
+                strokeLinecap: e.kind === 'return' ? 'round' : undefined,
               }}
             />
           );
         })}
+        {/* Lifecycle: a start state's initial marker, a filled dot with a stub into the card (UML). */}
+        {scene.kind === 'lifecycle' &&
+          scene.cards
+            .filter((c) => c.node.type === 'start')
+            .map((c) => {
+              const y = c.rect.y + c.rect.height / 2;
+              const dim = emphasis.nodes.get(c.node.id) === 'dim' || undefined;
+              return (
+                <g key={c.node.id} data-start-mark={c.node.id} data-dim={dim} className="sm-edge-path">
+                  <line x1={c.rect.x - 22} y1={y} x2={c.rect.x} y2={y} markerEnd={`url(#${arrowMarkerId('start')})`} style={{ stroke: 'var(--sm-start-accent)', strokeWidth: 1.5 }} />
+                  <circle cx={c.rect.x - 24} cy={y} r={5} style={{ fill: 'var(--sm-start-accent)' }} />
+                </g>
+              );
+            })}
       </svg>
       {scene.cards.map((c) => (
         <Card
@@ -165,9 +261,21 @@ export const SceneLayers = memo(function SceneLayers({
           card={c}
           horizontal={horizontal}
           state={emphasis.nodes.get(c.node.id) ?? 'normal'}
+          compact={scene.compact}
+          handles={scene.handles === null}
           rects={rects}
           tabbable={c.node.id === tabStop}
           onFocused={setLastFocused}
+        />
+      ))}
+      {scene.handles?.map((h) => (
+        <span
+          key={`${h.node}:${h.at.x},${h.at.y}`}
+          aria-hidden="true"
+          data-handle-of={h.node}
+          data-dim={emphasis.nodes.get(h.node) === 'dim' || undefined}
+          className="sm-handle sm-route-handle"
+          style={{ left: h.at.x, top: h.at.y, transform: 'translate(-50%, -50%)', '--sm-handle': `var(--sm-${typeOf.get(h.node)}-accent)` } as CSSProperties}
         />
       ))}
       {scene.edges.map((e) =>

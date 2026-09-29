@@ -1,6 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, Copy, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
-import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramNode, type Evidence } from '@stackmap/core';
+import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramEdge, type DiagramNode, type Evidence } from '@stackmap/core';
 import { focusCard } from '../canvas/SceneLayers';
 import { useExplore } from '../explore/ExploreContext';
 import { swapIn } from '../motion/motion';
@@ -17,19 +17,60 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+// Connection styles in legend order; each is listed only when the diagram uses it.
+const LINE_STYLES: { key: string; label: string; test: (e: DiagramEdge) => boolean; stroke: string; width: number; dash?: string }[] = [
+  { key: 'main', label: 'Main path', test: (e) => e.tone === 'main', stroke: 'var(--sm-text)', width: 1.75 },
+  { key: 'security', label: 'Security', test: (e) => e.tone === 'security', stroke: 'var(--sm-security-accent)', width: 1.5 },
+  { key: 'error', label: 'Failure path', test: (e) => e.tone === 'error', stroke: 'var(--sm-failure-accent)', width: 1.5 },
+  { key: 'async', label: 'Async', test: (e) => e.kind === 'async', stroke: 'var(--sm-edge)', width: 1.25, dash: '5 4' },
+  { key: 'return', label: 'Reply or return', test: (e) => e.kind === 'return', stroke: 'var(--sm-edge)', width: 1.25, dash: '1 4' },
+];
+
 function Legend({ draft }: { draft: DiagramDraft }) {
+  const lines = LINE_STYLES.filter((l) => draft.edges.some(l.test));
   return (
-    <ul aria-label="Legend" className="space-y-2.5">
-      {countByType(draft.nodes).map(([type, count]) => (
-        <li key={type} className="flex items-center justify-between text-[13px] text-fg">
-          <span className="flex items-center gap-2.5">
-            <span aria-hidden="true" className="size-2.5 rounded-full" style={{ background: `var(--sm-${type}-accent)` }} />
-            {TYPE_LABELS[type]}
-          </span>
-          <span className="text-fg-muted tabular-nums">{count}</span>
-        </li>
+    <>
+      <ul aria-label="Legend" className="space-y-2.5">
+        {countByType(draft.nodes).map(([type, count]) => (
+          <li key={type} className="flex items-center justify-between text-[13px] text-fg">
+            <span className="flex items-center gap-2.5">
+              <span aria-hidden="true" className="size-2.5 rounded-full" style={{ background: `var(--sm-${type}-accent)` }} />
+              {TYPE_LABELS[type]}
+            </span>
+            <span className="text-fg-muted tabular-nums">{count}</span>
+          </li>
+        ))}
+      </ul>
+      {lines.length > 0 && (
+        <ul aria-label="Connection styles" className="mt-4 space-y-2.5">
+          {lines.map((l) => (
+            <li key={l.key} className="flex items-center gap-2.5 text-[13px] text-fg">
+              <svg aria-hidden="true" width="18" height="10" className="shrink-0">
+                <line x1="1" y1="5" x2="17" y2="5" style={{ stroke: l.stroke, strokeWidth: l.width, strokeDasharray: l.dash, strokeLinecap: l.key === 'return' ? 'round' : undefined }} />
+              </svg>
+              {l.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function Notes({ draft }: { draft: DiagramDraft }) {
+  return (
+    <div className="space-y-5">
+      {draft.notes!.map((n, i) => (
+        <section key={i} aria-label={n.title}>
+          <h4 className="text-[13px] font-medium text-fg">{n.title}</h4>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[12.5px] leading-5 text-fg-muted marker:text-divider">
+            {n.items.map((item, j) => (
+              <li key={j}>{item}</li>
+            ))}
+          </ul>
+        </section>
       ))}
-    </ul>
+    </div>
   );
 }
 
@@ -84,7 +125,7 @@ function Connections({ node }: { node: DiagramNode }) {
             <span className="sr-only">{dir === 'in' ? 'from' : 'to'} </span>
             <span className="truncate">{other.card.title}</span>
             {e.label && <span className="ml-auto shrink-0 text-[12px] text-fg-muted">{e.label}</span>}
-            {e.kind === 'async' && !e.label && <span className="ml-auto shrink-0 text-[12px] text-fg-muted">async</span>}
+            {e.kind && e.kind !== 'sync' && !e.label && <span className="ml-auto shrink-0 text-[12px] text-fg-muted">{e.kind === 'async' ? 'async' : 'reply'}</span>}
           </button>
         </li>
       );
@@ -103,6 +144,7 @@ function Connections({ node }: { node: DiagramNode }) {
 function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) {
   const { draft, dispatch } = useExplore();
   const { card } = node;
+  const lane = node.lane ? draft.lanes?.find((l) => l.id === node.lane)?.label : undefined;
   return (
     <>
       <div className="flex items-center justify-between">
@@ -125,6 +167,16 @@ function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) 
       </div>
       <h2 className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">{card.title}</h2>
       {card.subtitle && <p className="mt-1 text-[13px] break-words text-fg-muted">{card.subtitle}</p>}
+      {(card.tag || lane) && (
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-fg-muted">
+          {card.tag && (
+            <span className="rounded-full px-2 py-0.5 text-[12px] font-medium text-fg" style={{ background: `var(--sm-${node.type}-tile)` }}>
+              {card.tag}
+            </span>
+          )}
+          {lane && <span>{lane}</span>}
+        </p>
+      )}
       {(card.rows?.length || card.stats?.length || card.footer) && (
         <Section title="Details">
           <dl className="space-y-2 text-[13px]">
@@ -224,6 +276,11 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
           </div>
           <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-fg">{draft.title}</h2>
           {draft.subtitle && <p className="mt-1 text-[13px] text-fg-muted">{draft.subtitle}</p>}
+          {!!draft.notes?.length && (
+            <Section title="Notes">
+              <Notes draft={draft} />
+            </Section>
+          )}
           <Section title="Legend">
             <Legend draft={draft} />
           </Section>

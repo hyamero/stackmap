@@ -1,4 +1,4 @@
-import { cardTextSlots, measureText, type CardData, type DiagramNode } from '@stackmap/core';
+import { cardTextSlots, measureText, type CardData, type CardVariant, type DiagramNode } from '@stackmap/core';
 
 // Every slot filled with text ~2px under (fits) and ~2px over (truncates) its budget, so the browser test
 // that pins cardTextSlots to the rendered card has cases on both sides of each boundary.
@@ -15,9 +15,9 @@ const template: CardData = {
 };
 
 /** Longest prefix at least 2px under each budget (`under`), or shortest prefix at least 2px over it. */
-function fitTo(card: CardData, side: 'under' | 'over'): CardData {
+function fitTo(card: CardData, side: 'under' | 'over', variant: CardVariant = 'full'): CardData {
   const out = structuredClone(card) as unknown as Record<string, unknown>;
-  for (const slot of cardTextSlots(card)) {
+  for (const slot of cardTextSlots(card, variant)) {
     const width = (n: number) => measureText(slot.text.slice(0, n), slot.face, slot.size);
     let n = 1;
     if (side === 'under') while (n < slot.text.length && width(n + 1) <= slot.maxWidth - 2) n++;
@@ -34,4 +34,10 @@ function fitTo(card: CardData, side: 'under' | 'over'): CardData {
 export const boundaryNodes = (): DiagramNode[] => [
   { id: 'boundary-under', type: 'database', card: fitTo(template, 'under') },
   { id: 'boundary-over', type: 'cache', card: fitTo(template, 'over') },
+];
+
+const compactTemplate: CardData = { title: FILLER, subtitle: FILLER, tag: FILLER };
+export const compactBoundaryNodes = (): DiagramNode[] => [
+  { id: 'boundary-compact-under', type: 'queue', card: fitTo(compactTemplate, 'under', 'compact') },
+  { id: 'boundary-compact-over', type: 'active', card: fitTo(compactTemplate, 'over', 'compact') },
 ];

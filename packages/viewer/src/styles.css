@@ -59,9 +59,13 @@ body {
 .sm-edge-path[data-drawing] {
   marker-end: none;
 }
+.sm-route-handle {
+  transition: opacity 150ms ease;
+}
 .sm-card[data-emphasis='dim'],
 .sm-edge-path[data-dim],
-.sm-edge-label[data-dim] {
+.sm-edge-label[data-dim],
+.sm-route-handle[data-dim] {
   opacity: 0.22;
 }
 /* Pressables answer the press: a 4% dip, released quickly. */

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { cardTextSlots, measureText, type FontFace } from '@stackmap/core';
-import { boundaryNodes } from '../src/pages/boundary-nodes';
-import { GALLERY_SECTIONS } from '../src/pages/gallery-nodes';
+import { boundaryNodes, compactBoundaryNodes } from '../src/pages/boundary-nodes';
+import { COMPACT_SECTIONS, GALLERY_SECTIONS } from '../src/pages/gallery-nodes';
 
 // Browser ground truth for the headless card-fit measure (M1). The measure is the wider of the macOS/
 // Windows layout (fractional, kerned) and the Linux one (whole-pixel advances, no kerning), so on any
@@ -63,7 +63,7 @@ test('headless text measure matches the browser within a conservative margin', a
 test('a card slot never truncates text the measure said fits, and the measure stays close', async ({ page }) => {
   await page.goto('/?page=gallery');
   await page.evaluate(() => document.fonts.ready);
-  const rendered = await page.$$eval('[data-testid="node-card"]', (cards) =>
+  const rendered = await page.$$eval('[data-testid="node-card"], [data-testid="step-card"]', (cards) =>
     Object.fromEntries(
       cards.map((card) => [
         card.getAttribute('data-node-id')!,
@@ -77,9 +77,13 @@ test('a card slot never truncates text the measure said fits, and the measure st
   );
   const problems: string[] = [];
   let checked = 0;
-  for (const [, nodes] of [...GALLERY_SECTIONS, ['Boundary', boundaryNodes()] as const]) {
+  const sets = [
+    ...[...GALLERY_SECTIONS, ['Boundary', boundaryNodes()] as const].map(([, nodes]) => ({ nodes, variant: 'full' as const })),
+    ...[...COMPACT_SECTIONS, ['Compact boundary', compactBoundaryNodes()] as const].map(([, nodes]) => ({ nodes, variant: 'compact' as const })),
+  ];
+  for (const { nodes, variant } of sets) {
     for (const node of nodes) {
-      const slots = cardTextSlots(node.card);
+      const slots = cardTextSlots(node.card, variant);
       const dom = rendered[node.id]!;
       expect(dom.map((d) => d.text), node.id).toEqual(slots.map((s) => s.text));
       slots.forEach((slot, i) => {
@@ -92,7 +96,7 @@ test('a card slot never truncates text the measure said fits, and the measure st
         if (!dom[i]!.truncated && width > TOO_WIDE(dom[i]!.width)) problems.push(`${at}, real ${dom[i]!.width.toFixed(1)}: too conservative`);
         // Linux renders the snapped model to within ±2px (hinting), so text measured clearly over budget
         // must truncate there; this is what catches a budget that is set too small.
-        if (process.platform === 'linux' && node.id === 'boundary-over' && width > slot.maxWidth + 4 && !dom[i]!.truncated)
+        if (process.platform === 'linux' && node.id.endsWith('-over') && width > slot.maxWidth + 4 && !dom[i]!.truncated)
           problems.push(`${at}, but not truncated on Linux`);
       });
     }
