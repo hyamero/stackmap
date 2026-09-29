@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagramDraft, DiagramEdge } from '@stackmap/core';
-import { asyncJob, cacheMiss } from '@stackmap/core/samples';
+import { asyncJob, cacheMiss } from '@stackmap/core/gallery';
 import { activations, layoutSequence } from '../src/sequence';
 
 const seq = (edges: DiagramEdge[], extra: Partial<DiagramDraft> = {}): DiagramDraft => ({
