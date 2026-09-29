@@ -4820,5 +4820,1204 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
         "y": 314
       }
     }
+  },
+  "cache-miss": {
+    "draft": {
+      "kind": "sequence",
+      "title": "Cache miss request",
+      "subtitle": "Dashboard load when the cache is cold",
+      "phases": [
+        {
+          "id": "request",
+          "label": "Request",
+          "edges": [
+            "open",
+            "get",
+            "verify",
+            "claims"
+          ]
+        },
+        {
+          "id": "fallback",
+          "label": "Fallback",
+          "edges": [
+            "read",
+            "miss",
+            "query",
+            "rows"
+          ]
+        },
+        {
+          "id": "respond",
+          "label": "Response and trace",
+          "edges": [
+            "set",
+            "emit",
+            "json",
+            "render"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "user",
+          "type": "client",
+          "card": {
+            "title": "User",
+            "subtitle": "Browser session"
+          }
+        },
+        {
+          "id": "web",
+          "type": "client",
+          "card": {
+            "title": "Web app",
+            "subtitle": "React UI",
+            "brand": "react"
+          }
+        },
+        {
+          "id": "api",
+          "type": "service",
+          "card": {
+            "title": "API",
+            "subtitle": "Request handler"
+          }
+        },
+        {
+          "id": "auth",
+          "type": "security",
+          "card": {
+            "title": "Auth",
+            "subtitle": "JWT verify"
+          }
+        },
+        {
+          "id": "redis",
+          "type": "cache",
+          "card": {
+            "title": "Redis",
+            "subtitle": "Cache",
+            "brand": "redis"
+          }
+        },
+        {
+          "id": "db",
+          "type": "database",
+          "card": {
+            "title": "Postgres",
+            "subtitle": "Source of truth",
+            "brand": "postgresql"
+          }
+        },
+        {
+          "id": "trace",
+          "type": "queue",
+          "card": {
+            "title": "Trace",
+            "subtitle": "Async event"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "open",
+          "from": "user",
+          "to": "web",
+          "label": "open page"
+        },
+        {
+          "id": "get",
+          "from": "web",
+          "to": "api",
+          "label": "GET /dashboard",
+          "tone": "main"
+        },
+        {
+          "id": "verify",
+          "from": "api",
+          "to": "auth",
+          "label": "verify JWT",
+          "tone": "security"
+        },
+        {
+          "id": "claims",
+          "from": "auth",
+          "to": "api",
+          "label": "claims ok",
+          "kind": "return"
+        },
+        {
+          "id": "read",
+          "from": "api",
+          "to": "redis",
+          "label": "read cache"
+        },
+        {
+          "id": "miss",
+          "from": "redis",
+          "to": "api",
+          "label": "miss",
+          "kind": "return"
+        },
+        {
+          "id": "query",
+          "from": "api",
+          "to": "db",
+          "label": "query profile",
+          "tone": "main"
+        },
+        {
+          "id": "rows",
+          "from": "db",
+          "to": "api",
+          "label": "rows",
+          "kind": "return"
+        },
+        {
+          "id": "set",
+          "from": "api",
+          "to": "redis",
+          "label": "set cache",
+          "kind": "async"
+        },
+        {
+          "id": "emit",
+          "from": "api",
+          "to": "trace",
+          "label": "emit trace",
+          "kind": "async"
+        },
+        {
+          "id": "json",
+          "from": "api",
+          "to": "web",
+          "label": "200 JSON",
+          "kind": "return"
+        },
+        {
+          "id": "render",
+          "from": "web",
+          "to": "user",
+          "label": "render",
+          "kind": "return"
+        }
+      ],
+      "views": [
+        {
+          "id": "fallback",
+          "label": "Fallback",
+          "caption": "The database is read only after the cache misses.",
+          "nodes": [
+            "api",
+            "redis",
+            "db"
+          ]
+        }
+      ],
+      "notes": [
+        {
+          "title": "Happy path",
+          "items": [
+            "Web app → API → data source → response",
+            "Replies are quieter than forward calls",
+            "Activation bars show how long each part is busy"
+          ]
+        },
+        {
+          "title": "Policy and fallback",
+          "items": [
+            "JWT verification is a security interaction",
+            "The cache miss is visible without overpowering the main path"
+          ]
+        },
+        {
+          "title": "Async trace",
+          "items": [
+            "Trace emission is fire-and-forget",
+            "It never blocks the response"
+          ]
+        }
+      ]
+    },
+    "nodes": {
+      "user": {
+        "x": 40,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "web": {
+        "x": 256,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "api": {
+        "x": 472,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "auth": {
+        "x": 688,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "redis": {
+        "x": 904,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "db": {
+        "x": 1120,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "trace": {
+        "x": 1336,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      }
+    },
+    "groups": {},
+    "edges": {
+      "open": [
+        {
+          "x": 128,
+          "y": 186
+        },
+        {
+          "x": 339,
+          "y": 186
+        }
+      ],
+      "get": [
+        {
+          "x": 349,
+          "y": 230
+        },
+        {
+          "x": 555,
+          "y": 230
+        }
+      ],
+      "verify": [
+        {
+          "x": 565,
+          "y": 274
+        },
+        {
+          "x": 771,
+          "y": 274
+        }
+      ],
+      "claims": [
+        {
+          "x": 771,
+          "y": 318
+        },
+        {
+          "x": 565,
+          "y": 318
+        }
+      ],
+      "read": [
+        {
+          "x": 565,
+          "y": 402
+        },
+        {
+          "x": 987,
+          "y": 402
+        }
+      ],
+      "miss": [
+        {
+          "x": 987,
+          "y": 446
+        },
+        {
+          "x": 565,
+          "y": 446
+        }
+      ],
+      "query": [
+        {
+          "x": 565,
+          "y": 490
+        },
+        {
+          "x": 1203,
+          "y": 490
+        }
+      ],
+      "rows": [
+        {
+          "x": 1203,
+          "y": 534
+        },
+        {
+          "x": 565,
+          "y": 534
+        }
+      ],
+      "set": [
+        {
+          "x": 565,
+          "y": 618
+        },
+        {
+          "x": 987,
+          "y": 618
+        }
+      ],
+      "emit": [
+        {
+          "x": 565,
+          "y": 662
+        },
+        {
+          "x": 1419,
+          "y": 662
+        }
+      ],
+      "json": [
+        {
+          "x": 555,
+          "y": 706
+        },
+        {
+          "x": 349,
+          "y": 706
+        }
+      ],
+      "render": [
+        {
+          "x": 339,
+          "y": 750
+        },
+        {
+          "x": 128,
+          "y": 750
+        }
+      ]
+    },
+    "labels": {
+      "open": {
+        "x": 233.5,
+        "y": 172
+      },
+      "get": {
+        "x": 452,
+        "y": 216
+      },
+      "verify": {
+        "x": 668,
+        "y": 260
+      },
+      "claims": {
+        "x": 668,
+        "y": 304
+      },
+      "read": {
+        "x": 776,
+        "y": 388
+      },
+      "miss": {
+        "x": 776,
+        "y": 432
+      },
+      "query": {
+        "x": 884,
+        "y": 476
+      },
+      "rows": {
+        "x": 884,
+        "y": 520
+      },
+      "set": {
+        "x": 776,
+        "y": 604
+      },
+      "emit": {
+        "x": 992,
+        "y": 648
+      },
+      "json": {
+        "x": 452,
+        "y": 692
+      },
+      "render": {
+        "x": 233.5,
+        "y": 736
+      }
+    },
+    "phases": {
+      "request": {
+        "x": 24,
+        "y": 136,
+        "width": 1504,
+        "height": 216
+      },
+      "fallback": {
+        "x": 24,
+        "y": 352,
+        "width": 1504,
+        "height": 216
+      },
+      "respond": {
+        "x": 24,
+        "y": 568,
+        "width": 1504,
+        "height": 216
+      }
+    },
+    "sequence": {
+      "lifelines": {
+        "user": {
+          "x": 128,
+          "top": 100,
+          "bottom": 796
+        },
+        "web": {
+          "x": 344,
+          "top": 100,
+          "bottom": 796
+        },
+        "api": {
+          "x": 560,
+          "top": 100,
+          "bottom": 796
+        },
+        "auth": {
+          "x": 776,
+          "top": 100,
+          "bottom": 796
+        },
+        "redis": {
+          "x": 992,
+          "top": 100,
+          "bottom": 796
+        },
+        "db": {
+          "x": 1208,
+          "top": 100,
+          "bottom": 796
+        },
+        "trace": {
+          "x": 1424,
+          "top": 100,
+          "bottom": 796
+        }
+      },
+      "activations": [
+        {
+          "participant": "web",
+          "rect": {
+            "x": 339,
+            "y": 180,
+            "width": 10,
+            "height": 576
+          },
+          "depth": 0
+        },
+        {
+          "participant": "api",
+          "rect": {
+            "x": 555,
+            "y": 224,
+            "width": 10,
+            "height": 488
+          },
+          "depth": 0
+        },
+        {
+          "participant": "auth",
+          "rect": {
+            "x": 771,
+            "y": 268,
+            "width": 10,
+            "height": 56
+          },
+          "depth": 0
+        },
+        {
+          "participant": "redis",
+          "rect": {
+            "x": 987,
+            "y": 396,
+            "width": 10,
+            "height": 56
+          },
+          "depth": 0
+        },
+        {
+          "participant": "db",
+          "rect": {
+            "x": 1203,
+            "y": 484,
+            "width": 10,
+            "height": 56
+          },
+          "depth": 0
+        },
+        {
+          "participant": "redis",
+          "rect": {
+            "x": 987,
+            "y": 612,
+            "width": 10,
+            "height": 24
+          },
+          "depth": 0
+        },
+        {
+          "participant": "trace",
+          "rect": {
+            "x": 1419,
+            "y": 656,
+            "width": 10,
+            "height": 24
+          },
+          "depth": 0
+        }
+      ]
+    },
+    "bounds": {
+      "width": 1568,
+      "height": 836
+    }
+  },
+  "async-job": {
+    "draft": {
+      "kind": "sequence",
+      "title": "Async job roundtrip",
+      "subtitle": "Accept now, work in the background, notify later",
+      "phases": [
+        {
+          "id": "accept",
+          "label": "Accept",
+          "edges": [
+            "post",
+            "enqueue",
+            "accepted"
+          ]
+        },
+        {
+          "id": "work",
+          "label": "Background work",
+          "edges": [
+            "deliver",
+            "perform",
+            "result",
+            "retry",
+            "persist"
+          ]
+        },
+        {
+          "id": "notify",
+          "label": "Notify and reconcile",
+          "edges": [
+            "completed",
+            "webhook",
+            "poll",
+            "status",
+            "state",
+            "final"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "client",
+          "type": "client",
+          "card": {
+            "title": "Client",
+            "subtitle": "Mobile app"
+          }
+        },
+        {
+          "id": "api",
+          "type": "service",
+          "card": {
+            "title": "Jobs API",
+            "subtitle": "Request edge"
+          }
+        },
+        {
+          "id": "queue",
+          "type": "queue",
+          "card": {
+            "title": "Queue",
+            "subtitle": "Durable work",
+            "brand": "rabbitmq"
+          }
+        },
+        {
+          "id": "worker",
+          "type": "service",
+          "card": {
+            "title": "Worker",
+            "subtitle": "Background"
+          }
+        },
+        {
+          "id": "provider",
+          "type": "external",
+          "card": {
+            "title": "Provider",
+            "subtitle": "External API"
+          }
+        },
+        {
+          "id": "store",
+          "type": "database",
+          "card": {
+            "title": "Job store",
+            "subtitle": "Source of truth",
+            "brand": "postgresql"
+          }
+        },
+        {
+          "id": "notifier",
+          "type": "queue",
+          "card": {
+            "title": "Notifier",
+            "subtitle": "Webhook"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "post",
+          "from": "client",
+          "to": "api",
+          "label": "POST /jobs",
+          "tone": "main"
+        },
+        {
+          "id": "enqueue",
+          "from": "api",
+          "to": "queue",
+          "label": "enqueue job",
+          "kind": "async",
+          "tone": "main"
+        },
+        {
+          "id": "accepted",
+          "from": "api",
+          "to": "client",
+          "label": "202 + job id",
+          "kind": "return"
+        },
+        {
+          "id": "deliver",
+          "from": "queue",
+          "to": "worker",
+          "label": "deliver",
+          "tone": "main"
+        },
+        {
+          "id": "perform",
+          "from": "worker",
+          "to": "provider",
+          "label": "perform work"
+        },
+        {
+          "id": "result",
+          "from": "provider",
+          "to": "worker",
+          "label": "result or timeout",
+          "kind": "return"
+        },
+        {
+          "id": "retry",
+          "from": "worker",
+          "to": "queue",
+          "label": "retry if timeout",
+          "kind": "async",
+          "tone": "error"
+        },
+        {
+          "id": "persist",
+          "from": "worker",
+          "to": "store",
+          "label": "persist final state",
+          "tone": "main"
+        },
+        {
+          "id": "completed",
+          "from": "worker",
+          "to": "notifier",
+          "label": "job.completed",
+          "kind": "async"
+        },
+        {
+          "id": "webhook",
+          "from": "notifier",
+          "to": "client",
+          "label": "signed webhook",
+          "kind": "async",
+          "tone": "security"
+        },
+        {
+          "id": "poll",
+          "from": "client",
+          "to": "api",
+          "label": "GET /jobs/:id"
+        },
+        {
+          "id": "status",
+          "from": "api",
+          "to": "store",
+          "label": "read status"
+        },
+        {
+          "id": "state",
+          "from": "store",
+          "to": "api",
+          "label": "completed",
+          "kind": "return"
+        },
+        {
+          "id": "final",
+          "from": "api",
+          "to": "client",
+          "label": "200 final result",
+          "kind": "return"
+        }
+      ],
+      "notes": [
+        {
+          "title": "Latency contract",
+          "items": [
+            "The client gets 202 before any work starts",
+            "Retries stay inside the background phase"
+          ]
+        },
+        {
+          "title": "Reconciliation",
+          "items": [
+            "The webhook is signed",
+            "Polling reads the job store, the source of truth"
+          ]
+        }
+      ]
+    },
+    "nodes": {
+      "client": {
+        "x": 40,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "api": {
+        "x": 256,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "queue": {
+        "x": 472,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "worker": {
+        "x": 688,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "provider": {
+        "x": 904,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "store": {
+        "x": 1120,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      },
+      "notifier": {
+        "x": 1336,
+        "y": 40,
+        "width": 176,
+        "height": 60
+      }
+    },
+    "groups": {},
+    "edges": {
+      "post": [
+        {
+          "x": 128,
+          "y": 186
+        },
+        {
+          "x": 339,
+          "y": 186
+        }
+      ],
+      "enqueue": [
+        {
+          "x": 349,
+          "y": 230
+        },
+        {
+          "x": 555,
+          "y": 230
+        }
+      ],
+      "accepted": [
+        {
+          "x": 339,
+          "y": 274
+        },
+        {
+          "x": 128,
+          "y": 274
+        }
+      ],
+      "deliver": [
+        {
+          "x": 565,
+          "y": 358
+        },
+        {
+          "x": 771,
+          "y": 358
+        }
+      ],
+      "perform": [
+        {
+          "x": 781,
+          "y": 402
+        },
+        {
+          "x": 987,
+          "y": 402
+        }
+      ],
+      "result": [
+        {
+          "x": 987,
+          "y": 446
+        },
+        {
+          "x": 781,
+          "y": 446
+        }
+      ],
+      "retry": [
+        {
+          "x": 771,
+          "y": 490
+        },
+        {
+          "x": 565,
+          "y": 490
+        }
+      ],
+      "persist": [
+        {
+          "x": 781,
+          "y": 534
+        },
+        {
+          "x": 1203,
+          "y": 534
+        }
+      ],
+      "completed": [
+        {
+          "x": 781,
+          "y": 618
+        },
+        {
+          "x": 1419,
+          "y": 618
+        }
+      ],
+      "webhook": [
+        {
+          "x": 1419,
+          "y": 662
+        },
+        {
+          "x": 133,
+          "y": 662
+        }
+      ],
+      "poll": [
+        {
+          "x": 133,
+          "y": 706
+        },
+        {
+          "x": 339,
+          "y": 706
+        }
+      ],
+      "status": [
+        {
+          "x": 349,
+          "y": 750
+        },
+        {
+          "x": 1203,
+          "y": 750
+        }
+      ],
+      "state": [
+        {
+          "x": 1203,
+          "y": 794
+        },
+        {
+          "x": 349,
+          "y": 794
+        }
+      ],
+      "final": [
+        {
+          "x": 339,
+          "y": 838
+        },
+        {
+          "x": 133,
+          "y": 838
+        }
+      ]
+    },
+    "labels": {
+      "post": {
+        "x": 233.5,
+        "y": 172
+      },
+      "enqueue": {
+        "x": 452,
+        "y": 216
+      },
+      "accepted": {
+        "x": 233.5,
+        "y": 260
+      },
+      "deliver": {
+        "x": 668,
+        "y": 344
+      },
+      "perform": {
+        "x": 884,
+        "y": 388
+      },
+      "result": {
+        "x": 884,
+        "y": 432
+      },
+      "retry": {
+        "x": 668,
+        "y": 476
+      },
+      "persist": {
+        "x": 992,
+        "y": 520
+      },
+      "completed": {
+        "x": 1100,
+        "y": 604
+      },
+      "webhook": {
+        "x": 776,
+        "y": 648
+      },
+      "poll": {
+        "x": 236,
+        "y": 692
+      },
+      "status": {
+        "x": 776,
+        "y": 736
+      },
+      "state": {
+        "x": 776,
+        "y": 780
+      },
+      "final": {
+        "x": 236,
+        "y": 824
+      }
+    },
+    "phases": {
+      "accept": {
+        "x": 24,
+        "y": 136,
+        "width": 1504,
+        "height": 172
+      },
+      "work": {
+        "x": 24,
+        "y": 308,
+        "width": 1504,
+        "height": 260
+      },
+      "notify": {
+        "x": 24,
+        "y": 568,
+        "width": 1504,
+        "height": 304
+      }
+    },
+    "sequence": {
+      "lifelines": {
+        "client": {
+          "x": 128,
+          "top": 100,
+          "bottom": 884
+        },
+        "api": {
+          "x": 344,
+          "top": 100,
+          "bottom": 884
+        },
+        "queue": {
+          "x": 560,
+          "top": 100,
+          "bottom": 884
+        },
+        "worker": {
+          "x": 776,
+          "top": 100,
+          "bottom": 884
+        },
+        "provider": {
+          "x": 992,
+          "top": 100,
+          "bottom": 884
+        },
+        "store": {
+          "x": 1208,
+          "top": 100,
+          "bottom": 884
+        },
+        "notifier": {
+          "x": 1424,
+          "top": 100,
+          "bottom": 884
+        }
+      },
+      "activations": [
+        {
+          "participant": "api",
+          "rect": {
+            "x": 339,
+            "y": 180,
+            "width": 10,
+            "height": 100
+          },
+          "depth": 0
+        },
+        {
+          "participant": "queue",
+          "rect": {
+            "x": 555,
+            "y": 224,
+            "width": 10,
+            "height": 140
+          },
+          "depth": 0
+        },
+        {
+          "participant": "worker",
+          "rect": {
+            "x": 771,
+            "y": 352,
+            "width": 10,
+            "height": 272
+          },
+          "depth": 0
+        },
+        {
+          "participant": "provider",
+          "rect": {
+            "x": 987,
+            "y": 396,
+            "width": 10,
+            "height": 56
+          },
+          "depth": 0
+        },
+        {
+          "participant": "queue",
+          "rect": {
+            "x": 555,
+            "y": 484,
+            "width": 10,
+            "height": 24
+          },
+          "depth": 0
+        },
+        {
+          "participant": "store",
+          "rect": {
+            "x": 1203,
+            "y": 528,
+            "width": 10,
+            "height": 24
+          },
+          "depth": 0
+        },
+        {
+          "participant": "notifier",
+          "rect": {
+            "x": 1419,
+            "y": 612,
+            "width": 10,
+            "height": 56
+          },
+          "depth": 0
+        },
+        {
+          "participant": "client",
+          "rect": {
+            "x": 123,
+            "y": 656,
+            "width": 10,
+            "height": 188
+          },
+          "depth": 0
+        },
+        {
+          "participant": "api",
+          "rect": {
+            "x": 339,
+            "y": 700,
+            "width": 10,
+            "height": 144
+          },
+          "depth": 0
+        },
+        {
+          "participant": "store",
+          "rect": {
+            "x": 1203,
+            "y": 744,
+            "width": 10,
+            "height": 56
+          },
+          "depth": 0
+        }
+      ]
+    },
+    "bounds": {
+      "width": 1568,
+      "height": 924
+    }
   }
 };

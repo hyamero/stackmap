@@ -23,6 +23,8 @@ describe.each(laid)('gallery sample %s', (_name, draft: DiagramDraft, out: LaidO
   });
 
   it('routes every edge orthogonally from its source card to its target card, through no card', () => {
+    // Sequence messages run between lifelines, not cards: checked in sequence.test.ts.
+    if (draft.kind === 'sequence') return;
     for (const e of draft.edges) {
       const pts = out.edges[e.id]!;
       expect(pts.length, e.id).toBeGreaterThanOrEqual(2);

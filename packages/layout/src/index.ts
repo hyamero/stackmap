@@ -5,8 +5,10 @@ import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import { cardSize, isLaneKind, usesCompactCards, type DiagramDraft, type Direction, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
 import { findLabelSpot, labelWidth, placeLabel } from './labels';
 import { layoutLanes } from './lanes';
+import { layoutSequence } from './sequence';
 
 export { layoutLanes } from './lanes';
+export { layoutSequence } from './sequence';
 
 /** Vertical space reserved at the top of a group for its label. */
 export const GROUP_LABEL_BAND = 48;
@@ -87,6 +89,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram> {
   if (isLaneKind(draft.kind)) return layoutLanes(draft);
+  if (draft.kind === 'sequence') return layoutSequence(draft);
   const direction = draft.direction ?? 'RIGHT';
   const compact = usesCompactCards(draft);
   const variant = compact ? 'compact' : 'full';
