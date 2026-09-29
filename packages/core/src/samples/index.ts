@@ -121,4 +121,3 @@ export const groupedPlatform: DiagramDraft = {
     { id: 'e10', from: 'jobs', to: 'blobs', kind: 'async' },
   ],
 };
-export * from './gallery';

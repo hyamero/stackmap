@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagramDraft, LaidOutDiagram, Point, Rect } from '@stackmap/core';
-import { GALLERY } from '@stackmap/core/samples';
+import { GALLERY } from '@stackmap/core/gallery';
 import { assignColumns, backEdges } from '../src/lanes';
 import { layoutDiagram } from '../src/index';
 

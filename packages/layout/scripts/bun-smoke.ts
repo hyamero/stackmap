@@ -1,5 +1,6 @@
 import { deepStrictEqual } from 'node:assert';
-import { commerceApi, GALLERY, groupedPlatform } from '@stackmap/core/samples';
+import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
+import { GALLERY } from '@stackmap/core/gallery';
 import { galleryLayouts } from '../../viewer/src/samples/gallery.layout';
 import { commerceApiLayout } from '../../viewer/src/samples/commerce-api.layout';
 import { groupedPlatformLayout } from '../../viewer/src/samples/grouped-platform.layout';

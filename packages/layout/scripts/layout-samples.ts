@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { commerceApi, GALLERY, groupedPlatform } from '@stackmap/core/samples';
+import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
+import { GALLERY } from '@stackmap/core/gallery';
 import { layoutDiagram } from '../src/index';
 
 const outDir = new URL('../../viewer/src/samples/', import.meta.url);
