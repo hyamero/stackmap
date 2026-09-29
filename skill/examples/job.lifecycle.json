@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json",
+  "kind": "lifecycle",
+  "title": "Export job lifecycle",
+  "subtitle": "States of one export job",
+  "lanes": [
+    { "id": "main", "label": "Job phases" },
+    { "id": "waiting", "label": "Interruptions" },
+    { "id": "ends", "label": "Terminal exits" }
+  ],
+  "nodes": [
+    { "id": "queued", "type": "start", "lane": "main", "card": { "title": "Queued", "subtitle": "Request accepted" } },
+    { "id": "running", "type": "active", "lane": "main", "card": { "title": "Running", "subtitle": "Rendering rows" } },
+    { "id": "done", "type": "success", "lane": "main", "card": { "title": "Done", "subtitle": "File ready" } },
+    { "id": "throttled", "type": "waiting", "lane": "waiting", "card": { "title": "Throttled", "subtitle": "Rate limit", "tag": "backoff" } },
+    { "id": "failed", "type": "failure", "lane": "ends", "card": { "title": "Failed", "subtitle": "Retries exhausted" } }
+  ],
+  "edges": [
+    { "id": "start", "from": "queued", "to": "running", "tone": "main" },
+    { "id": "finish", "from": "running", "to": "done", "tone": "main" },
+    { "id": "limit", "from": "running", "to": "throttled", "label": "429" },
+    { "id": "resume", "from": "throttled", "to": "running", "label": "retry", "kind": "return" },
+    { "id": "give-up", "from": "throttled", "to": "failed", "label": "5 attempts", "tone": "error" }
+  ]
+}
