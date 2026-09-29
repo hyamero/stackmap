@@ -3,7 +3,9 @@
   <img alt="stackmap: architecture diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="640">
 </picture>
 
-You ask your agent to diagram a codebase or a system. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and hands you a single self-contained viewer — pan and zoom, search, trace upstream and downstream, guided views, dark and light themes, PNG/SVG export. No server, no account, nothing to install to open it.
+You ask your agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and hands you a single self-contained viewer — pan and zoom, search, trace, routes between two nodes, guided views, presentation mode, dark and light themes, image and video export. No server, no account, nothing to install to open it.
+
+Five kinds of diagram: **architecture** (components and what they call), **dataflow** (data moving through stages), **workflow** (steps across owner lanes), **lifecycle** (the states of one thing) and **sequence** (messages over time).
 
 <p align="center">
   <img src="assets/readme/viewer-light.png" alt="stackmap viewer in light mode: a Commerce API topology with the Orders database selected and its upstream traced; the inspector shows its details, connections and source evidence" width="49%" />
@@ -57,14 +59,15 @@ npx @hyamero/stackmap serve    diagram.json [--port 4400]  # live viewer that re
 }
 ```
 
-Nine node types set the colour (`client`, `gateway`, `service`, `database`, `cache`, `queue`, `storage`, `external`, `security`); cards can carry rows, stats, a footer and a link; `brand` adds one of 146 [Simple Icons](https://simpleicons.org) logos. There are no coordinates — [ELK](https://eclipse.dev/elk/) lays everything out. Full reference: [skill/references/schema.md](skill/references/schema.md); modelling guidance: [authoring contract](skill/references/authoring-contract.md).
+Nine node types set the colour (`client`, `gateway`, `service`, `database`, `cache`, `queue`, `storage`, `external`, `security`); lifecycles use seven state types (`start`, `active`, `waiting`, `decision`, `success`, `failure`, `neutral`). Cards can carry rows, stats, a footer and a link, or be compact (title, subtitle, tag); `brand` adds one of 146 [Simple Icons](https://simpleicons.org) logos. Edges can be `async` or a `return`, and a `tone` marks the main path, security crossings and failure paths. There are no coordinates: [ELK](https://eclipse.dev/elk/) lays out architecture and dataflow diagrams, and stackmap's own layout places swimlanes (workflow, lifecycle) and sequences, deriving columns, message rows and activation bars from the structure. Full reference: [skill/references/schema.md](skill/references/schema.md); modelling guidance: [authoring contract](skill/references/authoring-contract.md).
 
 ## The viewer
 
-- **Explore:** click a card for its details, connections and source evidence (linked to your repo when `source.url` is set). **Trace** keeps a node's upstream and downstream and dims the rest.
+- **Explore:** click a card for its details, connections and source evidence (linked to your repo when `source.url` is set). **Trace** keeps a node's upstream and downstream and dims the rest. **Route** (`R`) picks two nodes and lights every directed path between them, listing the shortest.
 - **Find:** `/` searches titles, subtitles, ids and types; the **lens** dims node types you don't care about.
-- **Guided views:** tabs the agent defines (“Checkout path”, “Data tier”) that dim everything else and fit the camera.
-- **Share:** state lives in the URL hash (`#view=…&node=…&lens=…`); export PNG (1×/2×), copy PNG, or an SVG snapshot.
+- **Guided views:** tabs the agent defines (“Checkout path”, “Data tier”) that dim everything else and fit the camera. **Present** (`F`) goes full screen and steps through them with the arrow keys.
+- **Radar:** the minimap (`M`) mirrors what's lit and dimmed, and drags the camera.
+- **Share:** state lives in the URL hash (`#view=…&node=…&lens=…&route=…`); export PNG (1×/2×), copy PNG, JPEG, WebP, an SVG snapshot, or a short video of the diagram with its flow animated (WebM, or MP4 where that's what the browser records).
 - **Keyboard:** Tab reaches the toolbar, then the canvas; arrows move between cards, Enter selects, Esc clears; with the canvas focused, arrows pan and `+`/`-`/`0` zoom. Honours reduced motion.
 
 ## Development
