@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Rect } from '@stackmap/core';
+import type { Scene } from './scene';
 import type { Camera, ViewportApi } from './useZoom';
 
 const ViewportContext = createContext<ViewportApi | null>(null);
@@ -18,6 +19,15 @@ export function useSceneContent(): Rect {
   return r;
 }
 export const CameraProvider = CameraContext.Provider;
+
+// The scene itself, for exports that need more than the frame (the video's flow animation).
+const SceneContext = createContext<Scene | null>(null);
+export const SceneProvider = SceneContext.Provider;
+export function useScene(): Scene {
+  const s = useContext(SceneContext);
+  if (!s) throw new Error('useScene must be used inside DiagramCanvas');
+  return s;
+}
 
 export function useViewport(): ViewportApi {
   const api = useContext(ViewportContext);

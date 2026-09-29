@@ -1,6 +1,6 @@
 ---
 name: stackmap
-description: Turn a system into an explorable architecture, data-flow, workflow, lifecycle or sequence diagram, delivered as one offline HTML file with a topology-dashboard look (dark and light), search, trace, guided views and PNG/SVG export. Use when the user asks to diagram, map, visualize or explain the architecture, services, infrastructure, dependencies, data pipeline, process, runbook, release flow, state machine or request sequence of a codebase or of a described system, or to update such a diagram.
+description: Turn a system into an explorable architecture, data-flow, workflow, lifecycle or sequence diagram, delivered as one offline HTML file with a topology-dashboard look (dark and light), search, trace, routes, guided views, presentation mode and image/video export. Use when the user asks to diagram, map, visualize or explain the architecture, services, infrastructure, dependencies, data pipeline, process, runbook, release flow, state machine or request sequence of a codebase or of a described system, or to update such a diagram.
 license: MIT
 metadata:
   version: "0.1.0"

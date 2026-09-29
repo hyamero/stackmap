@@ -10,6 +10,7 @@ export function IconButton({
   onClick,
   pressed,
   expanded,
+  disabled,
   ref,
   children,
 }: {
@@ -17,6 +18,7 @@ export function IconButton({
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   pressed?: boolean;
   expanded?: boolean;
+  disabled?: boolean;
   ref?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }) {
@@ -28,8 +30,9 @@ export function IconButton({
       aria-label={label}
       title={label}
       aria-pressed={pressed}
+      disabled={disabled}
       onClick={onClick}
-      className="sm-press grid size-9 place-items-center rounded-xl text-fg-muted hover:bg-page hover:text-fg aria-pressed:bg-page aria-pressed:text-fg"
+      className="sm-press grid size-9 place-items-center rounded-xl text-fg-muted hover:bg-page hover:text-fg disabled:opacity-40 disabled:hover:bg-transparent aria-pressed:bg-page aria-pressed:text-fg"
     >
       {children}
     </button>

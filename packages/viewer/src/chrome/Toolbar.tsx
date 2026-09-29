@@ -1,4 +1,4 @@
-import { Filter, Moon, Route, Search, Sun } from 'lucide-react';
+import { Filter, Moon, Presentation, Route, Search, Sun, Waypoints } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useExplore } from '../explore/ExploreContext';
 import type { ThemeChoice } from '../theme/theme';
@@ -8,10 +8,13 @@ import { SearchPanel } from './SearchPanel';
 import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
 const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+export const inMenu = (t: EventTarget | null) => t instanceof Element && !!t.closest('[role="menu"]');
 
-export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggleTheme: () => void }) {
+export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoice; onToggleTheme: () => void; onPresent?: () => void }) {
   const { state, dispatch } = useExplore();
   const [lensOpen, setLensOpen] = useState(false);
+  const routingRef = useRef(false);
+  routingRef.current = !!state.routing || !!state.route;
   const root = useRef<HTMLDivElement>(null);
   const searchButton = useRef<HTMLButtonElement>(null);
   const lensButton = useRef<HTMLButtonElement>(null);
@@ -34,11 +37,20 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
   // (cards, the stage and the popovers handle their own Escape and stop it).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented && (e.target === document.body || e.target === document.documentElement)) {
+      const onPage = e.target === document.body || e.target === document.documentElement;
+      // Escape from the page body clears; while a route is picked or shown it ends it from any control too.
+      if (e.key === 'Escape' && !e.defaultPrevented && !typing(e.target) && (onPage || routingRef.current)) {
         dispatch({ type: 'clear' });
         return;
       }
-      if (e.key !== '/' || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      // Single-key shortcuts: not while typing, from an open menu, or on key repeat.
+      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(e.target)) return;
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        dispatch({ type: 'toggleRoute' });
+        return;
+      }
+      if (e.key !== '/') return;
       e.preventDefault();
       setLensOpen(false);
       setSearchByKey(true);
@@ -98,14 +110,40 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
       >
         <Filter size={17} strokeWidth={1.75} />
       </IconButton>
-      <IconButton label="Trace upstream and downstream of the selection" pressed={state.trace} onClick={() => dispatch({ type: 'toggleTrace' })}>
+      <IconButton
+        label="Trace upstream and downstream of the selection"
+        pressed={state.trace && !state.route && !state.routing}
+        disabled={!!state.route || !!state.routing}
+        onClick={() => dispatch({ type: 'toggleTrace' })}
+      >
         <Route size={17} strokeWidth={1.75} />
       </IconButton>
+      <IconButton label="Route between two nodes (R)" pressed={!!state.routing || !!state.route} onClick={() => dispatch({ type: 'toggleRoute' })}>
+        <Waypoints size={17} strokeWidth={1.75} />
+      </IconButton>
       <ToolbarDivider />
+      {onPresent && (
+        <IconButton label="Present (F)" onClick={onPresent}>
+          <Presentation size={17} strokeWidth={1.75} />
+        </IconButton>
+      )}
       <IconButton label={`Switch to ${next} theme`} onClick={onToggleTheme}>
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>
       <ExportMenu />
+      {/* Always mounted, so screen readers announce the hint when its text arrives. */}
+      <p
+        role="status"
+        className={`${state.routing ? `${PANEL_CLASS} absolute top-full left-0 mt-2 w-max px-3 py-2 text-[12.5px] text-fg` : 'sr-only'}`}
+        style={state.routing ? PANEL_STYLE : undefined}
+      >
+        {state.routing && (
+          <>
+            {state.routing.next === 'from' ? 'Pick where the route starts' : 'Now pick where it ends'}
+            <span className="ml-2 text-fg-muted">Esc cancels</span>
+          </>
+        )}
+      </p>
       {searchOpen && <SearchPanel onClose={closeSearch} origin={searchByKey ? undefined : originOf(searchButton.current)} />}
       {lensOpen && <LensPanel origin={lensByKey ? undefined : originOf(lensButton.current)} />}
     </div>

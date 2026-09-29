@@ -32,18 +32,30 @@ test('after the intro, emphasis is still CSS: tracing dims to 0.22', async ({ pa
 });
 
 test('popovers opened by pointer grow in; search opened with "/" appears at once', async ({ page }) => {
+  // Count animate() calls per element instead of polling for a running animation: a 160ms pop-in can finish
+  // before the first poll on a busy machine.
+  await page.addInitScript(() => {
+    const seen: Element[] = [];
+    (window as unknown as { __animated: Element[] }).__animated = seen;
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
+      seen.push(this);
+      return animate.apply(this, args);
+    };
+  });
+  const animated = (loc: import('@playwright/test').Locator) => loc.evaluate((el) => (window as unknown as { __animated: Element[] }).__animated.includes(el));
   await page.goto('/?page=sample');
   await settled(page);
   await page.getByRole('button', { name: 'Filter by type' }).click();
   const lens = page.getByRole('group', { name: 'Show node types' });
-  await expect.poll(() => lens.evaluate((el) => el.getAnimations().length)).toBeGreaterThan(0);
+  await expect.poll(() => animated(lens)).toBe(true);
   await settled(page);
   await page.keyboard.press('Escape');
   await page.locator('body').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('/');
   const search = page.getByRole('combobox', { name: 'Search nodes' });
   await expect(search).toBeFocused();
-  expect(await search.evaluate((el) => el.parentElement!.getAnimations().length)).toBe(0);
+  expect(await animated(search.locator('..'))).toBe(false);
 });
 
 test('reduced motion: nothing animates', async ({ browser }) => {

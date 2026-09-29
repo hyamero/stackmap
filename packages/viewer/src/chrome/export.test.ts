@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_AREA_MAX, CANVAS_MAX, effectiveScale, exportFileName } from './export';
+import { CANVAS_AREA_MAX, CANVAS_MAX, effectiveScale, exportFileName, pointAlong, videoExtension } from './export';
 
 describe('export', () => {
   it('keeps the requested scale while the canvas fits', () => {
@@ -25,5 +25,24 @@ describe('export', () => {
   it('names files after the title', () => {
     expect(exportFileName('Commerce API', 'png')).toBe('commerce-api.png');
     expect(exportFileName('  !!  ', 'svg')).toBe('diagram.svg');
+  });
+});
+
+describe('video helpers', () => {
+  it('finds the point a fraction of the way along a polyline', () => {
+    const pts = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 30 },
+    ];
+    expect(pointAlong(pts, 0)).toEqual({ x: 0, y: 0 });
+    expect(pointAlong(pts, 0.25)).toEqual({ x: 10, y: 0 });
+    expect(pointAlong(pts, 0.5)).toEqual({ x: 10, y: 10 });
+    expect(pointAlong(pts, 2)).toEqual({ x: 10, y: 30 });
+  });
+
+  it('names the file after the container', () => {
+    expect(videoExtension('video/webm;codecs=vp9')).toBe('webm');
+    expect(videoExtension('video/mp4')).toBe('mp4');
   });
 });

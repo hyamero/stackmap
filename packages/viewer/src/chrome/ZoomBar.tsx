@@ -17,7 +17,7 @@ export function ZoomBar({ minimapOn, onToggleMinimap }: { minimapOn: boolean; on
       <IconButton label="Fit to screen" onClick={fit}>
         <Maximize size={16} strokeWidth={1.75} />
       </IconButton>
-      <IconButton label="Toggle minimap" pressed={minimapOn} onClick={onToggleMinimap}>
+      <IconButton label="Toggle minimap (M)" pressed={minimapOn} onClick={onToggleMinimap}>
         <MapIcon size={16} strokeWidth={1.75} />
       </IconButton>
     </div>
