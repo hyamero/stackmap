@@ -1,5 +1,5 @@
 import { TYPE_LABELS, type DiagramDraft, type DiagramNode, type NodeType } from '@stackmap/core';
-import { reachable, type Graph } from './graph';
+import { reachable, routeBetween, type Graph } from './graph';
 import type { ExploreState } from './state';
 
 export type NodeEmphasis = 'focus' | 'normal' | 'dim';
@@ -29,22 +29,26 @@ export function searchMatches(draft: DiagramDraft, query: string): DiagramNode[]
 export function emphasis(draft: DiagramDraft, graph: Graph, s: ExploreState): Emphasis {
   const view = s.view ? new Set(draft.views?.find((v) => v.id === s.view)?.nodes ?? []) : null;
   const q = s.query?.trim() ? new Set(searchMatches(draft, s.query).map((n) => n.id)) : null;
-  const trace = s.trace && s.selected ? reachable(graph, s.selected) : null;
+  const trace = s.trace && s.selected && !s.route ? reachable(graph, s.selected) : null;
+  // A route with no path still dims everything but its two ends.
+  const route = s.route ? (routeBetween(graph, s.route.from, s.route.to) ?? { nodes: new Set([s.route.from, s.route.to]), edges: new Set<string>() }) : null;
+  const ends = s.route ? new Set([s.route.from, s.route.to]) : s.routing?.next === 'to' ? new Set([s.routing.start]) : null;
   const typeOf = new Map(draft.nodes.map((n) => [n.id, n.type]));
 
   const nodes = new Map<string, NodeEmphasis>();
   for (const n of draft.nodes) {
-    const excluded = (view && !view.has(n.id)) || s.hiddenTypes.has(n.type) || (q && !q.has(n.id)) || (trace && !trace.nodes.has(n.id));
-    nodes.set(n.id, n.id === s.selected ? 'focus' : excluded ? 'dim' : 'normal');
+    const excluded =
+      (view && !view.has(n.id)) || s.hiddenTypes.has(n.type) || (q && !q.has(n.id)) || (trace && !trace.nodes.has(n.id)) || (route && !route.nodes.has(n.id));
+    nodes.set(n.id, n.id === s.selected || ends?.has(n.id) ? 'focus' : excluded ? 'dim' : 'normal');
   }
 
   const edges = new Map<string, EdgeEmphasis>();
   for (const e of draft.edges) {
-    const lit = !!s.selected && (trace ? trace.edges.has(e.id) : e.from === s.selected || e.to === s.selected);
+    const lit = route ? route.edges.has(e.id) : !!s.selected && (trace ? trace.edges.has(e.id) : e.from === s.selected || e.to === s.selected);
     const endDim = nodes.get(e.from) === 'dim' || nodes.get(e.to) === 'dim';
-    edges.set(e.id, { dim: !lit && (endDim || !!trace), tint: lit ? (typeOf.get(e.from) ?? null) : null });
+    edges.set(e.id, { dim: !lit && (endDim || !!trace || !!route), tint: lit ? (typeOf.get(e.from) ?? null) : null });
   }
 
-  const active = !!s.selected || [...nodes.values()].some((v) => v === 'dim');
+  const active = !!s.selected || !!route || [...nodes.values()].some((v) => v !== 'normal');
   return { active, nodes, edges };
 }

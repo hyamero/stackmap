@@ -1,6 +1,8 @@
 import { useRef, type PointerEvent } from 'react';
 import type { Rect } from '@stackmap/core';
 import { PANEL_CLASS, PANEL_STYLE } from '../chrome/ui';
+import type { Emphasis } from '../explore/emphasis';
+import { edgeStroke } from './ArrowMarker';
 import type { Scene } from './scene';
 import { viewportRect } from './viewport';
 import { useViewport } from './ViewportContext';
@@ -10,7 +12,8 @@ const PAD = 24;
 
 const attrs = (r: Rect) => ({ x: r.x, y: r.y, width: r.width, height: r.height });
 
-export function Minimap({ scene }: { scene: Scene }) {
+/** The radar: the whole diagram in miniature, mirroring what the explorer lights and dims, plus the visible area. */
+export function Minimap({ scene, emphasis }: { scene: Scene; emphasis: Emphasis }) {
   const { transform, stage, centerOn } = useViewport();
   const c = scene.content;
   const box = { x: c.x - PAD, y: c.y - PAD, width: c.width + PAD * 2, height: c.height + PAD * 2 };
@@ -75,13 +78,26 @@ export function Minimap({ scene }: { scene: Scene }) {
             style={{ fill: 'none', stroke: 'var(--sm-group-border)', strokeWidth: 1, strokeDasharray: '3 2' }}
           />
         ))}
+        {scene.edges.map((e) => {
+          const { dim, tint } = emphasis.edges.get(e.id) ?? { dim: false, tint: null };
+          return (
+            <polyline
+              key={e.id}
+              data-minimap-edge={e.id}
+              points={e.points.map((p) => `${p.x},${p.y}`).join(' ')}
+              vectorEffect="non-scaling-stroke"
+              style={{ fill: 'none', stroke: edgeStroke(tint), strokeWidth: tint ? 1.5 : 1, opacity: dim ? 0.2 : 0.7 }}
+            />
+          );
+        })}
         {scene.cards.map((card) => (
           <rect
             key={card.node.id}
             className="sm-minimap-card"
+            data-dim={emphasis.nodes.get(card.node.id) === 'dim' || undefined}
             {...attrs(card.rect)}
             rx={14}
-            style={{ fill: `var(--sm-${card.node.type}-accent)`, opacity: 0.8 }}
+            style={{ fill: `var(--sm-${card.node.type}-accent)`, opacity: emphasis.nodes.get(card.node.id) === 'dim' ? 0.2 : 0.8 }}
           />
         ))}
         {/* --sm-text instead of a fixed translucent black: the React Flow mask vanished on dark panels. */}

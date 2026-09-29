@@ -45,6 +45,71 @@ export function reachable(g: Graph, start: string): { nodes: Set<string>; edges:
   return { nodes, edges };
 }
 
+export interface Route {
+  from: string;
+  to: string;
+  /** every node and edge on some directed path from `from` to `to` */
+  nodes: Set<string>;
+  edges: Set<string>;
+  /** one shortest path, as the edges taken in order */
+  steps: string[];
+  /** no path ran from → to, so this is the one from `to` back to `from` */
+  reversed: boolean;
+}
+
+function walk(g: Graph, start: string, dir: 'out' | 'in'): Set<string> {
+  const seen = new Set([start]);
+  const queue = [start];
+  while (queue.length) {
+    const id = queue.shift()!;
+    for (const e of g[dir].get(id) ?? []) {
+      const next = dir === 'out' ? g.ends.get(e)!.to : g.ends.get(e)!.from;
+      if (!seen.has(next)) {
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  return seen;
+}
+
+function directed(g: Graph, a: string, b: string): Omit<Route, 'reversed'> | null {
+  if (!g.out.has(a) || !g.out.has(b)) return null;
+  const ahead = walk(g, a, 'out');
+  if (!ahead.has(b) || a === b) return null;
+  const behind = walk(g, b, 'in');
+  const nodes = new Set([...ahead].filter((n) => behind.has(n)));
+  const edges = new Set([...g.ends].filter(([, e]) => nodes.has(e.from) && nodes.has(e.to)).map(([id]) => id));
+  // BFS for one shortest path, over the edges on the route only.
+  const via = new Map<string, string>();
+  const queue = [a];
+  const seen = new Set([a]);
+  while (queue.length && !seen.has(b)) {
+    const id = queue.shift()!;
+    for (const e of g.out.get(id) ?? []) {
+      const next = g.ends.get(e)!.to;
+      if (!edges.has(e) || seen.has(next)) continue;
+      seen.add(next);
+      via.set(next, e);
+      queue.push(next);
+    }
+  }
+  const steps: string[] = [];
+  for (let at = b; at !== a; at = g.ends.get(via.get(at)!)!.from) steps.unshift(via.get(at)!);
+  return { from: a, to: b, nodes, edges, steps };
+}
+
+/**
+ * The route between two nodes along authored edges only (never inferred from the drawing): everything on a
+ * directed path from `a` to `b`, or from `b` to `a` when no path runs forward. Null when neither exists.
+ */
+export function routeBetween(g: Graph, a: string, b: string): Route | null {
+  const forward = directed(g, a, b);
+  if (forward) return { ...forward, reversed: false };
+  const back = directed(g, b, a);
+  return back ? { ...back, reversed: true } : null;
+}
+
 export type Direction = 'up' | 'down' | 'left' | 'right';
 
 /**

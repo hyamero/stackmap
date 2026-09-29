@@ -3,6 +3,7 @@ import type { LaidOutDiagram, Rect } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
 import { useSceneReveal } from '../motion/useSceneReveal';
 import { useExplore } from '../explore/ExploreContext';
+import { routeBetween } from '../explore/graph';
 import { CanvasPanel } from './CanvasPanel';
 import { Minimap } from './Minimap';
 import { toScene, type Scene } from './scene';
@@ -10,7 +11,7 @@ import { SceneLayers } from './SceneLayers';
 import { useZoom } from './useZoom';
 import type { Camera } from './useZoom';
 import type { Transform } from './viewport';
-import { CameraProvider, ContentProvider, ViewportProvider } from './ViewportContext';
+import { CameraProvider, ContentProvider, SceneProvider, ViewportProvider } from './ViewportContext';
 
 const PAN_STEP = 80;
 
@@ -24,7 +25,7 @@ function union(rects: Rect[]): Rect | null {
 // Camera follows the explorer: a view fits its members (Overview fits everything, Q27); a revealing
 // selection (search, deep link) centres the node. The initial Overview needs nothing: useZoom already fit it.
 function useCameraEffects(scene: Scene, camera: Camera, restored: boolean) {
-  const { draft, state } = useExplore();
+  const { draft, state, graph } = useExplore();
   const rectOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
   // Compare against the previous view, not a "first run" flag: StrictMode re-runs effects on mount.
   const shownView = useRef<string | null | undefined>(restored ? state.view : null);
@@ -36,6 +37,16 @@ function useCameraEffects(scene: Scene, camera: Camera, restored: boolean) {
     if (box) camera.fitRect(box);
     else camera.fit();
   }, [state.view, draft, rectOf, camera]);
+  // A new route frames everything on it.
+  const shownRoute = useRef(restored ? state.route : null);
+  useEffect(() => {
+    if (shownRoute.current === state.route) return;
+    shownRoute.current = state.route;
+    if (!state.route) return;
+    const on = routeBetween(graph, state.route.from, state.route.to)?.nodes ?? new Set([state.route.from, state.route.to]);
+    const box = union([...on].flatMap((id) => rectOf.get(id) ?? []));
+    if (box) camera.fitRect(box);
+  }, [state.route, graph, rectOf, camera]);
   // The reveal a live reload restores from the hash is already on screen.
   const restoredReveal = useRef(restored ? state.reveal : -1);
   const latest = useRef({ state, draft });
@@ -77,7 +88,8 @@ function DotGrid({ x, y, k }: Transform) {
   );
 }
 
-export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; children?: ReactNode }) {
+/** `chrome` false (presentation): no toolbar, zoom bar or minimap, and the camera refits the bigger stage. */
+export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: LaidOutDiagram; children?: ReactNode; chrome?: boolean }) {
   const scene = useMemo(() => toScene(diagram), [diagram]);
   const stageRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -88,10 +100,36 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
     return union([scene.content, ...points.map((p) => ({ x: p.x, y: p.y, width: 0, height: 0 }))])!;
   }, [scene]);
   const { camera } = viewport;
-  const { emphasis, dispatch, state } = useExplore();
+  const explore = useExplore();
+  const { emphasis, dispatch, state } = explore;
   const [minimap, setMinimap] = useState(false);
   const { x, y, k } = viewport.transform;
   useCameraEffects(scene, camera, viewport.restored);
+  // The stage changes size when the chrome comes or goes: frame the current view again once it has.
+  const framed = useRef(chrome);
+  useEffect(() => {
+    if (framed.current === chrome) return;
+    framed.current = chrome;
+    const id = requestAnimationFrame(() => {
+      const members = state.view ? (explore.draft.views?.find((v) => v.id === state.view)?.nodes ?? []) : [];
+      const box = union(members.flatMap((m) => scene.cards.find((c) => c.node.id === m)?.rect ?? []));
+      if (box) camera.fitRect(box);
+      else camera.fit();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [chrome, state.view, explore.draft, scene, camera]);
+  // M toggles the radar from anywhere but a text field.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'm' && e.key !== 'M') return;
+      const t = e.target as HTMLElement | null;
+      if (e.metaKey || e.ctrlKey || e.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      e.preventDefault();
+      setMinimap((v) => !v);
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
   useSceneReveal(sceneRef, scene, viewport.restored);
 
   // Keys when the stage itself has focus (cards handle their own and stop propagation).
@@ -115,9 +153,10 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
     <ViewportProvider value={viewport}>
      <CameraProvider value={camera}>
       <ContentProvider value={exportBox}>
+      <SceneProvider value={scene}>
       <div className="relative size-full">
         {/* Top-left chrome first in the DOM: Tab reaches search/lens/trace before the cards. */}
-        {children}
+        {chrome && children}
         <div
           ref={stageRef}
           role="region"
@@ -139,15 +178,18 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
           </div>
         </div>
         {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}
-        <CanvasPanel position="bottom-left">
-          <ZoomBar minimapOn={minimap} onToggleMinimap={() => setMinimap((v) => !v)} />
-        </CanvasPanel>
-        {minimap && (
+        {chrome && (
+          <CanvasPanel position="bottom-left">
+            <ZoomBar minimapOn={minimap} onToggleMinimap={() => setMinimap((v) => !v)} />
+          </CanvasPanel>
+        )}
+        {chrome && minimap && (
           <CanvasPanel position="bottom-right">
-            <Minimap scene={scene} />
+            <Minimap scene={scene} emphasis={emphasis} />
           </CanvasPanel>
         )}
       </div>
+      </SceneProvider>
       </ContentProvider>
      </CameraProvider>
     </ViewportProvider>

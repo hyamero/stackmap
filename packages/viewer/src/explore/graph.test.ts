@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Rect } from '@stackmap/core';
-import { buildGraph, neighbourInDirection, reachable } from './graph';
+import { buildGraph, neighbourInDirection, reachable, routeBetween } from './graph';
 
 const edges = [
   { id: 'ab', from: 'a', to: 'b' },
@@ -55,5 +55,31 @@ describe('neighbourInDirection', () => {
 
   it('returns undefined at the edge of the diagram', () => {
     expect(neighbourInDirection(rects, 'farRightAligned', 'right')).toBeUndefined();
+  });
+});
+
+describe('routeBetween', () => {
+  // a → b → c → y, x → b, c → a (a cycle), plus a detour b → d → y
+  const r = buildGraph(['a', 'b', 'c', 'd', 'x', 'y', 'lone'], [...edges, { id: 'bd', from: 'b', to: 'd' }, { id: 'dy', from: 'd', to: 'y' }]);
+
+  it('collects every node and edge on a directed walk (loops included), and one shortest path', () => {
+    const route = routeBetween(r, 'b', 'y')!;
+    expect(route.reversed).toBe(false);
+    // a is on the loop b → c → a → b, so a walk from b to y can pass it.
+    expect([...route.nodes].sort()).toEqual(['a', 'b', 'c', 'd', 'y']);
+    expect([...route.edges].sort()).toEqual(['ab', 'bc', 'bd', 'ca', 'cy', 'dy']);
+    expect(route.steps).toHaveLength(2);
+  });
+
+  it('runs the other way when only that direction has a path', () => {
+    const route = routeBetween(r, 'y', 'x')!;
+    expect(route.reversed).toBe(true);
+    expect(route.steps).toEqual(['xb', 'bc', 'cy']);
+  });
+
+  it('is null between unconnected nodes, a node and itself, or unknown ids', () => {
+    expect(routeBetween(r, 'lone', 'a')).toBeNull();
+    expect(routeBetween(r, 'a', 'a')).toBeNull();
+    expect(routeBetween(r, 'a', 'ghost')).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { Filter, Moon, Route, Search, Sun } from 'lucide-react';
+import { Filter, Moon, Presentation, Route, Search, Sun, Waypoints } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useExplore } from '../explore/ExploreContext';
 import type { ThemeChoice } from '../theme/theme';
@@ -9,7 +9,7 @@ import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
 const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
-export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggleTheme: () => void }) {
+export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoice; onToggleTheme: () => void; onPresent?: () => void }) {
   const { state, dispatch } = useExplore();
   const [lensOpen, setLensOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -38,7 +38,13 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         dispatch({ type: 'clear' });
         return;
       }
-      if (e.key !== '/' || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        dispatch({ type: 'toggleRoute' });
+        return;
+      }
+      if (e.key !== '/') return;
       e.preventDefault();
       setLensOpen(false);
       setSearchByKey(true);
@@ -101,11 +107,25 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
       <IconButton label="Trace upstream and downstream of the selection" pressed={state.trace} onClick={() => dispatch({ type: 'toggleTrace' })}>
         <Route size={17} strokeWidth={1.75} />
       </IconButton>
+      <IconButton label="Route between two nodes (R)" pressed={!!state.routing || !!state.route} onClick={() => dispatch({ type: 'toggleRoute' })}>
+        <Waypoints size={17} strokeWidth={1.75} />
+      </IconButton>
       <ToolbarDivider />
+      {onPresent && (
+        <IconButton label="Present (F)" onClick={onPresent}>
+          <Presentation size={17} strokeWidth={1.75} />
+        </IconButton>
+      )}
       <IconButton label={`Switch to ${next} theme`} onClick={onToggleTheme}>
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>
       <ExportMenu />
+      {state.routing && (
+        <p role="status" className={`${PANEL_CLASS} absolute top-full left-0 mt-2 w-max px-3 py-2 text-[12.5px] text-fg`} style={PANEL_STYLE}>
+          {state.routing.next === 'from' ? 'Pick where the route starts' : 'Now pick where it ends'}
+          <span className="ml-2 text-fg-muted">Esc cancels</span>
+        </p>
+      )}
       {searchOpen && <SearchPanel onClose={closeSearch} origin={searchByKey ? undefined : originOf(searchButton.current)} />}
       {lensOpen && <LensPanel origin={lensByKey ? undefined : originOf(lensButton.current)} />}
     </div>

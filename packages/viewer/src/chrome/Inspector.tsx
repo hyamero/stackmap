@@ -2,6 +2,7 @@ import { ArrowDownLeft, ArrowUpRight, Copy, PanelRightClose, PanelRightOpen, X }
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramEdge, type DiagramNode, type Evidence } from '@stackmap/core';
 import { focusCard } from '../canvas/SceneLayers';
+import { routeBetween } from '../explore/graph';
 import { useExplore } from '../explore/ExploreContext';
 import { swapIn } from '../motion/motion';
 import { IconButton, PANEL_STYLE } from './ui';
@@ -219,6 +220,75 @@ function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) 
   );
 }
 
+/** The route between two picked nodes: its steps along one shortest path, or why there is none. */
+function RouteDetail({ toggle }: { toggle: ReactNode }) {
+  const { draft, state, graph, dispatch } = useExplore();
+  const byId = new Map(draft.nodes.map((n) => [n.id, n]));
+  const edgeById = new Map(draft.edges.map((e) => [e.id, e]));
+  const title = (id: string) => byId.get(id)?.card.title ?? id;
+  const header = (
+    <div className="flex items-center justify-between">
+      <div className={eyebrow}>Route</div>
+      <div className="flex">
+        <IconButton label="End the route (Esc)" onClick={() => dispatch({ type: 'toggleRoute' })}>
+          <X size={16} strokeWidth={1.75} />
+        </IconButton>
+        {toggle}
+      </div>
+    </div>
+  );
+  if (!state.route) {
+    return (
+      <>
+        {header}
+        <p className="mt-2 text-[13px] text-fg-muted">
+          {state.routing?.next === 'to' ? `From ${title(state.routing.start)}: pick where the route ends.` : 'Pick the node the route starts from.'}
+        </p>
+      </>
+    );
+  }
+  const route = routeBetween(graph, state.route.from, state.route.to);
+  return (
+    <>
+      {header}
+      <h2 className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">
+        {title(state.route.from)} → {title(state.route.to)}
+      </h2>
+      {!route ? (
+        <p className="mt-2 text-[13px] text-fg-muted">No directed connections lead from one to the other.</p>
+      ) : (
+        <>
+          <p className="mt-1 text-[13px] text-fg-muted">
+            {route.steps.length} {route.steps.length === 1 ? 'hop' : 'hops'}
+            {route.reversed ? ', running the other way' : ''} · {route.nodes.size} nodes on some path
+          </p>
+          <Section title="Shortest path">
+            <ol aria-label="Route steps" className="-mx-2 space-y-0.5">
+              {[route.from, ...route.steps.map((e) => edgeById.get(e)!.to)].map((id, i) => {
+                const via = i ? edgeById.get(route.steps[i - 1]!) : undefined;
+                const node = byId.get(id)!;
+                return (
+                  <li key={`${id}:${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => dispatch({ type: 'select', id, reveal: true })}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] text-fg hover:bg-page"
+                    >
+                      <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: `var(--sm-${node.type}-accent)` }} />
+                      <span className="truncate">{node.card.title}</span>
+                      {via?.label && <span className="ml-auto shrink-0 text-[12px] text-fg-muted">{via.label}</span>}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </Section>
+        </>
+      )}
+    </>
+  );
+}
+
 function Toggle({ collapsed, onToggle, ref }: { collapsed: boolean; onToggle: () => void; ref: Ref<HTMLButtonElement> }) {
   return (
     <IconButton ref={ref} label={collapsed ? 'Show inspector' : 'Hide inspector'} expanded={!collapsed} onClick={onToggle}>
@@ -266,7 +336,9 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
   return (
     <aside aria-label="Inspector" className="relative w-[300px] shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5" style={PANEL_STYLE}>
       <div ref={body}>
-      {selected ? (
+      {state.route || state.routing ? (
+        <RouteDetail toggle={toggle} />
+      ) : selected ? (
         <NodeDetail node={selected} toggle={toggle} />
       ) : (
         <>

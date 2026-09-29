@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '../canvas/CanvasPanel';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
@@ -8,6 +8,7 @@ import { revealChrome, slideIndicator } from '../motion/motion';
 import type { ThemeChoice } from '../theme/theme';
 import { IdentityCard } from './IdentityCard';
 import { Inspector } from './Inspector';
+import { PresentBar } from './Presentation';
 import { Toolbar } from './Toolbar';
 
 /** Below this width the inspector starts collapsed (Q27). */
@@ -94,6 +95,31 @@ export function ViewerShell({
   const { draft } = diagram;
   const [inspectorCollapsed, setInspectorCollapsed] = useState(() => innerWidth < INSPECTOR_BREAKPOINT);
   const shell = useRef<HTMLDivElement>(null);
+  // Presentation (F): the stage alone, full screen where the browser allows it, stepping through the views.
+  const [presenting, setPresenting] = useState(false);
+  const present = useCallback((on: boolean) => {
+    setPresenting(on);
+    if (on) void shell.current?.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+  }, []);
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if ((e.key !== 'f' && e.key !== 'F') || e.metaKey || e.ctrlKey || e.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      e.preventDefault();
+      present(!presenting);
+    };
+    // Leaving full screen (Esc in the browser's own handling) ends the presentation too.
+    const onFullscreen = () => {
+      if (!document.fullscreenElement) setPresenting(false);
+    };
+    addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onFullscreen);
+    return () => {
+      removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFullscreen);
+    };
+  }, [presenting, present]);
   // Read during render: the canvas (a child) records what it shows in its own layout effect, which runs first.
   const [reloaded] = useState(() => readLiveConfig(document) !== null && readShown() !== null);
   useLayoutEffect(() => {
@@ -105,7 +131,8 @@ export function ViewerShell({
   }, [reloaded]);
   return (
     <ExploreProvider draft={draft}>
-      <div ref={shell} className="flex h-full flex-col bg-page font-sans text-fg">
+      <div ref={shell} data-presenting={presenting || undefined} className="flex h-full flex-col bg-page font-sans text-fg">
+        {!presenting && (
         <header className="mx-8 mt-4 flex gap-8 border-b border-divider">
           <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3">
             <h1 className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</h1>
@@ -121,23 +148,25 @@ export function ViewerShell({
             {draft.nodes.length} nodes · {draft.edges.length} connections
           </span>
         </header>
-        <ViewCaption />
-        <main className="flex min-h-0 flex-1 gap-4 px-8 pt-4 pb-6">
+        )}
+        {!presenting && <ViewCaption />}
+        <main className={`flex min-h-0 flex-1 gap-4 ${presenting ? '' : 'px-8 pt-4 pb-6'}`}>
           <section
             id={DIAGRAM_ID}
             role="tabpanel"
             aria-label="Diagram"
-            className="relative min-w-0 flex-1 overflow-hidden rounded-[20px] bg-stage"
-            style={{ boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
+            className={`relative min-w-0 flex-1 overflow-hidden bg-stage ${presenting ? '' : 'rounded-[20px]'}`}
+            style={presenting ? undefined : { boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
           >
-            <DiagramCanvas diagram={diagram}>
+            <DiagramCanvas diagram={diagram} chrome={!presenting}>
               <CanvasPanel position="top-left" className="flex gap-2">
                 <IdentityCard draft={draft} />
-                <Toolbar theme={theme} onToggleTheme={onToggleTheme} />
+                <Toolbar theme={theme} onToggleTheme={onToggleTheme} onPresent={() => present(true)} />
               </CanvasPanel>
             </DiagramCanvas>
+            {presenting && <PresentBar onExit={() => present(false)} />}
           </section>
-          <Inspector collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((v) => !v)} />
+          {!presenting && <Inspector collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((v) => !v)} />}
         </main>
       </div>
     </ExploreProvider>
