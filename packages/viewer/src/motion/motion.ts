@@ -1,9 +1,9 @@
-import { animate, svg, waapi } from 'animejs';
 import type { Direction } from '@stackmap/core';
 
 // The viewer's motion vocabulary. Custom curves: the stock CSS eases are too soft to read as intentional.
-export const EASE_OUT = 'cubicBezier(0.23, 1, 0.32, 1)';
-export const EASE_IN_OUT = 'cubicBezier(0.77, 0, 0.175, 1)';
+export const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
+export const EASE_IN_OUT = 'cubic-bezier(0.77, 0, 0.175, 1)';
+const EASE_DRAW = 'cubic-bezier(0.33, 1, 0.68, 1)';
 export const DURATION = { press: 120, popover: 160, swap: 180, toast: 220, card: 340, draw: 380 } as const;
 /** The intro wave never takes longer than this to reach the far end of a diagram. */
 const WAVE_SPAN = 460;
@@ -14,7 +14,7 @@ export function motionAllowed(): boolean {
   return !globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** Handle for running motion: `cancel` jumps to the resting state and removes every inline trace. */
+/** Handle for running motion: `cancel` jumps to the resting state. */
 export interface Motion {
   cancel(): void;
 }
@@ -24,52 +24,18 @@ const group = (parts: Motion[]): Motion => ({ cancel: () => parts.forEach((m) =>
 // Everything in flight, so an export can settle the page before cloning it.
 const active = new Set<Motion>();
 
-/** Jump every running animation to its resting state; resolves once anime's late style commits are undone too. */
-export function settleAll(): Promise<void> {
+/** Jump every running animation to its resting state. */
+export async function settleAll(): Promise<void> {
   [...active].forEach((m) => m.cancel());
-  return new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
 }
 
-type Style = 'opacity' | 'transform';
-type Keyframes = Partial<Record<Style, (number | string)[]>>;
-
 /**
- * One element, one tween, settled on its own. anime commits end values inline when a tween ends, and again a
- * frame after a mid-flight cancel; either would beat the CSS emphasis rules (dim, focus) that own the resting
- * state. So the element's own inline values are restored on finish, on cancel, and once more a frame later.
+ * One element, one Web Animation. `fill: 'backwards'` holds the first frame through the delay (a staggered card
+ * stays hidden until its turn) and applies nothing once finished, so the resting state is always the CSS the
+ * explorer's emphasis rules (dim, focus) own: no inline styles to clean up.
  */
-function tween(el: HTMLElement | SVGElement, keyframes: Keyframes, duration: number, delay = 0, ease = EASE_OUT): Motion {
-  const props = Object.keys(keyframes) as Style[];
-  const before = props.map((p) => el.style.getPropertyValue(p));
-  const restore = () => props.forEach((p, i) => (before[i] ? el.style.setProperty(p, before[i]!) : el.style.removeProperty(p)));
-  const anim = waapi.animate(el as HTMLElement, { ...keyframes, duration, delay, ease });
-  let done = false;
-  const motion: Motion = {
-    cancel() {
-      if (done) return;
-      done = true;
-      active.delete(motion);
-      anim.revert();
-      restore();
-      // A newer tween on the same element owns its style now; only clean up after ourselves when idle.
-      requestAnimationFrame(() => el.getAnimations().length === 0 && restore());
-    },
-  };
-  active.add(motion);
-  void anim.then(() => motion.cancel());
-  return motion;
-}
-
-// Everything svg.createDrawable writes onto a path; removing it leaves the path as React rendered it.
-const DRAWABLE_ATTRS = ['data-drawing', 'pathLength', 'stroke-dasharray', 'stroke-dashoffset', 'draw'];
-
-/**
- * A connection drawing from its source. Reverting a drawable restores its *from* value (an empty dash), so it is
- * cancelled and its attributes removed by hand. The arrowhead is hidden (CSS, `data-drawing`) until the line arrives.
- */
-function draw(path: SVGPathElement, duration: number, delay: number): Motion {
-  path.setAttribute('data-drawing', '');
-  const anim = animate(svg.createDrawable(path), { draw: ['0 0', '0 1'], duration, delay, ease: 'out(3)' });
+function play(el: Element, keyframes: Keyframe[], duration: number, delay = 0, easing = EASE_OUT, after?: () => void): Motion {
+  const anim = el.animate(keyframes, { duration, delay, easing, fill: 'backwards' });
   let done = false;
   const motion: Motion = {
     cancel() {
@@ -77,31 +43,51 @@ function draw(path: SVGPathElement, duration: number, delay: number): Motion {
       done = true;
       active.delete(motion);
       anim.cancel();
-      DRAWABLE_ATTRS.forEach((a) => path.removeAttribute(a));
+      after?.();
     },
   };
   active.add(motion);
-  void anim.then(() => motion.cancel());
+  // `finished` rejects when cancelled; that path has already run `cancel`.
+  anim.finished.then(() => motion.cancel(), () => {});
   return motion;
+}
+
+const fadeUp = (from: string): Keyframe[] => [
+  { opacity: 0, transform: from },
+  { opacity: 1, transform: 'none' },
+];
+const fade: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
+
+/**
+ * A connection drawing from its source: normalised to length 1, the dash starts fully offset and slides to 0.
+ * The arrowhead waits (CSS hides markers on `data-drawing`) until the line arrives.
+ */
+function draw(path: SVGPathElement, duration: number, delay: number): Motion {
+  path.setAttribute('data-drawing', '');
+  path.setAttribute('pathLength', '1');
+  path.setAttribute('stroke-dasharray', '1 1');
+  return play(path, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], duration, delay, EASE_DRAW, () =>
+    ['data-drawing', 'pathLength', 'stroke-dasharray'].forEach((a) => path.removeAttribute(a)),
+  );
 }
 
 /** Popovers grow from their trigger: a short fade and a 3% scale from `origin`. */
 export function popIn(el: HTMLElement | null, origin: string): Motion {
   if (!el || !motionAllowed()) return NONE;
   el.style.transformOrigin = origin;
-  return tween(el, { opacity: [0, 1], transform: ['translateY(-4px) scale(0.97)', 'none'] }, DURATION.popover);
+  return play(el, fadeUp('translateY(-4px) scale(0.97)'), DURATION.popover);
 }
 
 /** Content that replaces other content in place (the inspector): a quick fade with a 4px rise, children staggered. */
 export function swapIn(parts: HTMLElement[]): Motion {
   if (!parts.length || !motionAllowed()) return NONE;
-  return group(parts.map((el, i) => tween(el, { opacity: [0, 1], transform: ['translateY(4px)', 'none'] }, DURATION.swap, Math.min(i, 5) * 28)));
+  return group(parts.map((el, i) => play(el, fadeUp('translateY(4px)'), DURATION.swap, Math.min(i, 5) * 28)));
 }
 
 /** Toasts rise into place from below. */
 export function riseIn(el: HTMLElement | null): Motion {
   if (!el || !motionAllowed()) return NONE;
-  return tween(el, { opacity: [0, 1], transform: ['translateY(8px)', 'none'] }, DURATION.toast);
+  return play(el, fadeUp('translateY(8px)'), DURATION.toast);
 }
 
 /** Slide the view-tab indicator from one tab to another (transform only: no layout per frame). */
@@ -109,13 +95,13 @@ export function slideIndicator(el: HTMLElement | null, from: { x: number; width:
   if (!el || !motionAllowed() || !to.width) return NONE;
   el.style.transformOrigin = '0 0';
   const at = (r: { x: number; width: number }) => `translateX(${r.x}px) scaleX(${r.width / to.width})`;
-  return tween(el, { transform: [at(from), at(to)] }, DURATION.swap, 0, EASE_IN_OUT);
+  return play(el, [{ transform: at(from) }, { transform: at(to) }], DURATION.swap, 0, EASE_IN_OUT);
 }
 
 /** Chrome panels settle in with the diagram, one after another. */
 export function revealChrome(panels: HTMLElement[]): Motion {
   if (!panels.length || !motionAllowed()) return NONE;
-  return group(panels.map((el, i) => tween(el, { opacity: [0, 1], transform: ['translateY(-6px)', 'none'] }, 280, i * 50)));
+  return group(panels.map((el, i) => play(el, fadeUp('translateY(-6px)'), 280, i * 50)));
 }
 
 export interface RevealTargets {
@@ -140,11 +126,12 @@ export function revealScene({ items, edges }: RevealTargets): Motion {
   return group([
     ...items.map((i) =>
       i.kind === 'frame'
-        ? tween(i.el, { opacity: [0, 1] }, 320, wave(i.at) * 0.6)
-        : tween(i.el, { opacity: [0, 1], transform: ['translateY(6px) scale(0.985)', 'none'] }, DURATION.card, 60 + wave(i.at)),
+        ? play(i.el, fade, 320, wave(i.at) * 0.6)
+        : play(i.el, fadeUp('translateY(6px) scale(0.985)'), DURATION.card, 60 + wave(i.at)),
     ),
-    ...edges.map((e) => (e.async ? tween(e.el, { opacity: [0, 1] }, DURATION.draw, edgeDelay(e)) : draw(e.el, DURATION.draw, edgeDelay(e)))),
-    ...edges.flatMap((e) => (e.label ? [tween(e.label, { opacity: [0, 1] }, 200, edgeDelay(e) + DURATION.draw * 0.6)] : [])),
+    // Async edges keep their dash pattern, so they fade rather than draw.
+    ...edges.map((e) => (e.async ? play(e.el, fade, DURATION.draw, edgeDelay(e)) : draw(e.el, DURATION.draw, edgeDelay(e)))),
+    ...edges.flatMap((e) => (e.label ? [play(e.label, fade, 200, edgeDelay(e) + DURATION.draw * 0.6)] : [])),
   ]);
 }
 

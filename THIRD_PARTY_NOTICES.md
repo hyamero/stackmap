@@ -11,7 +11,6 @@ stackmap is MIT-licensed (see [LICENSE](LICENSE)). It builds on the work below.
 | d3-ease | 3.0.1 | BSD-3-Clause | 2010–2021 Mike Bostock; 2001 Robert Penner |
 | lucide-react | 1.48.0 | ISC | 2026 Lucide Icons and Contributors |
 | html-to-image | 1.11.13 | MIT | 2017–2025 W.Y. |
-| anime.js | 4.5.0 | MIT | 2025 Julian Garnier |
 | Simple Icons (146 marks) | 16.x | CC0-1.0 | public domain dedication; marks remain trademarks of their owners |
 | Geist, Geist Mono (Latin subset, via @fontsource-variable) | 5.3.0 | SIL OFL 1.1 | 2024 The Geist Project Authors — full license below |
 
@@ -31,7 +30,7 @@ stackmap is MIT-licensed (see [LICENSE](LICENSE)). It builds on the work below.
 
 Parts of `skill/references/authoring-contract.md` are adapted from [archify](https://github.com/tt-a1i/archify), MIT, Copyright (c) 2026 tt-a1i (Archify), Copyright (c) 2025 Cocoon AI. The full notice is included in [LICENSE](LICENSE) and [skill/LICENSE](skill/LICENSE).
 
-## MIT license text (React, html-to-image, anime.js, zod)
+## MIT license text (React, html-to-image, zod)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
