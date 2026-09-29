@@ -1,4 +1,12 @@
-import { NODE_TYPES, type DiagramNode, type NodeType } from './types';
+import { NODE_TYPES, type DiagramKind, type DiagramNode, type NodeType } from './types';
+
+export const KIND_LABELS: Record<DiagramKind, string> = {
+  architecture: 'Architecture',
+  dataflow: 'Dataflow',
+  workflow: 'Workflow',
+  lifecycle: 'Lifecycle',
+  sequence: 'Sequence',
+};
 
 export const TYPE_LABELS: Record<NodeType, string> = {
   client: 'Client',
@@ -10,6 +18,13 @@ export const TYPE_LABELS: Record<NodeType, string> = {
   storage: 'Storage',
   external: 'External',
   security: 'Security',
+  start: 'Start',
+  active: 'Active',
+  waiting: 'Waiting',
+  decision: 'Decision',
+  success: 'Success',
+  failure: 'Failure',
+  neutral: 'Neutral',
 };
 
 export function countByType(nodes: DiagramNode[]): [NodeType, number][] {
