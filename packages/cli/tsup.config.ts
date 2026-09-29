@@ -9,6 +9,7 @@ export default defineConfig({
   platform: 'node',
   target: 'node22',
   clean: true,
+  minify: true,
   // Workspace packages and zod are bundled; elkjs (EPL-2.0) stays a runtime dependency, never vendored.
   noExternal: [/^@stackmap\//, 'zod'],
   external: ['elkjs'],
