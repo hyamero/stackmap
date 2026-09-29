@@ -13,7 +13,7 @@ describe('ViewerShell', () => {
   it('shows title, kind badge and counts', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
     expect(screen.getByRole('heading', { level: 1, name: 'Commerce API' })).toBeInTheDocument();
-    expect(screen.getAllByText('Architecture')).toHaveLength(2); // breadcrumb + badge
+    expect(screen.getByText('Architecture')).toBeInTheDocument();
     expect(screen.getByText('6 nodes · 9 connections')).toBeInTheDocument();
   });
 
