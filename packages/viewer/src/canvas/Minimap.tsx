@@ -63,6 +63,9 @@ export function Minimap({ scene }: { scene: Scene }) {
         {[...scene.lanes, ...(scene.phaseStyle === 'band' ? scene.phases : [])].map((l) => (
           <rect key={`l:${l.id}`} {...attrs(l.rect)} rx={16} style={{ fill: 'var(--sm-group-fill)', stroke: 'var(--sm-panel-border)' }} vectorEffect="non-scaling-stroke" />
         ))}
+        {scene.lifelines.map((l) => (
+          <line key={`ll:${l.node}`} x1={l.x} x2={l.x} y1={l.top} y2={l.bottom} vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--sm-group-border)', strokeWidth: 1 }} />
+        ))}
         {scene.frames.map((f) => (
           <rect
             key={f.id}

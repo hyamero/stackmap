@@ -85,6 +85,18 @@ function Lane({ lane }: { lane: SceneLane }) {
 
 /** A phase header over the columns it spans (label and hairline), or a stage band around its nodes. */
 function Phase({ phase, style, direction }: { phase: ScenePhase; style: Scene['phaseStyle']; direction: Scene['direction'] }) {
+  if (style === 'time') {
+    // A time band behind a stretch of messages: faint fill, dashed outline, the label in its top strip.
+    return (
+      <div
+        data-phase-id={phase.id}
+        className="sm-phase absolute rounded-[14px] border border-dashed"
+        style={{ ...place(phase.rect), borderColor: 'var(--sm-group-border)', background: 'var(--sm-group-fill)' }}
+      >
+        <div className="flex h-7 items-center px-4 text-[12px] font-medium text-fg-muted">{phase.label}</div>
+      </div>
+    );
+  }
   if (style === 'band') {
     return (
       <div
@@ -222,6 +234,33 @@ export const SceneLayers = memo(function SceneLayers({
         height={scene.bounds.height}
       >
         <ArrowMarkerDefs />
+        {scene.lifelines.map((l) => (
+          <line
+            key={l.node}
+            data-lifeline={l.node}
+            data-dim={emphasis.nodes.get(l.node) === 'dim' || undefined}
+            className="sm-edge-path"
+            x1={l.x}
+            x2={l.x}
+            y1={l.top}
+            y2={l.bottom}
+            style={{ stroke: 'var(--sm-group-border)', strokeWidth: 1, strokeDasharray: '4 4' }}
+          />
+        ))}
+        {scene.activations.map((a, i) => (
+          <rect
+            key={`${a.node}:${i}`}
+            data-activation={a.node}
+            data-dim={emphasis.nodes.get(a.node) === 'dim' || undefined}
+            className="sm-edge-path"
+            x={a.rect.x}
+            y={a.rect.y}
+            width={a.rect.width}
+            height={a.rect.height}
+            rx={2}
+            style={{ fill: `var(--sm-${a.type}-tile)`, stroke: `var(--sm-${a.type}-accent)`, strokeWidth: 1 }}
+          />
+        ))}
         {scene.edges.map((e) => {
           const { dim, tint } = emphasis.edges.get(e.id) ?? { dim: false, tint: null };
           const look = edgeLook(e, tint);
@@ -290,12 +329,15 @@ export const SceneLayers = memo(function SceneLayers({
             key={e.id}
             data-edge-label={e.id}
             data-dim={emphasis.edges.get(e.id)?.dim || undefined}
-            className="sm-edge-label pointer-events-none absolute rounded-full bg-panel px-2 py-0.5 font-sans text-[11px] whitespace-nowrap text-fg-muted"
+            className={`sm-edge-label pointer-events-none absolute font-sans whitespace-nowrap ${
+              scene.labelStyle === 'text' ? 'rounded bg-stage px-1.5 text-[11.5px] leading-4 text-fg' : 'rounded-full bg-panel px-2 py-0.5 text-[11px] text-fg-muted'
+            }`}
             style={{
               left: e.mid.x,
               top: e.mid.y,
               transform: 'translate(-50%, -50%)',
-              boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)',
+              // Text labels sit on the stage (lifelines pass behind them); pills get their outline.
+              boxShadow: scene.labelStyle === 'text' ? undefined : 'inset 0 0 0 1px var(--sm-panel-border)',
             }}
           >
             {e.label}
