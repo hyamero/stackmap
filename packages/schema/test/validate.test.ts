@@ -69,9 +69,9 @@ describe('validateDiagram', () => {
 
     it('only suggests keys valid on the offending object, never the key itself', () => {
       const onNode = diags(base({ nodes: [node('a', { label: 'x' } as never), node('b')] }))[0];
-      expect(onNode).toMatchObject({ subject: '/nodes/0', allowedFixes: ['remove "label" (not valid here; allowed: id, type, group, card, evidence)'] });
+      expect(onNode).toMatchObject({ subject: '/nodes/0', allowedFixes: ['move "label" into "card" as "title"', 'remove "label"'] });
       const onEdge = diags(base({ edges: [{ id: 'ab', from: 'a', to: 'b', subtitel: 'x' } as never] }))[0];
-      expect(onEdge!.allowedFixes).toEqual(['remove "subtitel" (not valid here; allowed: id, from, to, label, kind)']);
+      expect(onEdge!.allowedFixes).toEqual(['remove "subtitel" (not valid here; allowed: id, from, to, label, kind, tone)']);
       const onRoot = diags({ ...base(), titel: 'x' })[0];
       expect(onRoot).toMatchObject({ subject: '', allowedFixes: ['rename "titel" to "title"'] });
     });

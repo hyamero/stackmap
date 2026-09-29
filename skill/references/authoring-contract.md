@@ -12,9 +12,13 @@ How to model a system as a stackmap diagram. The [schema reference](schema.md) s
   - `architecture`: from the **initiator** to what it calls or uses — `api → db` even when the api only reads. Queues and streams are the exception: draw `producer → queue → consumer` (the queue delivers), even though consumers technically pull.
   - `dataflow`: the direction **data moves** — `db → cdc → kafka → job → store`; a reader of a store is `store → reader`.
 - `kind: "async"` for queues, events, fire-and-forget and callbacks — it renders dashed. Don't use it for "happens at build time" or "optional"; say that in a label or in the node's subtitle.
+- `kind: "return"` for a reply, a roll back or a retry that loops back to an earlier step — it renders dotted, and layout never lets it push its target to a later column.
+- **`tone`** marks the few edges the reader must tell apart: `main` for the happy path (drawn in ink), `security` for a trust crossing or a policy check, `error` for a failure path. Leave the rest untoned; a diagram where everything has a tone has none.
 - **Edge labels** (≤ 24 chars) only where the relationship isn't obvious from the two ends: a protocol (`gRPC`), a verb (`enqueue`), a topic. Most edges need none.
 - **Direction.** `RIGHT` (default) reads as a request path and suits 2–4 stages. Prefer `DOWN` for tiered or grouped systems (edge → app → data) and for anything with more than ~5 stages; it avoids long wrap-around edges.
 - **Groups** are boundaries a reader should see: tiers, trust zones, VPCs, clusters, teams. Nest with `parent`. A group with one node is usually noise.
+- **Stages** (`phases` with `nodes`) in `architecture` and `dataflow` are an ordered pipeline (sources → ingest → process → store → consume): each stage is drawn as a band, in flow order. Stage members must be ungrouped; use stages *or* groups for a node, not both.
+- **Notes** are the diagram's takeaways (`notes: [{ "title": "Stop conditions", "items": [...] }]`), listed in the inspector. Two or three, a few short items each; they say what the picture means, not what it shows.
 - **Views** are named focus sets for the tabs above the canvas ("Data tier", "Checkout path"): the view dims everything else and fits its members. Add one when the diagram answers more than one question; the first tab is always Overview.
 
 ## Size
@@ -39,6 +43,32 @@ Read Mermaid for topology and meaning, then write fresh stackmap JSON — don't 
 | `<br/>` detail in a label | `subtitle` or a card row |
 | `classDef`, `style`, `linkStyle` | ignore |
 
+## Workflows and lifecycles
+
+Both are drawn as **swimlanes**: `lanes` are full-width rows in the order you list them, and stackmap picks the columns from the edges (a step's successor in the same lane moves right; a hand-off to another lane may drop straight down). Every node needs a `lane`.
+
+- **Lanes** are owners or phases of attention: *Developer, CI, Release governance*; *Lifecycle phases, Interruptions, Terminal exits*. Put failure and recovery in their own lane with `"tone": "exception"`. Four to six lanes read well.
+- **Phases** (`phases` with `nodes`) label the columns above the lanes: *Change → Build and verify → Promote*. Each phase starts after the previous one ends, so list them in order and put each node in at most one.
+- **Groups** in a lane frame a few neighbouring steps (*Blocking checks*); they can't span lanes or nest. `"tone": "security"` on a group marks a policy stop.
+- **Cards are compact:** `title`, `subtitle`, `brand` and a short `tag` pill (*human gate*, *owner: on-call*, *15 min stable*) — no rows, stats, footer or CTA. Put detail in `evidence` notes.
+- **Workflow nodes** use the component types (who or what does the step). **Lifecycle nodes** use the state types:
+
+| type | use for |
+|---|---|
+| `start` | where the thing begins (drawn with an initial marker) |
+| `active` | work in progress: building, executing, rolling back |
+| `waiting` | paused on something outside: approval, input, a timer |
+| `decision` | a check that sends the thing one way or another |
+| `success` | a good end, or a good stop along the way |
+| `failure` | an error or a bad end |
+| `neutral` | anything else |
+
+A `success` or `failure` state with no outgoing transition is drawn as an end state. A retry is a `return` edge back to the state it retries.
+
+## Compact cards
+
+`"density": "compact"` gives an `architecture` or `dataflow` diagram the compact cards workflows use (title, subtitle, brand, tag). Use it for long chains (more than ~5 stages), overviews and summaries, where full cards would make the diagram too small to read at fit; keep full cards when rows, stats and footers carry the answer.
+
 ## Node types and colour
 
 `type` sets the card colour (never the brand). Pick by role:
@@ -59,7 +89,7 @@ Read Mermaid for topology and meaning, then write fresh stackmap JSON — don't 
 
 ## Cards
 
-A card is a fixed 280px-wide tile. Only `title` is required; add sections when they carry information the reader needs at a glance.
+A full card (architecture and dataflow) is a fixed 280px-wide tile; a compact card is 176px wide (title ≈ 15 characters, subtitle ≈ 17, tag ≈ 14). Only `title` is required; add sections when they carry information the reader needs at a glance.
 
 - `title` — the name people use (`orders-api`, `Orders`). `subtitle` — what it is (`PostgreSQL cluster`, `Payments API`).
 - `rows` (≤ 6) — key/value facts: size, port, runtime, schedule. `mono: true` for ports, IPs, paths.

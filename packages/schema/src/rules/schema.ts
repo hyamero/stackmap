@@ -82,6 +82,9 @@ function fixes(issue: z.core.$ZodIssue, received: unknown): string[] {
       return issue.keys.flatMap((k) => {
         const alias = ALIASES[k];
         if (alias && allowed.includes(alias)) return [`rename "${k}" to "${alias}"`];
+        // A node's `label` means its card title, not the similarly spelt `lane`.
+        const aliasHome = alias && childAccepting(issue.path, alias);
+        if (aliasHome) return [`move "${k}" into "${aliasHome}" as "${alias}"`, `remove "${k}"`];
         const near = closest(k, allowed, 1)[0];
         if (near) return [`rename "${k}" to "${near}"`];
         const home = childAccepting(issue.path, k);
