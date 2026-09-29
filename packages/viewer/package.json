@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
     "metrics:gen": "bun scripts/gen-font-metrics.ts",
+    "icons:gen": "bun scripts/gen-brand-icons.ts",
     "visual:update": "sh scripts/visual-update.sh"
   },
   "dependencies": {

@@ -3,6 +3,7 @@ import * as simpleIcons from 'simple-icons';
 import { describe, expect, it } from 'vitest';
 import { BRAND_SLUGS, NODE_TYPES } from '@stackmap/core';
 import { BRANDED_SLUGS, BrandIcon, hasBrand } from './BrandIcon';
+import { BRANDS } from './brands.gen';
 import { TypeIcon } from './TypeIcon';
 
 describe('TypeIcon', () => {
@@ -24,6 +25,14 @@ describe('BrandIcon', () => {
 
   it('renders exactly the allowlist the validator checks against', () => {
     expect(BRANDED_SLUGS).toEqual([...BRAND_SLUGS]);
+  });
+
+  it('matches simple-icons (run `bun run icons:gen` after changing BRAND_SLUGS or upgrading)', () => {
+    const bySlug = new Map(Object.values(simpleIcons).map((i) => [i.slug, i]));
+    for (const slug of BRANDED_SLUGS) {
+      const icon = bySlug.get(slug);
+      expect({ slug, title: icon?.title, path: icon?.path }).toEqual({ slug, ...BRANDS[slug] });
+    }
   });
 
   it('ships only CC0 marks (Q21)', () => {
