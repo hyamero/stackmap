@@ -15,8 +15,9 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
   const root = useRef<HTMLDivElement>(null);
   const searchButton = useRef<HTMLButtonElement>(null);
   const lensButton = useRef<HTMLButtonElement>(null);
-  // Search opened with `/` appears at once: keyboard actions are never animated.
+  // Popovers opened from the keyboard (`/`, or Enter/Space on the button: a click with detail 0) appear at once.
   const [searchByKey, setSearchByKey] = useState(false);
+  const [lensByKey, setLensByKey] = useState(false);
   const originOf = (b: HTMLButtonElement | null) => (b ? `${b.offsetLeft + b.offsetWidth / 2}px 0` : '0 0');
   const closeSearch = () => {
     dispatch({ type: 'search', query: null });
@@ -76,9 +77,9 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         label="Search nodes (/)"
         pressed={searchOpen}
         expanded={searchOpen}
-        onClick={() => {
+        onClick={(e) => {
           setLensOpen(false);
-          setSearchByKey(false);
+          setSearchByKey(e.detail === 0);
           dispatch({ type: 'search', query: searchOpen ? null : '' });
         }}
       >
@@ -89,8 +90,9 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         label="Filter by type"
         pressed={lensOpen || state.hiddenTypes.size > 0}
         expanded={lensOpen}
-        onClick={() => {
+        onClick={(e) => {
           dispatch({ type: 'search', query: null });
+          setLensByKey(e.detail === 0);
           setLensOpen((v) => !v);
         }}
       >
@@ -105,7 +107,7 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
       </IconButton>
       <ExportMenu />
       {searchOpen && <SearchPanel onClose={closeSearch} origin={searchByKey ? undefined : originOf(searchButton.current)} />}
-      {lensOpen && <LensPanel origin={originOf(lensButton.current)} />}
+      {lensOpen && <LensPanel origin={lensByKey ? undefined : originOf(lensButton.current)} />}
     </div>
   );
 }

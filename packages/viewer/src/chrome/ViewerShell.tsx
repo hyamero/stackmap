@@ -4,6 +4,7 @@ import type { LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '../canvas/CanvasPanel';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
 import { ExploreProvider, useExplore } from '../explore/ExploreContext';
+import { readLiveConfig, readShown } from '../live';
 import { revealChrome, slideIndicator } from '../motion/motion';
 import type { ThemeChoice } from '../theme/theme';
 import { IdentityCard } from './IdentityCard';
@@ -91,12 +92,15 @@ export function ViewerShell({
   const { draft } = diagram;
   const [inspectorCollapsed, setInspectorCollapsed] = useState(() => innerWidth < INSPECTOR_BREAKPOINT);
   const shell = useRef<HTMLDivElement>(null);
+  // Read during render: the canvas (a child) records what it shows in its own layout effect, which runs first.
+  const [reloaded] = useState(() => readLiveConfig(document) !== null && readShown() !== null);
   useLayoutEffect(() => {
     const root = shell.current;
-    if (!root) return;
+    // A live reload after a save keeps the chrome still; only the diagram's changes animate.
+    if (!root || reloaded) return;
     const motion = revealChrome([...root.querySelectorAll<HTMLElement>('.sm-panel, aside[aria-label="Inspector"]')]);
     return () => motion.cancel();
-  }, []);
+  }, [reloaded]);
   return (
     <ExploreProvider draft={draft}>
       <div ref={shell} className="flex h-full flex-col bg-page font-sans text-fg">

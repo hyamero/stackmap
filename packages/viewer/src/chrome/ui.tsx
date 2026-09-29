@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode, Ref } from 'react';
+import type { CSSProperties, MouseEvent, ReactNode, Ref } from 'react';
 
 export const PANEL_CLASS = 'rounded-2xl bg-panel';
 export const PANEL_STYLE: CSSProperties = {
@@ -14,7 +14,7 @@ export function IconButton({
   children,
 }: {
   label: string;
-  onClick?: () => void;
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   pressed?: boolean;
   expanded?: boolean;
   ref?: Ref<HTMLButtonElement>;

@@ -17,17 +17,28 @@ export function useLiveStatus(): LiveStatus | null {
 export const isLive = () => readLiveConfig(document) !== null;
 
 // Mounts once per appearance, so it rises in when a problem starts and stays still while its errors update.
+// The live region around it is persistent: screen readers announce changes to a region, not a new one's content.
 function Toast({ className, children }: { className: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEnter(ref, riseIn);
   return (
-    <div ref={ref} role="status" aria-live="polite" className={`${PANEL_CLASS} fixed bottom-6 left-1/2 z-50 -translate-x-1/2 font-sans ${className}`} style={PANEL_STYLE}>
+    <div ref={ref} className={`${PANEL_CLASS} fixed bottom-6 left-1/2 z-50 -translate-x-1/2 font-sans ${className}`} style={PANEL_STYLE}>
       {children}
     </div>
   );
 }
 
-export function LiveToast({ status, hasDiagram }: { status: LiveStatus | null; hasDiagram: boolean }) {
+export function LiveToast(props: { status: LiveStatus | null; hasDiagram: boolean }) {
+  // A delivered file never connects, so it gets no live region at all.
+  if (!props.status && !isLive()) return null;
+  return (
+    <div role="status" aria-live="polite">
+      <ToastContent {...props} />
+    </div>
+  );
+}
+
+function ToastContent({ status, hasDiagram }: { status: LiveStatus | null; hasDiagram: boolean }) {
   if (status?.disconnected) {
     return (
       <Toast key="disconnected" className="px-4 py-3 text-[13px] text-fg-muted">

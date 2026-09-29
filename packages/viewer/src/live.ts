@@ -3,6 +3,7 @@ import type { Transform } from './canvas/viewport';
 /** `stackmap serve` adds this block; delivered files never have it, so they never open a connection. */
 export const LIVE_ELEMENT_ID = 'stackmap-live';
 const VIEWPORT_KEY = 'stackmap:viewport';
+const SHOWN_KEY = 'stackmap:shown';
 
 export interface LiveDiagnostic {
   code: string;
@@ -80,6 +81,25 @@ export function readStoredViewport(now = Date.now()): Transform | null {
     const fresh = typeof t.at === 'number' && now - t.at >= 0 && now - t.at < VIEWPORT_TTL_MS;
     const valid = [t.x, t.y, t.k].every((n) => typeof n === 'number' && Number.isFinite(n)) && t.k > 0;
     return fresh && valid ? { x: t.x, y: t.y, k: t.k } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ids on screen in a live session, so after the next reload only what is new animates in. */
+export function storeShown(ids: Iterable<string>): void {
+  try {
+    session()?.setItem(SHOWN_KEY, JSON.stringify([...ids]));
+  } catch {
+    // best effort
+  }
+}
+
+export function readShown(): Set<string> | null {
+  try {
+    const raw = session()?.getItem(SHOWN_KEY);
+    const ids: unknown = raw ? JSON.parse(raw) : null;
+    return Array.isArray(ids) && ids.every((id) => typeof id === 'string') ? new Set(ids) : null;
   } catch {
     return null;
   }

@@ -16,9 +16,11 @@ export function ExportMenu() {
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  // Opened from the keyboard (ArrowDown, or Enter/Space: a click with detail 0) the menu appears at once.
+  const byKey = useRef(false);
   // The menu is right-aligned under the button: grow it from the button's centre.
   useLayoutEffect(() => {
-    if (!open || !menu.current) return;
+    if (!open || !menu.current || byKey.current) return;
     const b = button.current;
     const motion = popIn(menu.current, `${menu.current.offsetWidth - (b ? b.offsetWidth / 2 : 0)}px 0`);
     return () => motion.cancel();
@@ -85,10 +87,14 @@ export function ExportMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={status.kind === 'busy'}
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => {
+          byKey.current = e.detail === 0;
+          setOpen((v) => !v);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown' && !open) {
             e.preventDefault();
+            byKey.current = true;
             setOpen(true);
           }
         }}

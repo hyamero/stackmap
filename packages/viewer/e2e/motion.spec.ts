@@ -54,3 +54,28 @@ test('reduced motion: nothing animates', async ({ browser }) => {
   expect(await running(page)).toBe(0);
   await context.close();
 });
+
+test('each card settles on its own: early cards are back to CSS while the wave is still running', async ({ page }) => {
+  await page.goto('/?page=grouped');
+  const early = page.locator('.sm-card[data-card-id="web"]');
+  // Poll every frame or so for the window where "web" is done but later cards are still animating.
+  await expect
+    .poll(
+      () =>
+        early.evaluate((el) => {
+          if (el.getAnimations().length || !document.getAnimations().some((a) => a.playState === 'running')) return 'wait';
+          return el.style.opacity || el.style.transform ? 'inline left behind' : 'settled';
+        }),
+      { intervals: [16], timeout: 3000 },
+    )
+    .toBe('settled');
+});
+
+test('exporting mid-intro settles everything first', async ({ page }) => {
+  await page.goto('/?page=grouped');
+  await expect.poll(() => running(page)).toBeGreaterThan(0);
+  await page.getByRole('button', { name: 'Export' }).click();
+  await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^PNG\s*2×/ }).click()]);
+  await expect(page.locator('.sm-edge-path[data-drawing]')).toHaveCount(0);
+  expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.sm-card')].filter((c) => c.style.opacity).length)).toBe(0);
+});

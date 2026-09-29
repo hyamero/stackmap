@@ -1,5 +1,6 @@
 import { getFontEmbedCSS, toBlob, toSvg } from 'html-to-image';
 import type { Rect } from '@stackmap/core';
+import { settleAll } from '../motion/motion';
 
 /** Space around the diagram in exports, in diagram px. */
 export const EXPORT_PADDING = 32;
@@ -46,6 +47,8 @@ const includedStyles = (el: Element) =>
 let fontCss: Promise<string> | undefined;
 
 async function options(content: Rect, pixelRatio: number) {
+  // The clone copies computed styles: an export mid-intro would otherwise keep faded cards and half-drawn edges.
+  await settleAll();
   const node = document.querySelector<HTMLElement>('.sm-viewport');
   if (!node) throw new Error('no diagram on the page');
   const width = Math.ceil(content.width + 2 * EXPORT_PADDING);
