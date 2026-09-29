@@ -258,7 +258,8 @@ export const SceneLayers = memo(function SceneLayers({
             width={a.rect.width}
             height={a.rect.height}
             rx={2}
-            style={{ fill: `var(--sm-${a.type}-tile)`, stroke: `var(--sm-${a.type}-accent)`, strokeWidth: 1 }}
+            // The accent at low opacity rather than the tile token: exports carry only the SVG layer's accents.
+            style={{ fill: `var(--sm-${a.type}-accent)`, fillOpacity: 0.16, stroke: `var(--sm-${a.type}-accent)`, strokeWidth: 1 }}
           />
         ))}
         {scene.edges.map((e) => {
