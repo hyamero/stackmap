@@ -108,8 +108,7 @@ export function ExportMenu() {
             act: () =>
               run(async () => {
                 const css = getComputedStyle(document.documentElement);
-                const typeOf = new Map(scene.cards.map((c) => [c.node.id, c.node.type]));
-                const colorOf = (p: { from: string }) => css.getPropertyValue(`--sm-${typeOf.get(p.from)}-accent`).trim() || css.getPropertyValue('--sm-edge').trim();
+                const colorOf = (tint: string) => css.getPropertyValue(`--sm-${tint}-accent`).trim() || css.getPropertyValue('--sm-edge').trim();
                 if (!flow.pulses.length) throw new Error('nothing to play: no connections are shown');
                 download(await exportVideo(content, flow, colorOf, formats.video!), exportFileName(draft.title, videoExtension(formats.video!)));
                 return 'Saved video';

@@ -306,7 +306,7 @@ export const SceneLayers = memo(function SceneLayers({
               );
             })}
       </svg>
-      {flow && <FlowLayer flow={flow} typeOf={typeOf} width={scene.bounds.width} height={scene.bounds.height} />}
+      {flow && <FlowLayer flow={flow} width={scene.bounds.width} height={scene.bounds.height} />}
       {scene.cards.map((c) => (
         <Card
           key={c.node.id}

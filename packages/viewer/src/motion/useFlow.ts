@@ -1,32 +1,57 @@
 import { useMemo } from 'react';
+import { CARD, COMPACT } from '@stackmap/core';
 import { useExplore } from '../explore/ExploreContext';
 import { routeBetween, type Graph } from '../explore/graph';
 import type { Emphasis } from '../explore/emphasis';
 import type { ExploreState } from '../explore/state';
-import type { Scene } from '../canvas/scene';
-import { hopFlow, hopRanks, NO_FLOW, waveFlow, type Flow } from './flow';
+import { EDGE_RADIUS, type Scene } from '../canvas/scene';
+import { hopFlow, hopRanks, NO_FLOW, roundedPolyline, waveFlow, type Flow, type FlowEdge } from './flow';
+
+/** What a pulse needs from the scene: its drawn route, its tint, and what lights up when it lands. */
+function flowEdges(scene: Scene): Map<string, FlowEdge> {
+  const cards = new Map(scene.cards.map((c) => [c.node.id, c]));
+  const radius = scene.compact ? COMPACT.radius : CARD.radius;
+  return new Map(
+    scene.edges.map((e) => {
+      const end = e.points.at(-1);
+      // A sequence lands on the activation bar the message opens or feeds (the innermost), else on the lifeline.
+      const bar =
+        scene.kind === 'sequence' && end
+          ? scene.activations.filter((a) => a.node === e.to && end.y >= a.rect.y - 2 && end.y <= a.rect.y + a.rect.height + 2).sort((a, b) => b.depth - a.depth)[0]
+          : undefined;
+      const target = cards.get(e.to);
+      const glow = scene.kind === 'sequence' ? (bar ? { rect: bar.rect, radius: 2, tint: bar.type } : null) : target ? { rect: target.rect, radius, tint: target.node.type } : null;
+      const tint = e.tone === 'error' ? 'failure' : (cards.get(e.from)?.node.type ?? 'external');
+      return [e.id, { id: e.id, from: e.from, to: e.to, kind: e.kind, tint, path: roundedPolyline(e.points, EDGE_RADIUS), glow }];
+    }),
+  );
+}
 
 /**
  * The flow that plays is whatever the explorer is showing: a route runs hop by hop from its start, a selection
  * (traced or not) runs through its lit connections, and otherwise everything not dimmed (by a view, the lens or
- * a search) runs as one wave in reading order, in time order for a sequence.
+ * a search) plays: a wave in reading order, or a sequence's messages replayed one after another.
  */
 export function flowOf(scene: Scene, graph: Graph, state: Pick<ExploreState, 'route' | 'selected'>, em: Emphasis): Flow {
-  const lit = scene.edges.filter((e) => em.edges.get(e.id)?.tint);
+  const edges = flowEdges(scene);
+  const pick = (ids: string[]) => ids.flatMap((id) => edges.get(id) ?? []);
+  const lit = scene.edges.filter((e) => em.edges.get(e.id)?.tint).map((e) => e.id);
+  const serial = graph.timed;
   if (state.route) {
     const route = routeBetween(graph, state.route.from, state.route.to);
     if (!route) return NO_FLOW;
     // A reversed route's `from` is already the end it really runs from.
-    return hopFlow(lit, hopRanks(graph, new Set(lit.map((e) => e.id)), { start: route.from, fallback: route.from }));
+    return hopFlow(pick(lit), hopRanks(graph, new Set(lit), { start: route.from, fallback: route.from }), { serial });
   }
-  if (state.selected) return hopFlow(lit, hopRanks(graph, new Set(lit.map((e) => e.id)), { fallback: state.selected }));
+  if (state.selected) return hopFlow(pick(lit), hopRanks(graph, new Set(lit), { fallback: state.selected }), { serial });
+  const shown = scene.edges.filter((e) => !em.edges.get(e.id)?.dim).map((e) => e.id);
+  if (serial) return hopFlow(pick(shown), hopRanks(graph, new Set(shown), { fallback: '' }), { serial });
   const rect = new Map(scene.cards.map((c) => [c.node.id, c.rect]));
-  const at = (e: Scene['edges'][number]) => {
-    if (scene.kind === 'sequence') return e.points[0]?.y ?? 0;
-    const r = rect.get(e.from);
+  const at = (id: string) => {
+    const r = rect.get(id);
     return r ? (scene.direction === 'RIGHT' ? r.x : r.y) : 0;
   };
-  return waveFlow(scene.edges.filter((e) => !em.edges.get(e.id)?.dim).map((e) => ({ ...e, at: at(e) })));
+  return waveFlow(pick(shown).map((e) => ({ ...e, at: at(e.from) })));
 }
 
 export function useFlow(scene: Scene): Flow {

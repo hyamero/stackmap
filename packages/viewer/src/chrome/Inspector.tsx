@@ -4,6 +4,7 @@ import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramEdge, type Dia
 import { focusCard } from '../canvas/SceneLayers';
 import { routeBetween } from '../explore/graph';
 import { useExplore } from '../explore/ExploreContext';
+import { useInFlight } from '../motion/inFlight';
 import { swapIn } from '../motion/motion';
 import { IconButton, PANEL_STYLE } from './ui';
 
@@ -223,6 +224,8 @@ function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) 
 /** The route between two picked nodes: its steps along one shortest path, or why there is none. */
 function RouteDetail({ toggle }: { toggle: ReactNode }) {
   const { draft, state, graph, dispatch } = useExplore();
+  // While the flow plays, the step a pulse is heading for lights up as it travels.
+  const inFlight = useInFlight();
   const byId = new Map(draft.nodes.map((n) => [n.id, n]));
   const edgeById = new Map(draft.edges.map((e) => [e.id, e]));
   const title = (id: string) => byId.get(id)?.card.title ?? id;
@@ -267,14 +270,22 @@ function RouteDetail({ toggle }: { toggle: ReactNode }) {
               {[route.from, ...route.steps.map((e) => edgeById.get(e)!.to)].map((id, i) => {
                 const via = i ? edgeById.get(route.steps[i - 1]!) : undefined;
                 const node = byId.get(id)!;
+                const flowing = !!via && inFlight.has(via.id);
                 return (
-                  <li key={`${id}:${i}`}>
+                  <li key={`${id}:${i}`} data-flowing={flowing || undefined}>
                     <button
                       type="button"
                       onClick={() => dispatch({ type: 'select', id, reveal: true })}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] text-fg hover:bg-page"
+                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] text-fg transition-colors duration-150 hover:bg-page ${flowing ? 'bg-page' : ''}`}
                     >
-                      <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: `var(--sm-${node.type}-accent)` }} />
+                      <span
+                        aria-hidden="true"
+                        className="size-2 shrink-0 rounded-full transition-shadow duration-150"
+                        style={{
+                          background: `var(--sm-${node.type}-accent)`,
+                          boxShadow: flowing ? `0 0 0 3px color-mix(in srgb, var(--sm-${node.type}-accent) 28%, transparent)` : undefined,
+                        }}
+                      />
                       <span className="truncate">{node.card.title}</span>
                       {via?.label && <span className="ml-auto shrink-0 text-[12px] text-fg-muted">{via.label}</span>}
                     </button>

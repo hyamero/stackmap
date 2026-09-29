@@ -1,13 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { buildGraph } from '../explore/graph';
-import { FLOW, hopFlow, hopRanks, pointAlong, pulseAt, waveFlow } from './flow';
+import { FLOW, glowAt, hopFlow, hopRanks, pointAlong, pulseFrame, roundedPolyline, travelFor, waveFlow, type FlowEdge } from './flow';
 
-const line = (x: number) => [
-  { x, y: 0 },
-  { x: x + 100, y: 0 },
-];
+const edge = (id: string, from: string, to: string, length = 100): FlowEdge => ({
+  id,
+  from,
+  to,
+  kind: 'sync',
+  tint: 'service',
+  path: [
+    { x: 0, y: 0 },
+    { x: length, y: 0 },
+  ],
+  glow: null,
+});
 
-describe('flow timing', () => {
+describe('flow geometry', () => {
   it('finds the point a fraction of the way along a polyline', () => {
     const pts = [
       { x: 0, y: 0 },
@@ -20,37 +28,101 @@ describe('flow timing', () => {
     expect(pointAlong(pts, 2)).toEqual({ x: 10, y: 30 });
   });
 
+  it('follows the rounded corners the canvas draws, not the raw bend', () => {
+    const path = roundedPolyline(
+      [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+      ],
+      10,
+    );
+    expect(path).toContainEqual({ x: 90, y: 0 });
+    expect(path).toContainEqual({ x: 100, y: 10 });
+    expect(path).not.toContainEqual({ x: 100, y: 0 });
+    expect(path.at(-1)).toEqual({ x: 100, y: 100 });
+  });
+});
+
+describe('flow timing', () => {
+  it('travels longer edges for longer, within bounds', () => {
+    expect(travelFor(0)).toBe(FLOW.travel.min);
+    expect(travelFor(300)).toBeGreaterThan(travelFor(100));
+    expect(travelFor(5000)).toBe(FLOW.travel.max);
+  });
+
   it('sets a whole diagram off as one wave in reading order', () => {
     const flow = waveFlow([
-      { id: 'b', from: 'n', points: line(200), at: 200 },
-      { id: 'a', from: 'n', points: line(0), at: 0 },
-      { id: 'dot', from: 'n', points: [{ x: 0, y: 0 }], at: 0 },
+      { ...edge('b', 'n', 'm'), at: 200 },
+      { ...edge('a', 'n', 'm'), at: 0 },
+      { ...edge('dot', 'n', 'm'), path: [{ x: 0, y: 0 }], at: 0 },
     ]);
     expect(flow.pulses.map((p) => [p.id, p.delay])).toEqual([
       ['b', FLOW.wave],
       ['a', 0],
     ]);
-    expect(flow.period).toBe(FLOW.wave + FLOW.travel);
+    expect(flow.period).toBe(FLOW.wave + travelFor(100) + FLOW.rest);
   });
 
-  it('runs each pulse for `travel` ms per loop, then rests', () => {
-    const flow = waveFlow([{ id: 'a', from: 'n', points: line(0), at: 0 }]);
-    const [p] = flow.pulses;
-    expect(pulseAt(flow, p!, 0)).toEqual({ x: 0, y: 0 });
-    expect(pulseAt(flow, p!, FLOW.travel / 2)).toEqual({ x: 50, y: 0 });
-    expect(pulseAt(flow, p!, FLOW.travel + 1)).toBeNull();
-    expect(pulseAt(flow, p!, flow.period + FLOW.travel / 2)).toEqual({ x: 50, y: 0 });
+  it('chains hops: a node fires on as its first pulse lands', () => {
+    //   a ─► b (short) ─► d,  a ─► c (long) ─► d
+    const flow = hopFlow(
+      [edge('ab', 'a', 'b', 100), edge('ac', 'a', 'c', 400), edge('bd', 'b', 'd'), edge('cd', 'c', 'd')],
+      new Map([
+        ['ab', 0],
+        ['ac', 0],
+        ['bd', 1],
+        ['cd', 1],
+      ]),
+    );
+    const at = Object.fromEntries(flow.pulses.map((p) => [p.id, p.delay]));
+    expect(at).toEqual({ ab: 0, ac: 0, bd: travelFor(100), cd: travelFor(400) });
   });
 
-  it('chains a focused flow hop by hop, squeezing long chains into the span', () => {
-    const edges = ['a', 'b', 'c'].map((id, i) => ({ id, from: 'n', points: line(i * 100) }));
-    const short = hopFlow(edges, new Map([['a', 0], ['b', 1], ['c', 2]]));
-    expect(short.pulses.map((p) => p.delay)).toEqual([0, FLOW.travel, 2 * FLOW.travel]);
-    expect(short.period).toBe(3 * FLOW.travel + FLOW.rest);
-    const long = hopFlow(edges, new Map([['a', 0], ['b', 1], ['c', 20]]));
-    expect(long.pulses.at(-1)!.delay).toBe(FLOW.span);
-    // Edges the ranks leave out don't play.
-    expect(hopFlow(edges, new Map([['a', 0]])).pulses.map((p) => p.id)).toEqual(['a']);
+  it('replays a sequence one message after another, and squeezes long chains into the span', () => {
+    const serial = hopFlow([edge('m1', 'u', 'api'), edge('m2', 'u', 'db')], new Map([['m1', 0], ['m2', 1]]), { serial: true });
+    expect(serial.pulses.map((p) => p.delay)).toEqual([0, travelFor(100)]);
+    const long = hopFlow(
+      Array.from({ length: 20 }, (_, i) => edge(`e${i}`, `n${i}`, `n${i + 1}`)),
+      new Map(Array.from({ length: 20 }, (_, i) => [`e${i}`, i])),
+    );
+    expect(long.period - FLOW.rest).toBeCloseTo(FLOW.span);
+  });
+});
+
+describe('a pulse frame', () => {
+  const flow = hopFlow([edge('a', 'x', 'y', 200)], new Map([['a', 0]]));
+  const [p] = flow.pulses;
+  const at = (ms: number) => pulseFrame(flow, p!, ms);
+
+  it('flashes the port, then runs a head with a bounded trail behind it, easing into the target', () => {
+    expect(at(0)).toMatchObject({ head: 0, trail: null, depart: 0, land: null });
+    const mid = at(p!.travel / 2)!;
+    expect(mid.head).toBeGreaterThan(100);
+    expect(mid.trail![1]).toBe(mid.head);
+    expect(mid.trail![1] - mid.trail![0]).toBeLessThanOrEqual(FLOW.tail);
+    expect(at(FLOW.flash + 1)!.depart).toBeNull();
+  });
+
+  it('lands: the head is gone, the trail drains into the target and the target glows', () => {
+    const landed = at(p!.travel + FLOW.drain / 2)!;
+    expect(landed.head).toBeNull();
+    expect(landed.trail![1]).toBe(200);
+    expect(landed.trail![1] - landed.trail![0]).toBeLessThan(FLOW.tail);
+    expect(landed.land).toBeCloseTo(FLOW.drain / 2 / FLOW.glow);
+    expect(at(p!.travel + FLOW.glow - 1)!.trail).toBeNull();
+    // Then it rests until the next loop.
+    expect(at(p!.travel + FLOW.glow + 10)).toBeNull();
+    expect(at(flow.period)).toMatchObject({ head: 0 });
+  });
+
+  it('glows by spreading past its target as it fades', () => {
+    const glow = { rect: { x: 0, y: 0, width: 100, height: 50 }, radius: 12, tint: 'service' as const };
+    expect(glowAt(glow, 0)).toMatchObject({ rect: glow.rect, radius: 12 });
+    const late = glowAt(glow, 0.8);
+    expect(late.rect.width).toBeGreaterThan(100);
+    expect(late.opacity).toBeLessThan(glowAt(glow, 0).opacity);
+    expect(glowAt(glow, 1).opacity).toBe(0);
   });
 });
 

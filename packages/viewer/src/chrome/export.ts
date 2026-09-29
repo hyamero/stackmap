@@ -1,6 +1,6 @@
 import { getFontEmbedCSS, toBlob, toCanvas, toSvg } from 'html-to-image';
-import type { Point, Rect as SceneRect } from '@stackmap/core';
-import { PULSE, pulseAt, type Flow, type FlowPulse } from '../motion/flow';
+import type { NodeType, Point, Rect as SceneRect } from '@stackmap/core';
+import { FLOW, glowAt, pointAt, PULSE, pulseFrame, ringAt, type Flow } from '../motion/flow';
 import { settleAll } from '../motion/motion';
 
 /** Space around the diagram in exports, in diagram px. */
@@ -149,10 +149,10 @@ export const VIDEO = { duration: 6000, fps: 30, maxWidth: 1920, maxHeight: 1080 
 
 /**
  * A short video of the diagram with a flow playing on it: the snapshot every export uses, and the live canvas's
- * pulses (`colorOf` resolving each one's tint), for whole loops of at least VIDEO.duration. Recorded from a
+ * pulses (`colorOf` resolving a tint to a colour), for whole loops of at least VIDEO.duration. Recorded from a
  * canvas with MediaRecorder.
  */
-export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (p: FlowPulse) => string, type: string): Promise<Blob> {
+export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (tint: NodeType) => string, type: string): Promise<Blob> {
   const width = Math.ceil(content.width + 2 * EXPORT_PADDING);
   const height = Math.ceil(content.height + 2 * EXPORT_PADDING);
   // A frame the encoder can keep up with: the whole diagram inside 1920×1080.
@@ -166,23 +166,93 @@ export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (p: F
   const ctx = out.getContext('2d');
   if (!ctx) throw new Error('no 2D canvas');
   const at = (p: Point) => ({ x: (p.x - content.x + EXPORT_PADDING) * scale, y: (p.y - content.y + EXPORT_PADDING) * scale });
-  const pulses = flow.pulses.map((p) => ({ pulse: p, color: colorOf(p) }));
+  const stage = getComputedStyle(document.documentElement).getPropertyValue('--sm-stage').trim();
+  const pulses = flow.pulses.map((p) => ({ pulse: p, color: colorOf(p.tint), glowColor: p.glow ? colorOf(p.glow.tint) : '', path: p.path.map(at) }));
   const duration = Math.ceil(VIDEO.duration / flow.period) * flow.period;
+  const circle = (c: Point, r: number) => {
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r * scale, 0, Math.PI * 2);
+  };
+  // The live layer's look (FlowLayer), drawn over the snapshot: glows are clipped to outside their target,
+  // since here there are no cards above them to hide the inner part.
   const frame = (ms: number) => {
+    ctx.globalAlpha = 1;
     ctx.drawImage(base, 0, 0);
-    for (const { pulse, color } of pulses) {
-      const where = pulseAt(flow, pulse, ms);
-      if (!where) continue;
-      const p = at(where);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, PULSE.halo * scale, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.globalAlpha = PULSE.haloOpacity;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, PULSE.core * scale, 0, Math.PI * 2);
+    for (const { pulse: p, color, glowColor, path } of pulses) {
+      const f = pulseFrame(flow, p, ms);
+      if (!f) continue;
+      ctx.fillStyle = ctx.strokeStyle = color;
+      if (f.land !== null && p.glow) {
+        const g = glowAt(p.glow, f.land);
+        const o = at(p.glow.rect);
+        const r = at(g.rect);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, out.width, out.height);
+        ctx.roundRect(o.x, o.y, p.glow.rect.width * scale, p.glow.rect.height * scale, p.glow.radius * scale);
+        ctx.clip('evenodd');
+        ctx.beginPath();
+        ctx.roundRect(r.x, r.y, g.rect.width * scale, g.rect.height * scale, g.radius * scale);
+        ctx.globalAlpha = g.opacity;
+        ctx.fillStyle = glowColor;
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = color;
+      } else if (f.land !== null) {
+        const ring = ringAt(f.land, 3, 12);
+        circle(path.at(-1)!, ring.r);
+        ctx.lineWidth = 1.5 * scale;
+        ctx.globalAlpha = ring.opacity;
+        ctx.stroke();
+      }
+      if (f.trail) {
+        const [from, to] = f.trail;
+        for (const [fraction, width, opacity] of PULSE.trail) {
+          const start = Math.max(from, to - (to - from) * fraction);
+          ctx.beginPath();
+          ctx.moveTo(path[0]!.x, path[0]!.y);
+          path.slice(1).forEach((q) => ctx.lineTo(q.x, q.y));
+          ctx.setLineDash([(to - start) * scale, (p.length + FLOW.tail) * scale]);
+          ctx.lineDashOffset = -start * scale;
+          ctx.lineWidth = width * scale;
+          ctx.lineJoin = 'round';
+          ctx.globalAlpha = p.kind === 'sync' ? opacity : opacity * 0.4;
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      }
+      if (f.depart !== null) {
+        const ring = ringAt(f.depart, 2, 9);
+        circle(path[0]!, ring.r);
+        ctx.lineWidth = 1.5 * scale;
+        ctx.globalAlpha = ring.opacity;
+        ctx.stroke();
+      }
+      if (f.head === null) continue;
+      const head = (d: number) => at(pointAt(p.path, d));
       ctx.globalAlpha = 1;
-      ctx.fill();
+      if (p.kind === 'async') {
+        [0, 1, 2].forEach((j) => {
+          const d = f.head! - j * PULSE.packetGap;
+          if (d < 0) return;
+          circle(head(d), PULSE.packet);
+          ctx.globalAlpha = 1 - j * 0.3;
+          ctx.fill();
+        });
+      } else if (p.kind === 'return') {
+        circle(head(f.head), PULSE.core + 0.5);
+        ctx.fillStyle = stage;
+        ctx.fill();
+        ctx.lineWidth = 1.75 * scale;
+        ctx.stroke();
+      } else {
+        circle(head(f.head), PULSE.halo);
+        ctx.globalAlpha = PULSE.haloOpacity;
+        ctx.fill();
+        circle(head(f.head), PULSE.core);
+        ctx.globalAlpha = 1;
+        ctx.fill();
+      }
     }
   };
   frame(0);
