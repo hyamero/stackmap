@@ -158,3 +158,24 @@ test('toned edges keep their colour in the export (main path in ink)', async ({ 
   );
   expect(darkest).toBeLessThan(80);
 });
+
+test('JPEG and WebP export the whole diagram at 2×', async ({ page }) => {
+  const jpeg = await exportAs(page, /^JPEG/);
+  expect(jpeg.name).toBe('commerce-api.jpg');
+  expect([...jpeg.bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+  const webp = await exportAs(page, /^WebP/);
+  expect(webp.name).toBe('commerce-api.webp');
+  expect(webp.bytes.subarray(8, 12).toString('ascii')).toBe('WEBP');
+  // VP8/VP8L/VP8X headers all carry the canvas size; the extended one (VP8X) is 24-bit little-endian minus one.
+  const chunk = webp.bytes.subarray(12, 16).toString('ascii');
+  if (chunk === 'VP8X') expect(webp.bytes.readUIntLE(24, 3) + 1).toBe(Math.ceil(w + 64) * 2);
+});
+
+test('Video records the flow animation as a WebM', async ({ page }) => {
+  test.slow();
+  const video = await exportAs(page, /^Video/);
+  expect(video.name).toBe('commerce-api.webm');
+  // EBML magic, and several seconds' worth of frames.
+  expect([...video.bytes.subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+  expect(video.bytes.length).toBeGreaterThan(20_000);
+});

@@ -1,16 +1,40 @@
 import { Download } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { download, exportFileName, exportPng, exportSvg } from './export';
+import { canEncode, download, exportFileName, exportPng, exportRaster, exportSvg, exportVideo, videoExtension, videoType, type FlowEdge } from './export';
 import { popIn } from '../motion/motion';
 import { PANEL_CLASS, PANEL_STYLE } from './ui';
 import { useExplore } from '../explore/ExploreContext';
-import { useSceneContent } from '../canvas/ViewportContext';
+import { useScene, useSceneContent } from '../canvas/ViewportContext';
+import type { Scene } from '../canvas/scene';
 
-type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'done'; text: string } | { kind: 'error'; text: string };
+type Status = { kind: 'idle' } | { kind: 'busy'; text?: string } | { kind: 'done'; text: string } | { kind: 'error'; text: string };
+
+/** The video's pulses: every edge, tinted by its source, setting off in reading order (time, for a sequence). */
+function flowEdges(scene: Scene): FlowEdge[] {
+  const css = getComputedStyle(document.documentElement);
+  const typeOf = new Map(scene.cards.map((c) => [c.node.id, c.node.type]));
+  const rect = new Map(scene.cards.map((c) => [c.node.id, c.rect]));
+  const along = (id: string, e: Scene['edges'][number]) => {
+    if (scene.kind === 'sequence') return e.points[0]!.y;
+    const r = rect.get(id)!;
+    return scene.direction === 'RIGHT' ? r.x : r.y;
+  };
+  const positions = scene.edges.map((e) => along(e.from, e));
+  const min = Math.min(...positions);
+  const span = Math.max(...positions) - min || 1;
+  return scene.edges.map((e, i) => ({
+    points: e.points,
+    color: css.getPropertyValue(`--sm-${typeOf.get(e.from)}-accent`).trim() || css.getPropertyValue('--sm-edge').trim(),
+    start: (positions[i]! - min) / span,
+  }));
+}
 
 export function ExportMenu() {
   const { draft } = useExplore();
   const content = useSceneContent();
+  const scene = useScene();
+  // What this browser can write, checked once.
+  const [formats] = useState(() => ({ jpeg: canEncode('image/jpeg'), webp: canEncode('image/webp'), video: videoType() }));
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const root = useRef<HTMLDivElement>(null);
@@ -35,9 +59,9 @@ export function ExportMenu() {
     return () => removeEventListener('pointerdown', onDown);
   }, [open]);
 
-  const run = async (job: () => Promise<string>) => {
+  const run = async (job: () => Promise<string>, busy?: string) => {
     setOpen(false);
-    setStatus({ kind: 'busy' });
+    setStatus({ kind: 'busy', text: busy });
     try {
       setStatus({ kind: 'done', text: await job() });
     } catch (e) {
@@ -68,6 +92,23 @@ export function ExportMenu() {
           return `Copied PNG${scaled(2, scale)}`;
         }),
     },
+    ...(
+      [
+        ['JPEG', 'image/jpeg', 'jpg', formats.jpeg],
+        ['WebP', 'image/webp', 'webp', formats.webp],
+      ] as const
+    )
+      .filter(([, , , ok]) => ok)
+      .map(([label, type, ext]) => ({
+        label,
+        hint: '2×',
+        act: () =>
+          run(async () => {
+            const { blob, scale } = await exportRaster(content, type);
+            download(blob, exportFileName(draft.title, ext));
+            return `Saved ${label}${scaled(2, scale)}`;
+          }),
+      })),
     {
       label: 'SVG',
       hint: 'snapshot',
@@ -77,6 +118,19 @@ export function ExportMenu() {
           return 'Saved SVG';
         }),
     },
+    ...(formats.video
+      ? [
+          {
+            label: 'Video',
+            hint: `flow · ${videoExtension(formats.video)}`,
+            act: () =>
+              run(async () => {
+                download(await exportVideo(content, flowEdges(scene), formats.video!), exportFileName(draft.title, videoExtension(formats.video!)));
+                return 'Saved video';
+              }, 'Recording…'),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -101,7 +155,7 @@ export function ExportMenu() {
         className="sm-press flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-fg disabled:opacity-60"
       >
         <Download size={16} strokeWidth={2} aria-hidden="true" />
-        {status.kind === 'busy' ? 'Exporting…' : 'Export'}
+        {status.kind === 'busy' ? (status.text ?? 'Exporting…') : 'Export'}
       </button>
       {open && (
         <div
