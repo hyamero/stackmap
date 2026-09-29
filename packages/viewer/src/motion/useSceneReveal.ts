@@ -54,6 +54,13 @@ export function useSceneReveal(root: RefObject<HTMLElement | null>, scene: Scene
       const at = sequence ? e.points[0]!.y : undefined;
       targets.edges.push({ el: path as unknown as SVGPathElement, from: at ?? centre.get(e.from) ?? 0, to: at ?? centre.get(e.to) ?? 0, async: e.kind !== 'sync', label });
     }
+    // A sequence's activation bars arrive with the message that opens them.
+    if (sequence) {
+      el.querySelectorAll<SVGRectElement>('[data-activation]').forEach((bar, i) => {
+        const a = scene.activations[i];
+        if (a && fresh(`n:${a.node}`)) targets.items.push({ el: bar as unknown as HTMLElement, at: 0, kind: 'frame' });
+      });
+    }
     const motion = revealScene(targets);
     return () => motion.cancel();
   }, [root, scene, restored]);

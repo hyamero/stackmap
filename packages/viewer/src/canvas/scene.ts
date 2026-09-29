@@ -226,6 +226,9 @@ export function toScene(d: LaidOutDiagram): Scene {
       ...frames.map((f) => f.rect),
       ...cards.map((c) => c.rect),
       ...lifelines.map((l) => ({ x: l.x, y: l.top, width: 0, height: l.bottom - l.top })),
+      // Labels can reach past everything else (a self-call's label on the last lifeline). The viewer can't ship
+      // the font metrics, so their boxes are a generous estimate: 7px a character plus padding.
+      ...edges.flatMap((e) => (e.label && e.mid ? [{ x: e.mid.x - (e.label.length * 7 + 16) / 2, y: e.mid.y - 10, width: e.label.length * 7 + 16, height: 20 }] : [])),
     ]),
     lanes: laneList,
     phases,
