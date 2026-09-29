@@ -1,6 +1,6 @@
 ---
 name: stackmap
-description: Turn a system into an explorable architecture or data-flow diagram, delivered as one offline HTML file with a topology-dashboard look (dark and light), search, trace, guided views and PNG/SVG export. Use when the user asks to diagram, map, visualize or explain the architecture, services, infrastructure, dependencies or data pipeline of a codebase or of a described system, or to update such a diagram.
+description: Turn a system into an explorable architecture, data-flow, workflow or lifecycle diagram, delivered as one offline HTML file with a topology-dashboard look (dark and light), search, trace, guided views and PNG/SVG export. Use when the user asks to diagram, map, visualize or explain the architecture, services, infrastructure, dependencies, data pipeline, process, runbook, release flow or state machine of a codebase or of a described system, or to update such a diagram.
 license: MIT
 metadata:
   version: "0.1.0"
@@ -32,11 +32,16 @@ Unless the user names a location, each diagram lives in `.stackmap/<slug>/` unde
 
 ## Steps
 
-1. **Pick the kind.** `architecture` when the edges are *calls and dependencies* between components (services, stores, infrastructure). `dataflow` only when the edges are *data moving between stages* (pipelines, ETL/ELT, CDC, event streams, lineage). If unsure, use `architecture`. Sequence, state and workflow diagrams aren't supported yet — say so.
+1. **Pick the kind.**
+   - `architecture`: the edges are *calls and dependencies* between components (services, stores, infrastructure).
+   - `dataflow`: only when the edges are *data moving between stages* (pipelines, ETL/ELT, CDC, event streams, lineage).
+   - `workflow`: *steps* done by different owners, in order (a release process, an incident runbook, an agent's tool call). Owners are `lanes`.
+   - `lifecycle`: the *states of one thing* and the transitions between them (a job, an order, a deployment). States are nodes with state types.
+   - If unsure between architecture and dataflow, use `architecture`. Sequence diagrams (messages over time) aren't supported yet — say so, and offer a workflow instead.
 2. **Gather facts.** For a real codebase, follow [Repository diagrams](references/authoring-contract.md#repository-diagrams): every node and edge should be backed by code or config you read. For a described system, use only what the user said plus unavoidable glue; don't invent components. For Mermaid or other diagram text, use the [Mermaid mapping](references/authoring-contract.md#from-mermaid).
 3. **Write the complete `diagram.json` once**, following [the authoring contract](references/authoring-contract.md). Field rules and limits: [schema reference](references/schema.md). Shapes: [examples](examples/) — they teach shape, not facts.
 4. **Validate** with `validate <path> --json`.
-5. **Repair only what the diagnostics name.** Each has a `code`, a `subject` (JSON pointer into your file), a `message`, `evidence` and `allowedFixes`. Apply one of the `allowedFixes` at `subject`; don't restructure unrelated parts. `card-fit/overflow` means the text would be cut off on the card: shorten it to the `maxChars` in its evidence, keeping the meaning (move detail into a row or an evidence note). Re-run step 4.
+5. **Repair only what the diagnostics name.** Each has a `code`, a `subject` (JSON pointer into your file), a `message`, `evidence` and `allowedFixes`. Apply one of the `allowedFixes` at `subject`; don't restructure unrelated parts. `card-fit/overflow` means the text would be cut off on the card: shorten it to the `maxChars` in its evidence, keeping the meaning (move detail into a row, or into an evidence note on compact cards, which have no rows). Re-run step 4.
    - **Stop rule:** if two consecutive rounds don't reduce the number of errors, stop, keep the last file, and report the remaining diagnostics verbatim instead of guessing.
    - Warnings don't block delivery. Fix the cheap ones (a misspelt brand, a node you forgot to connect); mention the ones you leave.
 6. **Deliver** with `deliver <path>`. Exit 1: back to step 5. Exit 2: an environment problem — report it; don't edit the diagram to "fix" it.
@@ -53,7 +58,7 @@ Read `.stackmap/<slug>/diagram.json`, change only what was asked, then steps 4�
 
 ## Don'ts
 
-- No coordinates, sizes, colours or styling fields: the schema is strict and rejects them. Layout and colour come from `direction`, `groups` and node `type`.
+- No coordinates, sizes, colours or styling fields: the schema is strict and rejects them. Layout and colour come from `direction`, `groups`, `lanes`, `phases`, node `type` and edge `tone`.
 - Don't colour by brand: `type` sets the colour; `brand` only puts a logo in the icon tile.
 - **Never copy secrets** into the diagram: no credentials, tokens, keys, connection strings with passwords, or internal hostnames/IPs from `.env` files or config. The HTML is made to be shared.
 - Don't pad the diagram. No node, edge or group count is a target; past ~40 nodes, split (see [Size](references/authoring-contract.md#size)).

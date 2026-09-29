@@ -32,9 +32,9 @@ const STYLE_PREFIXES = [
   'outline', 'opacity', 'transform', 'fill', 'stroke', 'marker', 'visibility', 'z-index', 'inset',
   '-webkit-font-smoothing', 'shape-rendering',
 ];
-// The snapshot re-resolves the SVG layer's var(--sm-…) colours (edges, arrowheads, handle dots), so those
-// tokens must travel; the other ~100 theme tokens would only bloat every element's inline style.
-const SVG_TOKENS = /^--sm-(edge|handle|[a-z]+-accent)$/;
+// The snapshot re-resolves the SVG layer's var(--sm-…) colours (edges and their tones, arrowheads, handle dots,
+// lifelines), so those tokens must travel; the other theme tokens would only bloat every element's inline style.
+const SVG_TOKENS = /^--sm-(edge|handle|text|group-border|[a-z]+-accent)$/;
 // Chromium resolves SVG geometry (path `d`, circle `r`, …) as CSS; without these the clone draws no edges.
 const SVG_GEOMETRY = ['d', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'paint-order', 'vector-effect'];
 let styleProps: string[] | undefined;

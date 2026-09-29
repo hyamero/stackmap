@@ -69,6 +69,8 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
     ...duplicates(d.edges, 'edges'),
     ...duplicates(d.groups, 'groups'),
     ...duplicates(d.views, 'views'),
+    ...duplicates(d.lanes, 'lanes'),
+    ...duplicates(d.phases, 'phases'),
   ];
 
   d.nodes.forEach((n, i) => {
@@ -98,8 +100,9 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
     });
   }
 
+  // A sequence message to oneself is a self-call, drawn as a loop on the lifeline.
   d.edges.forEach((e, i) => {
-    if (e.from === e.to)
+    if (e.from === e.to && d.kind !== 'sequence')
       out.push({
         code: 'semantics/self-loop',
         severity: 'warning',
@@ -111,11 +114,12 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
   });
 
   if (d.kind === 'dataflow') {
-    // An async edge is an explicit feedback path (retry, event back-channel), so it doesn't close a cycle.
-    const flow = d.edges.filter((e) => e.kind !== 'async');
+    // An async or return edge is an explicit feedback path (retry, event back-channel), so it doesn't close a cycle.
+    const feedback = (e: { kind?: string }) => e.kind === 'async' || e.kind === 'return';
+    const flow = d.edges.filter((e) => !feedback(e));
     for (const comp of cycles(d.nodes.map((n) => n.id), flow.map((e) => [e.from, e.to]))) {
       const members = new Set(comp);
-      const i = d.edges.findIndex((e) => e.kind !== 'async' && members.has(e.from) && members.has(e.to) && e.from !== e.to);
+      const i = d.edges.findIndex((e) => !feedback(e) && members.has(e.from) && members.has(e.to) && e.from !== e.to);
       out.push({
         code: 'semantics/dataflow-cycle',
         severity: 'warning',

@@ -8,15 +8,19 @@ Agent-authored diagram. Layout is computed by stackmap; never give coordinates. 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `$schema` | string | no | Optional; set it to `https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json` for editor completion |
-| `kind` | enum | yes | one of `architecture`, `dataflow` |
+| `kind` | enum | yes | one of `architecture`, `dataflow`, `workflow`, `lifecycle`, `sequence` |
+| `density` | enum | no | Architecture and dataflow: compact cards (title, subtitle, brand, tag) for long chains or summaries. one of `compact` |
 | `title` | string | yes | non-blank |
 | `subtitle` | string | no | non-blank |
 | `source` | object | no | Base URL for evidence links: `<url>/<file>#L<line>`. see [source](#source) |
 | `direction` | enum | no | Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams. one of `RIGHT`, `DOWN` |
 | `groups` | array | no | at most 200. see [groups[]](#groups) |
+| `lanes` | array | no | Workflow and lifecycle: swimlanes, top to bottom. at most 20. see [lanes[]](#lanes) |
+| `phases` | array | no | Ordered stages: header bands over columns (workflow, lifecycle), stage bands in flow order (architecture, dataflow) or time bands (sequence). at most 20. see [phases[]](#phases) |
 | `nodes` | array | yes | at least 1. at most 500. see [nodes[]](#nodes) |
-| `edges` | array | yes | at most 2000. see [edges[]](#edges) |
+| `edges` | array | yes | Connections. In a sequence, the messages, in time order. at most 2000. see [edges[]](#edges) |
 | `views` | array | no | at most 50. see [views[]](#views) |
+| `notes` | array | no | Takeaways about the diagram, shown in the inspector. at most 6. see [notes[]](#notes) |
 
 ## source
 
@@ -31,16 +35,35 @@ Base URL for evidence links: `<url>/<file>#L<line>`.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `id` | string | yes | id |
-| `label` | string | yes | Shown small-caps above the frame. non-blank |
+| `label` | string | yes | Shown above the frame. non-blank |
 | `parent` | string | no | Id of the enclosing group, for nesting |
+| `tone` | enum | no | A trust boundary (private network, PII zone). one of `security` |
+
+## lanes[]
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | yes | id |
+| `label` | string | yes | non-blank |
+| `tone` | enum | no | A lane for failure and recovery paths. one of `exception` |
+
+## phases[]
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | yes | id |
+| `label` | string | yes | non-blank |
+| `nodes` | array | no | Workflow and lifecycle: the nodes whose columns this phase spans. Architecture and dataflow: the nodes in this stage. items: lowercase id: `a-z`, `0-9`, `-`, `_`; starts with a letter or digit |
+| `edges` | array | no | Sequence: the messages this time band spans. items: lowercase id: `a-z`, `0-9`, `-`, `_`; starts with a letter or digit |
 
 ## nodes[]
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `id` | string | yes | id |
-| `type` | enum | yes | Sets the card color. Never color by brand. one of `client`, `service`, `gateway`, `database`, `cache`, `queue`, `storage`, `external`, `security` |
+| `type` | enum | yes | Sets the card color. Never color by brand. Lifecycle diagrams use the state types (start, active, waiting, decision, success, failure, neutral); every other kind uses the component types. one of `client`, `service`, `gateway`, `database`, `cache`, `queue`, `storage`, `external`, `security`, `start`, `active`, `waiting`, `decision`, `success`, `failure`, `neutral` |
 | `group` | string | no | Id of the group the node sits in |
+| `lane` | string | no | Workflow and lifecycle: id of the lane the node sits in (required there) |
 | `card` | object | yes | see [nodes[].card](#nodescard) |
 | `evidence` | array | no | Source locations backing this node; listed in the inspector. at most 8. see [nodes[].evidence[]](#nodesevidence) |
 
@@ -56,6 +79,7 @@ Base URL for evidence links: `<url>/<file>#L<line>`.
 | `statsNote` | string | no | Line under the stat tiles; only shown with stats. non-blank |
 | `footer` | object | no | see [nodes[].card.footer](#nodescardfooter) |
 | `cta` | object | no | see [nodes[].card.cta](#nodescardcta) |
+| `tag` | string | no | Compact cards only (workflow, lifecycle, sequence, or density "compact"): a short pill, e.g. "human gate". non-blank |
 
 ## nodes[].card.rows[]
 
@@ -116,7 +140,8 @@ Base URL for evidence links: `<url>/<file>#L<line>`.
 | `from` | string | yes | Source node id |
 | `to` | string | yes | Target node id |
 | `label` | string | no | Short label; use sparingly. non-blank. at most 24 characters |
-| `kind` | enum | no | async edges render dashed. one of `sync`, `async` |
+| `kind` | enum | no | async renders dashed; return (a reply, a roll back) renders dotted. one of `sync`, `async`, `return` |
+| `tone` | enum | no | main marks the happy path; security and error paths take those tints. Use sparingly. one of `main`, `security`, `error` |
 
 ## views[]
 
@@ -126,6 +151,13 @@ Base URL for evidence links: `<url>/<file>#L<line>`.
 | `label` | string | yes | non-blank |
 | `caption` | string | no | non-blank |
 | `nodes` | array | yes | Node ids this guided view focuses; the rest are dimmed. items: lowercase id: `a-z`, `0-9`, `-`, `_`; starts with a letter or digit |
+
+## notes[]
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `title` | string | yes | non-blank |
+| `items` | array | yes | at least 1. at most 6. items: non-blank |
 
 ## Brand slugs
 

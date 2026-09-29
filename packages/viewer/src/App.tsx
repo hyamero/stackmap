@@ -4,6 +4,7 @@ import { ViewerShell } from './chrome/ViewerShell';
 import { readEmbeddedDiagram } from './data';
 import { GalleryPage } from './pages/GalleryPage';
 import { commerceApiLayout } from './samples/commerce-api.layout';
+import { galleryLayouts } from './samples/gallery.layout';
 import { groupedPlatformLayout } from './samples/grouped-platform.layout';
 import { useTheme } from './theme/theme';
 
@@ -33,7 +34,7 @@ function Notice({ children }: { children: string }) {
 function DevPages({ theme, toggle }: ReturnType<typeof useTheme>) {
   const page = new URLSearchParams(location.search).get('page');
   if (page === 'gallery') return <GalleryPage theme={theme} onToggleTheme={toggle} />;
-  const diagram = page === 'grouped' ? groupedPlatformLayout : commerceApiLayout;
+  const diagram = page === 'grouped' ? groupedPlatformLayout : ((page ? galleryLayouts[page] : undefined) ?? commerceApiLayout);
   return <ViewerShell diagram={diagram} theme={theme} onToggleTheme={toggle} />;
 }
 

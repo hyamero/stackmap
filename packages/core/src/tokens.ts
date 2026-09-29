@@ -1,4 +1,4 @@
-import type { NodeType } from './types';
+import type { InfraType, NodeType, StateType } from './types';
 
 export type ThemeName = 'light' | 'dark';
 
@@ -30,6 +30,22 @@ export interface ThemeTokens {
   tints: Record<NodeType, Tint>;
 }
 
+// Lifecycle states reuse the infra palette, picked for meaning: success green, failure red, waiting amber.
+const STATE_TINT: Record<StateType, InfraType> = {
+  start: 'client',
+  active: 'database',
+  waiting: 'gateway',
+  decision: 'queue',
+  success: 'service',
+  failure: 'cache',
+  neutral: 'external',
+};
+
+const withStates = (t: Record<InfraType, Tint>): Record<NodeType, Tint> => ({
+  ...t,
+  ...(Object.fromEntries(Object.entries(STATE_TINT).map(([s, i]) => [s, t[i]])) as Record<StateType, Tint>),
+});
+
 const light: ThemeTokens = {
   page: '#f4f4f3',
   stage: '#ffffff',
@@ -44,7 +60,7 @@ const light: ThemeTokens = {
   primaryText: '#ffffff',
   groupFill: '#fafaf9',
   groupBorder: '#8f8f8a',
-  tints: {
+  tints: withStates({
     client: { fill: '#e3f0ef', border: '#cfe4e2', tile: '#cfe4e2', accent: '#2a7f7b' },
     service: { fill: '#e9f0e8', border: '#dce6da', tile: '#dce6da', accent: '#4e7f3f' },
     gateway: { fill: '#f8ece2', border: '#efdccb', tile: '#f0dcca', accent: '#b25e14' },
@@ -54,7 +70,7 @@ const light: ThemeTokens = {
     storage: { fill: '#f4f0de', border: '#e6dfc2', tile: '#e7dfc0', accent: '#8a7417' },
     external: { fill: '#efefed', border: '#e1e1de', tile: '#e1e1de', accent: '#5f5f5c' },
     security: { fill: '#f8e6ef', border: '#edd0df', tile: '#efd1e0', accent: '#b83c74' },
-  },
+  }),
 };
 
 const dark: ThemeTokens = {
@@ -71,7 +87,7 @@ const dark: ThemeTokens = {
   primaryText: '#141414',
   groupFill: '#1b1b1b',
   groupBorder: '#686868',
-  tints: {
+  tints: withStates({
     client: { fill: '#141c1c', border: '#28504d', tile: '#1b2d2c', accent: '#6fd1c9' },
     service: { fill: '#181c16', border: '#33402b', tile: '#232b1e', accent: '#a6d97a' },
     gateway: { fill: '#1d1914', border: '#4a3822', tile: '#2e2419', accent: '#f0b05a' },
@@ -81,7 +97,7 @@ const dark: ThemeTokens = {
     storage: { fill: '#1c1a13', border: '#4a4426', tile: '#2b2819', accent: '#dec96a' },
     external: { fill: '#1a1a1a', border: '#383838', tile: '#262626', accent: '#b3b3b1' },
     security: { fill: '#1f1419', border: '#55293f', tile: '#331d29', accent: '#f07db4' },
-  },
+  }),
 };
 
 export const tokens: Record<ThemeName, ThemeTokens> = { light, dark };

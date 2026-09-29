@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { GALLERY } from '../../core/src/samples/gallery.ts';
 import { commerceApi, groupedPlatform } from '../../core/src/samples/index.ts';
 
 const cli = new URL('../dist/cli.js', import.meta.url).pathname;
@@ -14,7 +15,7 @@ const check = (ok, msg) => {
 };
 
 check(/^\d+\.\d+\.\d+\n$/.test(run('--version')), '--version');
-for (const [name, draft] of Object.entries({ 'commerce-api': commerceApi, 'grouped-platform': groupedPlatform })) {
+for (const [name, draft] of Object.entries({ 'commerce-api': commerceApi, 'grouped-platform': groupedPlatform, ...GALLERY })) {
   const input = join(dir, `${name}.json`);
   writeFileSync(input, JSON.stringify(draft, null, 2));
   check(run('validate', input) === '✓ valid: no diagnostics\n', `${name} validates`);

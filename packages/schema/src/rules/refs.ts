@@ -72,6 +72,24 @@ export function refsDiagnostics(d: DiagramDraft): Diagnostic[] {
     }
   });
 
+  const laneIds = (d.lanes ?? []).map((l) => l.id);
+  const laneSet = new Set(laneIds);
+  d.nodes.forEach((n, i) => {
+    if (n.lane !== undefined && d.lanes && !laneSet.has(n.lane))
+      out.push(unknownRef('refs/unknown-lane', `/nodes/${i}/lane`, 'lane', n.lane, laneIds, `add lane "${n.lane}"`));
+  });
+
+  const edgeIds = d.edges.map((e) => e.id);
+  const edgeSet = new Set(edgeIds);
+  d.phases?.forEach((p, i) => {
+    p.nodes?.forEach((id, j) => {
+      if (!nodeSet.has(id)) out.push(unknownRef('refs/unknown-phase-node', `/phases/${i}/nodes/${j}`, 'node', id, nodeIds, `remove "${id}" from the phase`));
+    });
+    p.edges?.forEach((id, j) => {
+      if (!edgeSet.has(id)) out.push(unknownRef('refs/unknown-phase-edge', `/phases/${i}/edges/${j}`, 'edge', id, edgeIds, `remove "${id}" from the phase`));
+    });
+  });
+
   d.edges.forEach((e, i) => {
     for (const end of ['from', 'to'] as const) {
       if (!nodeSet.has(e[end]))

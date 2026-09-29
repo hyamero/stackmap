@@ -10,7 +10,17 @@
       "type": "string",
       "enum": [
         "architecture",
-        "dataflow"
+        "dataflow",
+        "workflow",
+        "lifecycle",
+        "sequence"
+      ]
+    },
+    "density": {
+      "description": "Architecture and dataflow: compact cards (title, subtitle, brand, tag) for long chains or summaries.",
+      "type": "string",
+      "enum": [
+        "compact"
       ]
     },
     "title": {
@@ -56,12 +66,88 @@
           "label": {
             "type": "string",
             "pattern": "\\S",
-            "description": "Shown small-caps above the frame."
+            "description": "Shown above the frame."
           },
           "parent": {
             "description": "Id of the enclosing group, for nesting.",
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "tone": {
+            "description": "A trust boundary (private network, PII zone).",
+            "type": "string",
+            "enum": [
+              "security"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "lanes": {
+      "description": "Workflow and lifecycle: swimlanes, top to bottom.",
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "label": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "tone": {
+            "description": "A lane for failure and recovery paths.",
+            "type": "string",
+            "enum": [
+              "exception"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "phases": {
+      "description": "Ordered stages: header bands over columns (workflow, lifecycle), stage bands in flow order (architecture, dataflow) or time bands (sequence).",
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "label": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "nodes": {
+            "description": "Workflow and lifecycle: the nodes whose columns this phase spans. Architecture and dataflow: the nodes in this stage.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            }
+          },
+          "edges": {
+            "description": "Sequence: the messages this time band spans.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            }
           }
         },
         "required": [
@@ -93,12 +179,24 @@
               "queue",
               "storage",
               "external",
-              "security"
+              "security",
+              "start",
+              "active",
+              "waiting",
+              "decision",
+              "success",
+              "failure",
+              "neutral"
             ],
-            "description": "Sets the card color. Never color by brand."
+            "description": "Sets the card color. Never color by brand. Lifecycle diagrams use the state types (start, active, waiting, decision, success, failure, neutral); every other kind uses the component types."
           },
           "group": {
             "description": "Id of the group the node sits in.",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "lane": {
+            "description": "Workflow and lifecycle: id of the lane the node sits in (required there).",
             "type": "string",
             "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
@@ -236,6 +334,11 @@
                   "label"
                 ],
                 "additionalProperties": false
+              },
+              "tag": {
+                "description": "Compact cards only (workflow, lifecycle, sequence, or density \"compact\"): a short pill, e.g. \"human gate\".",
+                "type": "string",
+                "pattern": "\\S"
               }
             },
             "required": [
@@ -307,11 +410,21 @@
             "pattern": "\\S"
           },
           "kind": {
-            "description": "async edges render dashed.",
+            "description": "async renders dashed; return (a reply, a roll back) renders dotted.",
             "type": "string",
             "enum": [
               "sync",
-              "async"
+              "async",
+              "return"
+            ]
+          },
+          "tone": {
+            "description": "main marks the happy path; security and error paths take those tints. Use sparingly.",
+            "type": "string",
+            "enum": [
+              "main",
+              "security",
+              "error"
             ]
           }
         },
@@ -321,7 +434,8 @@
           "to"
         ],
         "additionalProperties": false
-      }
+      },
+      "description": "Connections. In a sequence, the messages, in time order."
     },
     "views": {
       "maxItems": 50,
@@ -354,6 +468,34 @@
           "id",
           "label",
           "nodes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "notes": {
+      "description": "Takeaways about the diagram, shown in the inspector.",
+      "maxItems": 6,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "items": {
+            "minItems": 1,
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "items"
         ],
         "additionalProperties": false
       }

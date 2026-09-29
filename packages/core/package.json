@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./samples": "./src/samples/index.ts"
+    "./samples": "./src/samples/index.ts",
+    "./gallery": "./src/samples/gallery.ts"
   },
   "scripts": {
     "test": "vitest run",

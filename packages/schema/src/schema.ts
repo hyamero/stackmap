@@ -1,12 +1,12 @@
 import * as z from 'zod';
-import { NODE_TYPES } from '@stackmap/core';
+import { DIAGRAM_KINDS, NODE_TYPES } from '@stackmap/core';
 
 // Mirrors the hand-written types in @stackmap/core (a type test keeps them identical). Objects are strict
 // so a misspelt key is reported instead of silently dropped.
 
 export const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 // Size caps keep validation and layout fast and the diagram readable; beyond them, split into views.
-export const LIMITS = { rows: 6, stats: 3, evidence: 8, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50 } as const;
+export const LIMITS = { rows: 6, stats: 3, evidence: 8, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50, laneNodes: 200, lanes: 20, phases: 20, notes: 6, noteItems: 6 } as const;
 export const VISIBLE_TEXT = /\S/;
 
 const id = z.string().regex(ID_PATTERN);
@@ -44,6 +44,7 @@ const Card = z.strictObject({
       href: httpUrl.optional(),
     })
     .optional(),
+  tag: text.optional().meta({ description: 'Compact cards only (workflow, lifecycle, sequence, or density "compact"): a short pill, e.g. "human gate".' }),
 });
 
 const Evidence = z.strictObject({
@@ -54,8 +55,11 @@ const Evidence = z.strictObject({
 
 const Node = z.strictObject({
   id,
-  type: z.enum(NODE_TYPES).meta({ description: 'Sets the card color. Never color by brand.' }),
+  type: z.enum(NODE_TYPES).meta({
+    description: 'Sets the card color. Never color by brand. Lifecycle diagrams use the state types (start, active, waiting, decision, success, failure, neutral); every other kind uses the component types.',
+  }),
   group: id.optional().meta({ description: 'Id of the group the node sits in.' }),
+  lane: id.optional().meta({ description: 'Workflow and lifecycle: id of the lane the node sits in (required there).' }),
   card: Card,
   evidence: z
     .array(Evidence)
@@ -69,13 +73,39 @@ const Edge = z.strictObject({
   from: id.meta({ description: 'Source node id.' }),
   to: id.meta({ description: 'Target node id.' }),
   label: text.max(LIMITS.edgeLabel).optional().meta({ description: 'Short label; use sparingly.' }),
-  kind: z.enum(['sync', 'async']).optional().meta({ description: 'async edges render dashed.' }),
+  kind: z.enum(['sync', 'async', 'return']).optional().meta({ description: 'async renders dashed; return (a reply, a roll back) renders dotted.' }),
+  tone: z
+    .enum(['main', 'security', 'error'])
+    .optional()
+    .meta({ description: 'main marks the happy path; security and error paths take those tints. Use sparingly.' }),
 });
 
 const Group = z.strictObject({
   id,
-  label: text.meta({ description: 'Shown small-caps above the frame.' }),
+  label: text.meta({ description: 'Shown above the frame.' }),
   parent: id.optional().meta({ description: 'Id of the enclosing group, for nesting.' }),
+  tone: z.enum(['security']).optional().meta({ description: 'A trust boundary (private network, PII zone).' }),
+});
+
+const Lane = z.strictObject({
+  id,
+  label: text,
+  tone: z.enum(['exception']).optional().meta({ description: 'A lane for failure and recovery paths.' }),
+});
+
+const Phase = z.strictObject({
+  id,
+  label: text,
+  nodes: z
+    .array(id)
+    .optional()
+    .meta({ description: 'Workflow and lifecycle: the nodes whose columns this phase spans. Architecture and dataflow: the nodes in this stage.' }),
+  edges: z.array(id).optional().meta({ description: 'Sequence: the messages this time band spans.' }),
+});
+
+const Note = z.strictObject({
+  title: text,
+  items: z.array(text).min(1).max(LIMITS.noteItems),
 });
 
 const View = z.strictObject({
@@ -88,7 +118,11 @@ const View = z.strictObject({
 export const DiagramDraftSchema = z
   .strictObject({
     $schema: z.string().optional().meta({ description: `Optional; set it to ${'`'}https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json${'`'} for editor completion.` }),
-    kind: z.enum(['architecture', 'dataflow']),
+    kind: z.enum(DIAGRAM_KINDS),
+    density: z
+      .enum(['compact'])
+      .optional()
+      .meta({ description: 'Architecture and dataflow: compact cards (title, subtitle, brand, tag) for long chains or summaries.' }),
     title: text,
     subtitle: text.optional(),
     source: z
@@ -97,9 +131,16 @@ export const DiagramDraftSchema = z
       .meta({ description: 'Base URL for evidence links: `<url>/<file>#L<line>`.' }),
     direction: z.enum(['RIGHT', 'DOWN']).optional().meta({ description: 'Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.' }),
     groups: z.array(Group).max(LIMITS.groups).optional(),
+    lanes: z.array(Lane).max(LIMITS.lanes).optional().meta({ description: 'Workflow and lifecycle: swimlanes, top to bottom.' }),
+    phases: z
+      .array(Phase)
+      .max(LIMITS.phases)
+      .optional()
+      .meta({ description: 'Ordered stages: header bands over columns (workflow, lifecycle), stage bands in flow order (architecture, dataflow) or time bands (sequence).' }),
     nodes: z.array(Node).min(1).max(LIMITS.nodes),
-    edges: z.array(Edge).max(LIMITS.edges),
+    edges: z.array(Edge).max(LIMITS.edges).meta({ description: 'Connections. In a sequence, the messages, in time order.' }),
     views: z.array(View).max(LIMITS.views).optional(),
+    notes: z.array(Note).max(LIMITS.notes).optional().meta({ description: 'Takeaways about the diagram, shown in the inspector.' }),
   })
   .meta({ title: 'stackmap diagram', description: 'Agent-authored diagram. Layout is computed by stackmap; never give coordinates.' });
 

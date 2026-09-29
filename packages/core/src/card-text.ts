@@ -1,4 +1,4 @@
-import { CARD } from './card-metrics';
+import { CARD, COMPACT, type CardVariant } from './card-metrics';
 import { measureText, type FontFace } from './text-measure';
 import type { CardData } from './types';
 
@@ -21,11 +21,24 @@ const GAP = 12; // gap-3
 const PANEL = CARD.width - 2 * 12; // 256: stats and CTA sit in px-3
 const ROW_VALUE_MAX = 0.55; // max-w-[55%]
 
-export function cardTextSlots(card: CardData): TextSlot[] {
+// StepCard: px-3, size-7 tile, gap-2.5; the tag pill (px-2) lines up with the title.
+const C_PAD = 12;
+const C_TILE = 28;
+const C_GAP = 10;
+const C_TEXT = COMPACT.width - 2 * C_PAD - C_TILE - C_GAP; // 114
+
+export function cardTextSlots(card: CardData, variant: CardVariant = 'full'): TextSlot[] {
   const slots: TextSlot[] = [];
   const add = (path: string, text: string | undefined, face: FontFace, size: number, maxWidth: number) => {
     if (text !== undefined) slots.push({ path, text, face, size, maxWidth });
   };
+
+  if (variant === 'compact') {
+    add('/title', card.title, 'sans500', 13, C_TEXT);
+    add('/subtitle', card.subtitle, 'sans400', 11.5, C_TEXT);
+    add('/tag', card.tag, 'sans500', 11, C_TEXT - 2 * 8);
+    return slots;
+  }
 
   const header = INNER - ICON_TILE - GAP;
   add('/title', card.title, 'sans500', 13.5, header);

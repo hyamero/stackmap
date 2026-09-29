@@ -37,14 +37,19 @@ export function useSceneReveal(root: RefObject<HTMLElement | null>, scene: Scene
       if (node) targets.items.push({ el: node, at: start(f.rect), kind: 'frame' });
     }
     for (const c of scene.cards) {
-      const node = fresh(`n:${c.node.id}`) && q(`.sm-card[data-card-id="${CSS.escape(c.node.id)}"]`);
+      if (!fresh(`n:${c.node.id}`)) continue;
+      const node = q(`.sm-card[data-card-id="${CSS.escape(c.node.id)}"]`);
       if (node) targets.items.push({ el: node, at: pos(c.rect), kind: 'card' });
+      // Route-end dots and a start marker belong to their card: they arrive with it, not before.
+      for (const mark of el.querySelectorAll<HTMLElement>(`[data-handle-of="${CSS.escape(c.node.id)}"], [data-start-mark="${CSS.escape(c.node.id)}"]`))
+        targets.items.push({ el: mark, at: pos(c.rect), kind: 'card' });
     }
     for (const e of scene.edges) {
       const path = fresh(`e:${e.id}`) && q<SVGPathElement>(`path[data-edge-id="${CSS.escape(e.id)}"]`);
       if (!path) continue;
       const label = q(`[data-edge-label="${CSS.escape(e.id)}"]`) ?? undefined;
-      targets.edges.push({ el: path as unknown as SVGPathElement, from: centre.get(e.from) ?? 0, to: centre.get(e.to) ?? 0, async: e.kind === 'async', label });
+      // Dashed and dotted connections fade in: drawing them would show a solid line that snaps to dashes.
+      targets.edges.push({ el: path as unknown as SVGPathElement, from: centre.get(e.from) ?? 0, to: centre.get(e.to) ?? 0, async: e.kind !== 'sync', label });
     }
     const motion = revealScene(targets);
     return () => motion.cancel();

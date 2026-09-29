@@ -60,6 +60,9 @@ export function Minimap({ scene }: { scene: Scene }) {
         onPointerUp={stop}
         onPointerCancel={stop}
       >
+        {[...scene.lanes, ...(scene.phaseStyle === 'band' ? scene.phases : [])].map((l) => (
+          <rect key={`l:${l.id}`} {...attrs(l.rect)} rx={16} style={{ fill: 'var(--sm-group-fill)', stroke: 'var(--sm-panel-border)' }} vectorEffect="non-scaling-stroke" />
+        ))}
         {scene.frames.map((f) => (
           <rect
             key={f.id}

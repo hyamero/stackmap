@@ -1,0 +1,34 @@
+{
+  "$schema": "https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json",
+  "kind": "workflow",
+  "title": "Release delivery",
+  "subtitle": "From merge to announced release",
+  "lanes": [
+    { "id": "ci", "label": "Continuous integration" },
+    { "id": "prod", "label": "Production" },
+    { "id": "rollback", "label": "Failure and rollback", "tone": "exception" }
+  ],
+  "phases": [
+    { "id": "verify", "label": "Build and verify", "nodes": ["build", "checks", "stop"] },
+    { "id": "promote", "label": "Promote", "nodes": ["approve", "deploy", "verify", "revert"] }
+  ],
+  "nodes": [
+    { "id": "build", "type": "service", "lane": "ci", "card": { "title": "Build", "subtitle": "Locked inputs", "brand": "githubactions" } },
+    { "id": "checks", "type": "security", "lane": "ci", "card": { "title": "Quality gates", "subtitle": "Test and scan", "tag": "blocking" } },
+    { "id": "approve", "type": "security", "lane": "prod", "card": { "title": "Approve", "subtitle": "Release owner", "tag": "human gate" } },
+    { "id": "deploy", "type": "gateway", "lane": "prod", "card": { "title": "Deploy", "subtitle": "Canary 10%", "brand": "kubernetes" } },
+    { "id": "verify", "type": "service", "lane": "prod", "card": { "title": "Verify", "subtitle": "Smoke and SLO" } },
+    { "id": "stop", "type": "security", "lane": "rollback", "card": { "title": "Stop release", "subtitle": "Gate failed" } },
+    { "id": "revert", "type": "queue", "lane": "rollback", "card": { "title": "Rollback", "subtitle": "Last good image", "tag": "owner: on-call" } }
+  ],
+  "edges": [
+    { "id": "e1", "from": "build", "to": "checks", "tone": "main" },
+    { "id": "e2", "from": "checks", "to": "approve", "tone": "main" },
+    { "id": "e3", "from": "approve", "to": "deploy", "tone": "main" },
+    { "id": "e4", "from": "deploy", "to": "verify", "tone": "main" },
+    { "id": "e5", "from": "checks", "to": "stop", "label": "red", "tone": "error" },
+    { "id": "e6", "from": "verify", "to": "revert", "label": "unhealthy", "tone": "error" },
+    { "id": "e7", "from": "revert", "to": "deploy", "label": "restore", "kind": "return" }
+  ],
+  "notes": [{ "title": "Stop conditions", "items": ["A red gate stops promotion", "An unhealthy release rolls back to the last good image"] }]
+}

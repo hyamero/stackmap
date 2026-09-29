@@ -129,3 +129,32 @@ test('edge routes that swing outside the cards are inside the export', async ({ 
     height: Math.ceil(Math.max(...ys) - Math.min(...ys) + 64),
   });
 });
+
+test('toned edges keep their colour in the export (main path in ink)', async ({ page }) => {
+  await page.goto('/?page=release-delivery');
+  await page.evaluate(() => document.fonts.ready);
+  const { bytes } = await exportAs(page, /^PNG\s*1×/);
+  // Sample the middle of the Commit → Pull request run (a main-path edge) in the exported image.
+  const layout = (await import('../src/samples/gallery.layout')).galleryLayouts['release-delivery']!;
+  const pts = layout.edges.e1!;
+  const xs = Object.values(layout.nodes).map((r) => r.x).concat(Object.values(layout.lanes!).map((r) => r.x), Object.values(layout.phases!).map((r) => r.x));
+  const ys = Object.values(layout.nodes).map((r) => r.y).concat(Object.values(layout.lanes!).map((r) => r.y), Object.values(layout.phases!).map((r) => r.y));
+  const at = { x: (pts[0]!.x + pts.at(-1)!.x) / 2 - Math.min(...xs) + 32, y: pts[0]!.y - Math.min(...ys) + 32 };
+  const darkest = await page.evaluate(
+    async ({ b64, at }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      [c.width, c.height] = [img.width, img.height];
+      const ctx = c.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const d = ctx.getImageData(Math.round(at.x) - 2, Math.round(at.y) - 3, 5, 7).data;
+      let min = 255;
+      for (let i = 0; i < d.length; i += 4) min = Math.min(min, d[i]!, d[i + 1]!, d[i + 2]!);
+      return min;
+    },
+    { b64: bytes.toString('base64'), at },
+  );
+  expect(darkest).toBeLessThan(80);
+});

@@ -1,5 +1,12 @@
 import {
+  Activity,
   AppWindow,
+  CircleCheck,
+  CirclePlay,
+  CircleX,
+  CircleDashed,
+  Hourglass,
+  Split,
   Database,
   Globe,
   HardDrive,
@@ -22,6 +29,13 @@ const ICONS: Record<NodeType, LucideIcon> = {
   storage: HardDrive,
   external: Globe,
   security: ShieldCheck,
+  start: CirclePlay,
+  active: Activity,
+  waiting: Hourglass,
+  decision: Split,
+  success: CircleCheck,
+  failure: CircleX,
+  neutral: CircleDashed,
 };
 
 export function TypeIcon({ type, size }: { type: NodeType; size: number }) {

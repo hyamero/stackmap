@@ -14,7 +14,18 @@ export const CARD = {
   radius: 14,
 } as const;
 
-export function cardSize(card: CardData): { width: number; height: number } {
+/** Step, state and participant cards (workflow, lifecycle, sequence): title, subtitle, brand, tag. */
+export const COMPACT = {
+  width: 176,
+  header: 60,
+  tagRow: 24,
+  radius: 12,
+} as const;
+
+export type CardVariant = 'full' | 'compact';
+
+export function cardSize(card: CardData, variant: CardVariant = 'full'): { width: number; height: number } {
+  if (variant === 'compact') return { width: COMPACT.width, height: COMPACT.header + (card.tag ? COMPACT.tagRow : 0) };
   let height = CARD.header;
   if (card.rows?.length) height += CARD.rowsPad * 2 + card.rows.length * CARD.row;
   if (card.stats?.length) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LaidOutDiagram } from '@stackmap/core';
+import { galleryLayouts } from '../samples/gallery.layout';
 import { groupedPlatformLayout } from '../samples/grouped-platform.layout';
 import { toScene } from './scene';
 
@@ -84,5 +85,29 @@ describe('toScene', () => {
     expect(() => toScene({ ...groupedPlatformLayout, nodes: {} })).toThrow("No layout for node 'web'");
     expect(() => toScene({ ...groupedPlatformLayout, groups: {} })).toThrow("No layout for group 'edge-tier'");
     expect(() => toScene({ ...groupedPlatformLayout, edges: {} })).toThrow("No layout for edge 'e1'");
+  });
+
+  it('lane layouts: lanes, phase headers, compact cards, end states and dots at the route ends', () => {
+    const d = galleryLayouts['agent-run']!;
+    const lanes = toScene(d);
+    expect(lanes.compact).toBe(true);
+    expect(lanes.phaseStyle).toBe('header');
+    expect(lanes.lanes.map((l) => [l.id, l.tone])).toEqual(d.draft.lanes!.map((l) => [l.id, l.tone]));
+    expect(lanes.cards.filter((c) => c.final).map((c) => c.node.id).sort()).toEqual(['cancelled', 'completed', 'expired']);
+    // failed has a way out (retry), so it isn't an end state.
+    expect(lanes.cards.find((c) => c.node.id === 'failed')!.final).toBe(false);
+    const ends = new Set(lanes.edges.flatMap((e) => [`${e.points[0]!.x},${e.points[0]!.y}`, `${e.points.at(-1)!.x},${e.points.at(-1)!.y}`]));
+    expect(new Set(lanes.handles!.map((h) => `${h.at.x},${h.at.y}`))).toEqual(ends);
+    expect(lanes.edges.find((e) => e.id === 'retry')!.kind).toBe('return');
+    expect(lanes.edges.find((e) => e.id === 'needs-approval')!.mid).toEqual(d.labels!['needs-approval']);
+  });
+
+  it('ELK layouts keep fixed ports and full cards; staged dataflows get bands', () => {
+    expect(scene.handles).toBeNull();
+    expect(scene.compact).toBe(false);
+    const staged = toScene(galleryLayouts['product-analytics']!);
+    expect(staged.phaseStyle).toBe('band');
+    expect(staged.compact).toBe(true);
+    expect(staged.phases.map((p) => p.id)).toEqual(['sources', 'ingest', 'process', 'store', 'consume']);
   });
 });
