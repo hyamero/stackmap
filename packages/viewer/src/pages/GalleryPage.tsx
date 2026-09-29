@@ -22,7 +22,7 @@ export function GalleryPage({ theme, onToggleTheme }: { theme: ThemeChoice; onTo
       </header>
       {sections.map(([label, nodes]) => (
         <section key={label} className="mb-10">
-          <h2 className="mb-4 text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase">{label}</h2>
+          <h2 className="mb-4 text-[13px] font-semibold text-fg">{label}</h2>
           <div className="grid grid-cols-[repeat(auto-fill,280px)] items-start gap-6">
             {nodes.map((n: DiagramNode) => (
               <NodeCard key={n.id} node={n} />

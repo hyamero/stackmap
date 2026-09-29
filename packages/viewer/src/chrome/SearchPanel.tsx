@@ -3,13 +3,18 @@ import { TYPE_LABELS } from '@stackmap/core';
 import { searchMatches } from '../explore/emphasis';
 import { focusCard } from '../canvas/SceneLayers';
 import { useExplore } from '../explore/ExploreContext';
+import { popIn } from '../motion/motion';
+import { useEnter } from '../motion/useEnter';
 import { PANEL_CLASS, PANEL_STYLE } from './ui';
 
 const MAX_RESULTS = 8;
 
-export function SearchPanel({ onClose }: { onClose: () => void }) {
+/** `origin`: the trigger's centre, so the panel grows out of it; omitted, the panel just appears (keyboard `/`). */
+export function SearchPanel({ onClose, origin }: { onClose: () => void; origin?: string }) {
   const { draft, state, dispatch } = useExplore();
   const input = useRef<HTMLInputElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  useEnter(panel, (el) => popIn(el, origin!), !!origin);
   const [active, setActive] = useState(0);
   const query = state.query ?? '';
   const results = searchMatches(draft, query).slice(0, MAX_RESULTS);
@@ -23,7 +28,7 @@ export function SearchPanel({ onClose }: { onClose: () => void }) {
     requestAnimationFrame(() => focusCard(id));
   };
   return (
-    <div className={`${PANEL_CLASS} absolute top-full left-0 z-20 mt-2 w-[320px] p-2`} style={PANEL_STYLE}>
+    <div ref={panel} className={`${PANEL_CLASS} absolute top-full left-0 z-20 mt-2 w-[320px] p-2`} style={PANEL_STYLE}>
       <input
         ref={input}
         role="combobox"

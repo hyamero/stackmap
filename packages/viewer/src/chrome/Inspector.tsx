@@ -1,16 +1,17 @@
 import { ArrowDownLeft, ArrowUpRight, Copy, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramNode, type Evidence } from '@stackmap/core';
 import { focusCard } from '../canvas/SceneLayers';
 import { useExplore } from '../explore/ExploreContext';
+import { swapIn } from '../motion/motion';
 import { IconButton, PANEL_STYLE } from './ui';
 
-const eyebrow = 'text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase';
+const eyebrow = 'text-[12.5px] font-medium text-fg-muted';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-7">
-      <h3 className={eyebrow}>{title}</h3>
+      <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -184,6 +185,15 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
     if (toggled.current) toggleRef.current?.focus();
     toggled.current = false;
   }, [collapsed]);
+  // A new selection replaces the panel's content in place: fade it in so the swap reads as one change.
+  const body = useRef<HTMLDivElement>(null);
+  const shown = useRef(state.selected);
+  useLayoutEffect(() => {
+    if (shown.current === state.selected) return;
+    shown.current = state.selected;
+    const motion = swapIn([...(body.current?.children ?? [])] as HTMLElement[]);
+    return () => motion.cancel();
+  }, [state.selected]);
   const toggle = (
     <Toggle
       ref={toggleRef}
@@ -203,6 +213,7 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
   }
   return (
     <aside aria-label="Inspector" className="relative w-[300px] shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5" style={PANEL_STYLE}>
+      <div ref={body}>
       {selected ? (
         <NodeDetail node={selected} toggle={toggle} />
       ) : (
@@ -221,6 +232,7 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
           </p>
         </>
       )}
+      </div>
     </aside>
   );
 }

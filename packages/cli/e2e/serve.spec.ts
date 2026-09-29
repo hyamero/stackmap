@@ -92,3 +92,27 @@ test('a page open across a serve restart shows it is disconnected, then picks up
   await start(undefined, port);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('After restart', { timeout: 10_000 });
 });
+
+test.describe('with motion', () => {
+  test.use({ contextOptions: { reducedMotion: 'no-preference' } });
+  const running = (page: import('@playwright/test').Page) =>
+    page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length);
+
+  test('a live reload animates only what is new', async ({ page }) => {
+    await start(commerceApi);
+    await page.goto(url);
+    await expect.poll(() => running(page), { timeout: 5000 }).toBe(0);
+
+    write({
+      ...commerceApi,
+      nodes: [...commerceApi.nodes, { id: 'audit', type: 'storage', card: { title: 'Audit log' } }],
+      edges: [...commerceApi.edges, { id: 'e-orders-audit', from: 'orders', to: 'audit' }],
+    });
+    await expect(page.locator('.sm-card[data-card-id="audit"]')).toHaveCount(1);
+    const animating = await page.evaluate(() => ({
+      cards: Array.from(document.querySelectorAll<HTMLElement>('.sm-card')).filter((c) => c.getAnimations().length).map((c) => c.dataset.cardId),
+      panels: Array.from(document.querySelectorAll('.sm-panel')).filter((p) => p.getAnimations().length).length,
+    }));
+    expect(animating).toEqual({ cards: ['audit'], panels: 0 });
+  });
+});

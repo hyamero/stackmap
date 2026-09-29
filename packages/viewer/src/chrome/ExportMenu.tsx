@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { download, exportFileName, exportPng, exportSvg } from './export';
+import { popIn } from '../motion/motion';
 import { PANEL_CLASS, PANEL_STYLE } from './ui';
 import { useExplore } from '../explore/ExploreContext';
 import { useSceneContent } from '../canvas/ViewportContext';
@@ -14,6 +15,16 @@ export function ExportMenu() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  // Opened from the keyboard (ArrowDown, or Enter/Space: a click with detail 0) the menu appears at once.
+  const byKey = useRef(false);
+  // The menu is right-aligned under the button: grow it from the button's centre.
+  useLayoutEffect(() => {
+    if (!open || !menu.current || byKey.current) return;
+    const b = button.current;
+    const motion = popIn(menu.current, `${menu.current.offsetWidth - (b ? b.offsetWidth / 2 : 0)}px 0`);
+    return () => motion.cancel();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -76,20 +87,25 @@ export function ExportMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={status.kind === 'busy'}
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => {
+          byKey.current = e.detail === 0;
+          setOpen((v) => !v);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown' && !open) {
             e.preventDefault();
+            byKey.current = true;
             setOpen(true);
           }
         }}
-        className="flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-fg disabled:opacity-60"
+        className="sm-press flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-fg disabled:opacity-60"
       >
         <Download size={16} strokeWidth={2} aria-hidden="true" />
         {status.kind === 'busy' ? 'Exporting…' : 'Export'}
       </button>
       {open && (
         <div
+          ref={menu}
           role="menu"
           aria-label="Export"
           // Tab (or any focus move) out of the menu closes it.

@@ -15,6 +15,10 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
   const root = useRef<HTMLDivElement>(null);
   const searchButton = useRef<HTMLButtonElement>(null);
   const lensButton = useRef<HTMLButtonElement>(null);
+  // Popovers opened from the keyboard (`/`, or Enter/Space on the button: a click with detail 0) appear at once.
+  const [searchByKey, setSearchByKey] = useState(false);
+  const [lensByKey, setLensByKey] = useState(false);
+  const originOf = (b: HTMLButtonElement | null) => (b ? `${b.offsetLeft + b.offsetWidth / 2}px 0` : '0 0');
   const closeSearch = () => {
     dispatch({ type: 'search', query: null });
     searchButton.current?.focus();
@@ -37,6 +41,7 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
       if (e.key !== '/' || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault();
       setLensOpen(false);
+      setSearchByKey(true);
       dispatch({ type: 'search', query: '' });
     };
     addEventListener('keydown', onKey);
@@ -72,8 +77,9 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         label="Search nodes (/)"
         pressed={searchOpen}
         expanded={searchOpen}
-        onClick={() => {
+        onClick={(e) => {
           setLensOpen(false);
+          setSearchByKey(e.detail === 0);
           dispatch({ type: 'search', query: searchOpen ? null : '' });
         }}
       >
@@ -84,8 +90,9 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         label="Filter by type"
         pressed={lensOpen || state.hiddenTypes.size > 0}
         expanded={lensOpen}
-        onClick={() => {
+        onClick={(e) => {
           dispatch({ type: 'search', query: null });
+          setLensByKey(e.detail === 0);
           setLensOpen((v) => !v);
         }}
       >
@@ -99,8 +106,8 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>
       <ExportMenu />
-      {searchOpen && <SearchPanel onClose={closeSearch} />}
-      {lensOpen && <LensPanel />}
+      {searchOpen && <SearchPanel onClose={closeSearch} origin={searchByKey ? undefined : originOf(searchButton.current)} />}
+      {lensOpen && <LensPanel origin={lensByKey ? undefined : originOf(lensButton.current)} />}
     </div>
   );
 }
