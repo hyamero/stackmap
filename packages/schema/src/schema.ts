@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { NODE_TYPES } from '@stackmap/core';
 
 // Mirrors the hand-written types in @stackmap/core (a type test keeps them identical). Objects are strict
