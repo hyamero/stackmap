@@ -1,6 +1,6 @@
 ---
 name: stackmap
-description: Turn a system into an explorable architecture, data-flow, workflow or lifecycle diagram, delivered as one offline HTML file with a topology-dashboard look (dark and light), search, trace, guided views and PNG/SVG export. Use when the user asks to diagram, map, visualize or explain the architecture, services, infrastructure, dependencies, data pipeline, process, runbook, release flow or state machine of a codebase or of a described system, or to update such a diagram.
+description: Turn a system into an explorable architecture, data-flow, workflow, lifecycle or sequence diagram, delivered as one offline HTML file with a topology-dashboard look (dark and light), search, trace, guided views and PNG/SVG export. Use when the user asks to diagram, map, visualize or explain the architecture, services, infrastructure, dependencies, data pipeline, process, runbook, release flow, state machine or request sequence of a codebase or of a described system, or to update such a diagram.
 license: MIT
 metadata:
   version: "0.1.0"
@@ -37,7 +37,8 @@ Unless the user names a location, each diagram lives in `.stackmap/<slug>/` unde
    - `dataflow`: only when the edges are *data moving between stages* (pipelines, ETL/ELT, CDC, event streams, lineage).
    - `workflow`: *steps* done by different owners, in order (a release process, an incident runbook, an agent's tool call). Owners are `lanes`.
    - `lifecycle`: the *states of one thing* and the transitions between them (a job, an order, a deployment). States are nodes with state types.
-   - If unsure between architecture and dataflow, use `architecture`. Sequence diagrams (messages over time) aren't supported yet — say so, and offer a workflow instead.
+   - `sequence`: *messages over time* between a few participants, for one scenario (a request with a cache miss, an async job roundtrip). Participants are nodes; the edges are the messages, in time order.
+   - If unsure between architecture and dataflow, use `architecture`.
 2. **Gather facts.** For a real codebase, follow [Repository diagrams](references/authoring-contract.md#repository-diagrams): every node and edge should be backed by code or config you read. For a described system, use only what the user said plus unavoidable glue; don't invent components. For Mermaid or other diagram text, use the [Mermaid mapping](references/authoring-contract.md#from-mermaid).
 3. **Write the complete `diagram.json` once**, following [the authoring contract](references/authoring-contract.md). Field rules and limits: [schema reference](references/schema.md). Shapes: [examples](examples/) — they teach shape, not facts.
 4. **Validate** with `validate <path> --json`.

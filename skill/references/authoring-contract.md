@@ -65,6 +65,17 @@ Both are drawn as **swimlanes**: `lanes` are full-width rows in the order you li
 
 A `success` or `failure` state with no outgoing transition is drawn as an end state. A retry is a `return` edge back to the state it retries.
 
+## Sequences
+
+One scenario, told in time. `nodes` are the participants, left to right in the order you list them; `edges` are the messages, top to bottom in array order. stackmap spaces the lifelines for the labels and draws the activation bars itself — never give positions.
+
+- **Participants:** three to eight. Order them the way the request travels (caller first, stores and third parties last) so most arrows point right.
+- **Messages:** label every one, briefly (`GET /dashboard`, `read cache`, `202 + job id`). A call is plain; `"kind": "return"` is its reply, from the callee back to the caller, after it; `"kind": "async"` is fire-and-forget. A message from a participant to itself is a self-call (drawn as a loop).
+- **Activation bars** follow from the messages: a call opens a bar on the callee, its reply closes it, a call nobody answers ends where the callee was last busy. A reply that answers nothing is a warning (`semantics/unmatched-return`).
+- **Phases** (`phases` with `edges`) band stretches of time: *Request, Fallback, Response*. List each band's messages; bands must follow each other.
+- `tone` works as elsewhere: `main` for the happy path, `security` for auth checks, `error` for retries and failures.
+- Cards are compact (title, subtitle, brand, tag). No groups or lanes.
+
 ## Compact cards
 
 `"density": "compact"` gives an `architecture` or `dataflow` diagram the compact cards workflows use (title, subtitle, brand, tag). Use it for long chains (more than ~5 stages), overviews and summaries, where full cards would make the diagram too small to read at fit; keep full cards when rows, stats and footers carry the answer.
