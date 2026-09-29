@@ -79,7 +79,7 @@ Base URL for evidence links: `<url>/<file>#L<line>`.
 | `statsNote` | string | no | Line under the stat tiles; only shown with stats. non-blank |
 | `footer` | object | no | see [nodes[].card.footer](#nodescardfooter) |
 | `cta` | object | no | see [nodes[].card.cta](#nodescardcta) |
-| `tag` | string | no | Workflow, lifecycle and sequence cards only: a short pill, e.g. "human gate". non-blank |
+| `tag` | string | no | Compact cards only (workflow, lifecycle, sequence, or density "compact"): a short pill, e.g. "human gate". non-blank |
 
 ## nodes[].card.rows[]
 

@@ -336,7 +336,7 @@
                 "additionalProperties": false
               },
               "tag": {
-                "description": "Workflow, lifecycle and sequence cards only: a short pill, e.g. \"human gate\".",
+                "description": "Compact cards only (workflow, lifecycle, sequence, or density \"compact\"): a short pill, e.g. \"human gate\".",
                 "type": "string",
                 "pattern": "\\S"
               }

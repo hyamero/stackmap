@@ -6,7 +6,7 @@ import { DIAGRAM_KINDS, NODE_TYPES } from '@stackmap/core';
 
 export const ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 // Size caps keep validation and layout fast and the diagram readable; beyond them, split into views.
-export const LIMITS = { rows: 6, stats: 3, evidence: 8, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50, lanes: 20, phases: 20, notes: 6, noteItems: 6 } as const;
+export const LIMITS = { rows: 6, stats: 3, evidence: 8, edgeLabel: 24, nodes: 500, edges: 2000, groups: 200, views: 50, laneNodes: 200, lanes: 20, phases: 20, notes: 6, noteItems: 6 } as const;
 export const VISIBLE_TEXT = /\S/;
 
 const id = z.string().regex(ID_PATTERN);
@@ -44,7 +44,7 @@ const Card = z.strictObject({
       href: httpUrl.optional(),
     })
     .optional(),
-  tag: text.optional().meta({ description: 'Workflow, lifecycle and sequence cards only: a short pill, e.g. "human gate".' }),
+  tag: text.optional().meta({ description: 'Compact cards only (workflow, lifecycle, sequence, or density "compact"): a short pill, e.g. "human gate".' }),
 });
 
 const Evidence = z.strictObject({

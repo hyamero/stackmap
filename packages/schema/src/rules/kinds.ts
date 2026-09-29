@@ -1,5 +1,17 @@
-import { INFRA_TYPES, isCompactKind, isLaneKind, STATE_TYPES, usesCompactCards, type DiagramDraft, type NodeType } from '@stackmap/core';
+import {
+  assignColumns,
+  backEdges,
+  INFRA_TYPES,
+  isCompactKind,
+  isLaneKind,
+  phaseViolations,
+  STATE_TYPES,
+  usesCompactCards,
+  type DiagramDraft,
+  type NodeType,
+} from '@stackmap/core';
 import type { Diagnostic } from '../diagnostics';
+import { LIMITS } from '../schema';
 
 const error = (code: string, subject: string, message: string, evidence: Record<string, unknown>, allowedFixes: string[]): Diagnostic => ({
   code,
@@ -57,6 +69,12 @@ export function kindDiagnostics(d: DiagramDraft): Diagnostic[] {
   if (isCompactKind(d.kind) && d.density !== undefined)
     out.push({ ...error('semantics/density-ignored', '/density', `${d.kind} cards are always compact`, { kind: d.kind }, ['remove "density"']), severity: 'warning' });
 
+  // Swimlanes are routed edge by edge; past this they're slow to lay out and too dense to read anyway.
+  if (lanes && d.nodes.length > LIMITS.laneNodes)
+    out.push(error('semantics/too-many-for-kind', '/nodes', `A ${d.kind} diagram holds at most ${LIMITS.laneNodes} nodes (this one has ${d.nodes.length})`, { count: d.nodes.length, max: LIMITS.laneNodes }, [
+      'split it into one diagram per phase or per lane group',
+    ]));
+
   if (lanes && !d.lanes?.length)
     out.push(error('semantics/missing-lanes', '', `A ${d.kind} diagram needs "lanes"`, { kind: d.kind }, ['add "lanes": [{ "id": …, "label": … }] and set each node\'s "lane"']));
   if (!lanes && d.lanes)
@@ -95,6 +113,7 @@ export function kindDiagnostics(d: DiagramDraft): Diagnostic[] {
   }
 
   out.push(...phaseDiagnostics(d));
+  if (lanes && d.lanes?.length) out.push(...laneGroupDiagnostics(d));
   return out;
 }
 
@@ -133,19 +152,45 @@ function phaseDiagnostics(d: DiagramDraft): Diagnostic[] {
   }
 
   if (byNodes) {
-    // An edge from a later phase into an earlier one is laid out as a back edge; say so, it's usually a mistake.
+    // A later phase flowing back into an earlier one (directly or through unphased steps) is laid out as a back
+    // edge; say so, it's usually a mistake.
+    const back = phaseViolations(d);
     d.edges.forEach((e, i) => {
-      const a = owner.get(e.from);
-      const b = owner.get(e.to);
-      if (a !== undefined && b !== undefined && b < a && e.kind !== 'return')
-        out.push({
-          ...error('semantics/phase-order', `/edges/${i}`, `Edge "${e.id}" runs from phase "${d.phases![a]!.id}" back into "${d.phases![b]!.id}"`, { id: e.id }, [
-            'mark it "kind": "return" if it loops back on purpose',
-            'reorder the phases',
-          ]),
-          severity: 'warning',
-        });
+      if (!back.has(e.id)) return;
+      const into = d.phases![owner.get(e.to)!]!.id;
+      out.push({
+        ...error('semantics/phase-order', `/edges/${i}`, `Edge "${e.id}" leads back into phase "${into}" from a later phase`, { id: e.id, phase: into }, [
+          'mark it "kind": "return" if it loops back on purpose',
+          'reorder the phases',
+          `put "${e.from}" in a phase`,
+        ]),
+        severity: 'warning',
+      });
     });
   }
+  return out;
+}
+
+/** A lane group is drawn around its members: it must not end up enclosing another step of the same lane. */
+function laneGroupDiagnostics(d: DiagramDraft): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  if (!d.groups?.length) return out;
+  const col = assignColumns(d, backEdges(d));
+  d.groups.forEach((g, i) => {
+    const members = d.nodes.filter((n) => n.group === g.id && n.lane !== undefined);
+    const lanes = new Set(members.map((n) => n.lane));
+    if (members.length < 2 || lanes.size !== 1) return;
+    const cs = members.map((n) => col.get(n.id)!);
+    const [lo, hi] = [Math.min(...cs), Math.max(...cs)];
+    const inside = d.nodes.filter((n) => n.group !== g.id && lanes.has(n.lane) && col.get(n.id)! >= lo && col.get(n.id)! <= hi).map((n) => n.id);
+    if (inside.length)
+      out.push({
+        ...error('semantics/group-not-contiguous', `/groups/${i}`, `Group "${g.id}" would also frame ${inside.map((x) => `"${x}"`).join(', ')}, which sit between its steps`, { id: g.id, inside }, [
+          `add ${inside.map((x) => `"${x}"`).join(', ')} to the group`,
+          'split the group into neighbouring steps',
+        ]),
+        severity: 'warning',
+      });
+  });
   return out;
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GALLERY } from '@stackmap/core/gallery';
 import { validateDiagram } from '../src/validate';
 
 const workflow = (over: Record<string, unknown> = {}) => ({
@@ -81,6 +82,49 @@ describe('kind rules', () => {
     expect(codes(workflow({ phases: [{ id: 'p', label: 'P', nodes: ['ghost'] }] }))[0]).toBe('error:refs/unknown-phase-node@/phases/0/nodes/0');
   });
 
+  it('warns when a later phase reaches an earlier one through unphased steps', () => {
+    const d = {
+      kind: 'workflow',
+      title: 'Agent',
+      lanes: [
+        { id: 'agent', label: 'Agent' },
+        { id: 'tools', label: 'Tools' },
+      ],
+      phases: [
+        { id: 'plan', label: 'Plan', nodes: ['policy'] },
+        { id: 'exec', label: 'Execute', nodes: ['tool'] },
+      ],
+      nodes: [
+        { id: 'tool', type: 'service', lane: 'agent', card: { title: 'tool' } },
+        { id: 'trace', type: 'queue', lane: 'tools', card: { title: 'trace' } },
+        { id: 'policy', type: 'security', lane: 'agent', card: { title: 'policy' } },
+      ],
+      edges: [
+        { id: 'e1', from: 'tool', to: 'trace' },
+        { id: 'e2', from: 'trace', to: 'policy' },
+      ],
+    };
+    expect(codes(d)).toEqual(['warning:semantics/phase-order@/edges/1']);
+  });
+
+  it('warns when a lane group would frame a step that is not in it', () => {
+    const d = workflow({
+      lanes: [{ id: 'dev', label: 'Dev' }],
+      groups: [{ id: 'g', label: 'G' }],
+      nodes: [
+        { id: 'x', type: 'service', lane: 'dev', group: 'g', card: { title: 'X' } },
+        { id: 'm', type: 'service', lane: 'dev', card: { title: 'M' } },
+        { id: 'y', type: 'service', lane: 'dev', group: 'g', card: { title: 'Y' } },
+      ],
+      edges: [
+        { id: 'xm', from: 'x', to: 'm' },
+        { id: 'my', from: 'm', to: 'y' },
+      ],
+    });
+    const [diag] = validateDiagram(d).diagnostics;
+    expect(diag).toMatchObject({ code: 'semantics/group-not-contiguous', severity: 'warning', subject: '/groups/0', evidence: { inside: ['m'] } });
+  });
+
   it('a group in a lane kind sits in one lane and does not nest', () => {
     const d = workflow({
       groups: [{ id: 'g', label: 'G' }, { id: 'h', label: 'H', parent: 'g' }],
@@ -124,5 +168,11 @@ describe('kind rules', () => {
     const [diag] = validateDiagram(d).diagnostics;
     expect(diag).toMatchObject({ code: 'card-fit/overflow', subject: '/nodes/0/card/title', evidence: { maxWidth: 114 } });
     expect(diag!.allowedFixes).toContain('move the detail into an evidence note');
+  });
+});
+
+describe('the gallery samples', () => {
+  it.each(Object.entries(GALLERY))('%s validates with no diagnostics', (_name, d) => {
+    expect(validateDiagram(d).diagnostics.map((x) => `${x.code}@${x.subject}: ${x.message}`)).toEqual([]);
   });
 });
