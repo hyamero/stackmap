@@ -31,14 +31,14 @@ function handleStyle(side: 'in' | 'out', horizontal: boolean): CSSProperties {
 }
 
 function Frame({ frame }: { frame: SceneFrame }) {
-  // Q18: groups aren't in the refs — thin dashed container, faint fill, small-caps label in the 48px band.
+  // Q18: groups aren't in the refs — thin dashed container, faint fill, sentence-case label in the 48px band.
   return (
     <div
       data-frame-id={frame.id}
       className="sm-frame absolute rounded-[18px] border border-dashed"
       style={{ ...place(frame.rect), borderColor: 'var(--sm-group-border)', background: 'var(--sm-group-fill)' }}
     >
-      <div className="flex h-12 items-center px-5 text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase">
+      <div className="flex h-12 items-center px-5 text-[12.5px] font-medium text-fg-muted">
         {frame.label}
       </div>
     </div>

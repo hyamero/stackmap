@@ -5,12 +5,12 @@ import { focusCard } from '../canvas/SceneLayers';
 import { useExplore } from '../explore/ExploreContext';
 import { IconButton, PANEL_STYLE } from './ui';
 
-const eyebrow = 'text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase';
+const eyebrow = 'text-[12.5px] font-medium text-fg-muted';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-7">
-      <h3 className={eyebrow}>{title}</h3>
+      <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
   );

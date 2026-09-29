@@ -11,7 +11,7 @@ export function LensPanel() {
       style={PANEL_STYLE}
     >
       <legend className="sr-only">Show node types</legend>
-      <p className="mb-2 text-[11px] font-medium tracking-[0.12em] text-fg-muted uppercase" aria-hidden="true">
+      <p className="mb-1.5 px-1.5 text-[12.5px] font-medium text-fg-muted" aria-hidden="true">
         Types
       </p>
       {countByType(draft.nodes).map(([type, count]) => (
