@@ -41,44 +41,65 @@ export interface Bar {
 }
 
 /**
- * Activation bars by simulation over the messages in order. A call or async message to a participant with no
- * open bar opens one; a reply from a participant closes its open bar; a self-call nests a short bar. A bar nobody
- * replied to ends where its participant was last busy once someone else calls it; one still open at the end runs
- * to its participant's last message.
+ * Activation bars by simulation over the messages in order, per participant a stack of open bars:
+ * - a call to an idle participant opens a bar; a call to one that is waiting on its own call (a callback)
+ *   nests a bar inside; a call from someone new to a participant that is busy but waiting on nobody first ends
+ *   the old bar where it was last busy;
+ * - a reply closes the replier's bar opened by the one it answers (else its innermost), with any nested inside;
+ * - a self-call nests a short bar; sending or receiving keeps a bar busy;
+ * - a bar still open at the end runs to its participant's last message.
  */
 export function activations(edges: DiagramEdge[]): Bar[] {
-  const open = new Map<string, Bar>();
+  const stacks = new Map<string, Bar[]>();
+  /** per participant, the callees it is waiting to hear back from */
+  const waiting = new Map<string, string[]>();
   const last = new Map<string, number>();
   const bars: Bar[] = [];
+  const stackOf = (p: string) => {
+    let st = stacks.get(p);
+    if (!st) stacks.set(p, (st = []));
+    return st;
+  };
+  const touch = (p: string, row: number) => {
+    const top = stacks.get(p)?.at(-1);
+    if (top) top.busy = row;
+  };
   edges.forEach((e, row) => {
     last.set(e.from, row);
     last.set(e.to, row);
-    const sending = open.get(e.from);
-    if (sending) sending.busy = row;
+    touch(e.from, row);
     if (e.from === e.to) {
-      bars.push({ participant: e.from, depth: open.has(e.from) ? 1 : 0, from: row, to: row, self: e.id });
+      bars.push({ participant: e.from, depth: stackOf(e.from).length, from: row, to: row, self: e.id });
       return;
     }
     if (e.kind === 'return') {
-      const bar = open.get(e.from);
-      if (bar) {
-        bar.to = row;
-        open.delete(e.from);
-      }
+      touch(e.to, row);
+      const st = stackOf(e.from);
+      let i = st.map((b) => b.caller).lastIndexOf(e.to);
+      if (i < 0) i = st.length - 1;
+      if (i >= 0) for (const bar of st.splice(i)) bar.to = row;
+      const w = waiting.get(e.to);
+      const k = w?.lastIndexOf(e.from) ?? -1;
+      if (k >= 0) w!.splice(k, 1);
       return;
     }
-    const current = open.get(e.to);
-    if (current && current.caller !== e.from) {
-      current.to = current.busy ?? current.from;
-      open.delete(e.to);
+    const st = stackOf(e.to);
+    const pending = (waiting.get(e.to)?.length ?? 0) > 0;
+    const top = st.at(-1);
+    if (top && !pending && top.caller !== e.from) {
+      // Busy with someone else and waiting on nobody: that earlier work is done.
+      for (const bar of st.splice(0)) bar.to = bar.busy ?? bar.from;
     }
-    if (!open.has(e.to)) {
-      const bar: Bar = { participant: e.to, depth: 0, from: row, to: row, caller: e.from, busy: row };
-      open.set(e.to, bar);
+    // Receiving counts as busy, but only for work this message belongs to (checked above).
+    touch(e.to, row);
+    if (!st.length || (pending && e.kind !== 'async')) {
+      const bar: Bar = { participant: e.to, depth: st.length, from: row, to: row, caller: e.from, busy: row };
+      st.push(bar);
       bars.push(bar);
     }
+    if (e.kind !== 'async') waiting.set(e.from, [...(waiting.get(e.from) ?? []), e.to]);
   });
-  for (const bar of open.values()) bar.to = Math.max(bar.to, last.get(bar.participant) ?? bar.to);
+  for (const st of stacks.values()) for (const bar of st) bar.to = Math.max(bar.to, last.get(bar.participant) ?? bar.to);
   return bars.map(({ caller: _c, busy: _b, ...b }) => b);
 }
 
@@ -156,9 +177,11 @@ export function layoutSequence(draft: DiagramDraft): LaidOutDiagram {
     const y1 = Math.max(b.self ? y0 : rowY[b.to]! + 6, y0 + (b.self ? 18 : MIN_BAR));
     return { x: round(x), y: round(y0), width: ACTIVATION.width, height: round(y1 - y0) };
   };
-  // A message leaves and arrives at the edge of the lifeline bar open on its row.
-  const reach = (participant: string, row: number) =>
-    bars.some((b) => !b.self && b.participant === participant && b.from <= row && b.to >= row) ? ACTIVATION.width / 2 : 0;
+  // A message leaves and arrives at the edge of the innermost bar open on its row.
+  const reach = (participant: string, row: number) => {
+    const open = bars.filter((b) => !b.self && b.participant === participant && b.from <= row && b.to >= row);
+    return open.length ? ACTIVATION.width / 2 + Math.max(...open.map((b) => b.depth)) * ACTIVATION.nest : 0;
+  };
 
   const out: Record<string, Point[]> = {};
   const labels: Record<string, Point> = {};

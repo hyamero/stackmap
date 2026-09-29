@@ -5929,7 +5929,7 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
             "x": 555,
             "y": 224,
             "width": 10,
-            "height": 140
+            "height": 272
           },
           "depth": 0
         },
@@ -5950,16 +5950,6 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
             "y": 396,
             "width": 10,
             "height": 56
-          },
-          "depth": 0
-        },
-        {
-          "participant": "queue",
-          "rect": {
-            "x": 555,
-            "y": 484,
-            "width": 10,
-            "height": 24
           },
           "depth": 0
         },

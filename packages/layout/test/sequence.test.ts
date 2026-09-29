@@ -79,6 +79,32 @@ describe('activations', () => {
     ]);
   });
 
+  it('a callback while the callee waits on its own call nests a bar, and the replies unwind it', () => {
+    // a→b request; b→c fetch; c→b callback; b→c ack; c→b data; b→a response
+    const bars = activations([
+      m('0', 'a', 'b'),
+      m('1', 'b', 'c'),
+      m('2', 'c', 'b'),
+      m('3', 'b', 'c', { kind: 'return' }),
+      m('4', 'c', 'b', { kind: 'return' }),
+      m('5', 'b', 'a', { kind: 'return' }),
+    ]);
+    expect(bars).toEqual([
+      { participant: 'b', depth: 0, from: 0, to: 5 },
+      { participant: 'c', depth: 0, from: 1, to: 4 },
+      { participant: 'b', depth: 1, from: 2, to: 3 },
+    ]);
+  });
+
+  it('receiving a reply keeps a bar busy', () => {
+    // a→b; b→c; c→b (reply at row 2); d→b: b's first bar runs to row 2, then d's opens.
+    const bars = activations([m('0', 'a', 'b'), m('1', 'b', 'c'), m('2', 'c', 'b', { kind: 'return' }), m('3', 'd', 'b')]);
+    expect(bars.filter((b) => b.participant === 'b')).toEqual([
+      { participant: 'b', depth: 0, from: 0, to: 2 },
+      { participant: 'b', depth: 0, from: 3, to: 3 },
+    ]);
+  });
+
   it('a self-call nests a bar on an active participant', () => {
     expect(activations([m('1', 'a', 'b'), m('2', 'b', 'b'), m('3', 'b', 'a', { kind: 'return' })])).toEqual([
       { participant: 'b', depth: 0, from: 0, to: 2 },
