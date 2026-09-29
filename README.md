@@ -68,7 +68,7 @@ Nine node types set the colour (`client`, `gateway`, `service`, `database`, `cac
 - **Guided views:** tabs the agent defines (“Checkout path”, “Data tier”) that dim everything else and fit the camera. **Present** (`F`) goes full screen and steps through them with the arrow keys.
 - **Radar:** the minimap (`M`) mirrors what's lit and dimmed, and drags the camera.
 - **Share:** state lives in the URL hash (`#view=…&node=…&lens=…&route=…`); export PNG (1×/2×), copy PNG, JPEG, WebP, an SVG snapshot, or a short video of the diagram with its flow animated (WebM, or MP4 where that's what the browser records).
-- **Keyboard:** Tab reaches the toolbar, then the canvas; arrows move between cards, Enter selects, Esc clears; with the canvas focused, arrows pan and `+`/`-`/`0` zoom. Honours reduced motion.
+- **Keyboard:** Tab reaches the toolbar, then the canvas; arrows move between cards, Enter selects (or picks a route end), Esc clears a selection or ends a route; `/`, `R`, `F` and `M` open search, route, presentation and the radar; with the canvas focused, arrows pan and `+`/`-`/`0` zoom. Honours reduced motion.
 
 ## Development
 
