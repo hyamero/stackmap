@@ -15,6 +15,9 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
   const root = useRef<HTMLDivElement>(null);
   const searchButton = useRef<HTMLButtonElement>(null);
   const lensButton = useRef<HTMLButtonElement>(null);
+  // Search opened with `/` appears at once: keyboard actions are never animated.
+  const [searchByKey, setSearchByKey] = useState(false);
+  const originOf = (b: HTMLButtonElement | null) => (b ? `${b.offsetLeft + b.offsetWidth / 2}px 0` : '0 0');
   const closeSearch = () => {
     dispatch({ type: 'search', query: null });
     searchButton.current?.focus();
@@ -37,6 +40,7 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
       if (e.key !== '/' || typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault();
       setLensOpen(false);
+      setSearchByKey(true);
       dispatch({ type: 'search', query: '' });
     };
     addEventListener('keydown', onKey);
@@ -74,6 +78,7 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         expanded={searchOpen}
         onClick={() => {
           setLensOpen(false);
+          setSearchByKey(false);
           dispatch({ type: 'search', query: searchOpen ? null : '' });
         }}
       >
@@ -99,8 +104,8 @@ export function Toolbar({ theme, onToggleTheme }: { theme: ThemeChoice; onToggle
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>
       <ExportMenu />
-      {searchOpen && <SearchPanel onClose={closeSearch} />}
-      {lensOpen && <LensPanel />}
+      {searchOpen && <SearchPanel onClose={closeSearch} origin={searchByKey ? undefined : originOf(searchButton.current)} />}
+      {lensOpen && <LensPanel origin={originOf(lensButton.current)} />}
     </div>
   );
 }

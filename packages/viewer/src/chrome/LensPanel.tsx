@@ -1,12 +1,18 @@
 import { countByType, TYPE_LABELS } from '@stackmap/core';
 import { useExplore } from '../explore/ExploreContext';
+import { useRef } from 'react';
+import { popIn } from '../motion/motion';
+import { useEnter } from '../motion/useEnter';
 import { PANEL_CLASS, PANEL_STYLE } from './ui';
 
 // Escape is handled by the toolbar, so it closes the lens wherever focus is inside it.
-export function LensPanel() {
+export function LensPanel({ origin = '0 0' }: { origin?: string }) {
   const { draft, state, dispatch } = useExplore();
+  const panel = useRef<HTMLFieldSetElement>(null);
+  useEnter(panel, (el) => popIn(el, origin));
   return (
     <fieldset
+      ref={panel}
       className={`${PANEL_CLASS} absolute top-full left-0 z-20 mt-2 w-[240px] p-3`}
       style={PANEL_STYLE}
     >

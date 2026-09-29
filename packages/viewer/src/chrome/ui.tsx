@@ -29,7 +29,7 @@ export function IconButton({
       title={label}
       aria-pressed={pressed}
       onClick={onClick}
-      className="grid size-9 place-items-center rounded-xl text-fg-muted transition-colors hover:bg-page hover:text-fg aria-pressed:bg-page aria-pressed:text-fg"
+      className="sm-press grid size-9 place-items-center rounded-xl text-fg-muted hover:bg-page hover:text-fg aria-pressed:bg-page aria-pressed:text-fg"
     >
       {children}
     </button>

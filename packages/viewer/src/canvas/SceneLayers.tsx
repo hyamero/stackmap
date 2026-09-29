@@ -174,6 +174,7 @@ export const SceneLayers = memo(function SceneLayers({
         e.label && e.mid ? (
           <div
             key={e.id}
+            data-edge-label={e.id}
             data-dim={emphasis.edges.get(e.id)?.dim || undefined}
             className="sm-edge-label pointer-events-none absolute rounded-full bg-panel px-2 py-0.5 font-sans text-[11px] whitespace-nowrap text-fg-muted"
             style={{

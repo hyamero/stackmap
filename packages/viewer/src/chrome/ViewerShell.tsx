@@ -1,9 +1,10 @@
 import { ChevronRight } from 'lucide-react';
-import { useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '../canvas/CanvasPanel';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
 import { ExploreProvider, useExplore } from '../explore/ExploreContext';
+import { revealChrome, slideIndicator } from '../motion/motion';
 import type { ThemeChoice } from '../theme/theme';
 import { IdentityCard } from './IdentityCard';
 import { Inspector } from './Inspector';
@@ -21,6 +22,27 @@ function ViewTabs() {
   const { draft, state, dispatch } = useExplore();
   const tabs = [{ id: null, label: 'Overview', caption: undefined }, ...(draft.views ?? []).map((v) => ({ ...v, id: v.id as string | null }))];
   const current = tabs.find((t) => t.id === state.view) ?? tabs[0]!;
+  // One indicator that slides between tabs, so a view change reads as a move rather than a blink.
+  const bar = useRef<HTMLSpanElement>(null);
+  const placed = useRef<{ x: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    const place = () => {
+      const tab = document.getElementById(tabId(current.id));
+      if (!tab || !bar.current) return null;
+      const to = { x: tab.offsetLeft, width: tab.offsetWidth };
+      bar.current.style.width = `${to.width}px`;
+      bar.current.style.transform = `translateX(${to.x}px)`;
+      return to;
+    };
+    const from = placed.current;
+    const to = place();
+    placed.current = to;
+    // Tab widths change once the web font arrives; follow without animating.
+    void document.fonts?.ready.then(() => (placed.current = place() ?? placed.current));
+    if (!from || !to || (from.x === to.x && from.width === to.width)) return;
+    const motion = slideIndicator(bar.current, from, to);
+    return () => motion.cancel();
+  }, [current.id]);
   // Roving focus across the tablist, per the ARIA tabs pattern.
   const onKeyDown = (e: KeyboardEvent, i: number) => {
     const last = tabs.length - 1;
@@ -33,7 +55,7 @@ function ViewTabs() {
   };
   return (
     <>
-      <div role="tablist" aria-label="Views" className="mt-5 flex gap-7 border-b border-divider">
+      <div role="tablist" aria-label="Views" className="relative mt-5 flex gap-7 border-b border-divider">
         {tabs.map((tab, i) => (
           <button
             key={tab.id ?? 'overview'}
@@ -45,11 +67,12 @@ function ViewTabs() {
             tabIndex={tab === current ? 0 : -1}
             onClick={() => dispatch({ type: 'view', id: tab.id })}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className="-mb-px border-b-2 border-transparent pb-3 text-[14.5px] text-fg-muted aria-selected:border-fg aria-selected:text-fg"
+            className="pb-3 text-[14.5px] text-fg-muted transition-colors duration-150 hover:text-fg aria-selected:text-fg"
           >
             {tab.label}
           </button>
         ))}
+        <span ref={bar} aria-hidden="true" className="pointer-events-none absolute -bottom-px left-0 h-0.5 rounded-full bg-fg" />
       </div>
       {current.caption && <p className="mt-3 text-[13px] text-fg-muted">{current.caption}</p>}
     </>
@@ -67,9 +90,16 @@ export function ViewerShell({
 }) {
   const { draft } = diagram;
   const [inspectorCollapsed, setInspectorCollapsed] = useState(() => innerWidth < INSPECTOR_BREAKPOINT);
+  const shell = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = shell.current;
+    if (!root) return;
+    const motion = revealChrome([...root.querySelectorAll<HTMLElement>('.sm-panel, aside[aria-label="Inspector"]')]);
+    return () => motion.cancel();
+  }, []);
   return (
     <ExploreProvider draft={draft}>
-      <div className="flex h-full flex-col bg-page font-sans text-fg">
+      <div ref={shell} className="flex h-full flex-col bg-page font-sans text-fg">
         <header className="px-8 pt-6">
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[14px] text-fg-muted">
             <span>stackmap</span>

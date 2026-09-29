@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { LaidOutDiagram, Rect } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
+import { useSceneReveal } from '../motion/useSceneReveal';
 import { useExplore } from '../explore/ExploreContext';
 import { CanvasPanel } from './CanvasPanel';
 import { Minimap } from './Minimap';
@@ -79,6 +80,7 @@ function DotGrid({ x, y, k }: Transform) {
 export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; children?: ReactNode }) {
   const scene = useMemo(() => toScene(diagram), [diagram]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const viewport = useZoom(stageRef, scene.content);
   // Exports frame everything drawn: edge routes can swing outside the card/frame box (U-turns).
   const exportBox = useMemo(() => {
@@ -90,6 +92,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
   const [minimap, setMinimap] = useState(false);
   const { x, y, k } = viewport.transform;
   useCameraEffects(scene, camera, viewport.restored);
+  useSceneReveal(sceneRef, scene, viewport.restored);
 
   // Keys when the stage itself has focus (cards handle their own and stop propagation).
   const onKeyDown = (e: KeyboardEvent) => {
@@ -128,6 +131,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
         >
           <DotGrid {...viewport.transform} />
           <div
+            ref={sceneRef}
             className="sm-viewport absolute top-0 left-0 origin-top-left"
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
           >

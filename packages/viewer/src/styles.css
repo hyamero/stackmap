@@ -46,14 +46,33 @@ body {
 
 /* Explorer emphasis (M3). Opacity only: layout never changes in the viewer. */
 .sm-card,
-.sm-edge-path,
 .sm-edge-label {
   transition: opacity 150ms ease;
+}
+.sm-edge-path {
+  transition:
+    opacity 150ms ease,
+    stroke 150ms ease,
+    stroke-width 150ms ease;
+}
+/* While a connection draws in (intro), its arrowhead waits at the far end; hide it until the line arrives. */
+.sm-edge-path[data-drawing] {
+  marker-end: none;
 }
 .sm-card[data-emphasis='dim'],
 .sm-edge-path[data-dim],
 .sm-edge-label[data-dim] {
   opacity: 0.22;
+}
+/* Pressables answer the press: a 4% dip, released quickly. */
+.sm-press {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.sm-press:active:not(:disabled) {
+  transform: scale(0.96);
 }
 .sm-card {
   border-radius: 14px;
