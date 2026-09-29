@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { deliverCommand, validateCommand, type CommandResult } from './commands';
 import { serve } from './serve';
+import { styleFor } from './style';
 
 // Injected by tsup (define), so the bundle doesn't carry the whole package.json.
 declare const __STACKMAP_VERSION__: string;
@@ -21,6 +22,15 @@ Options:
   -h, --help     show this help
   -v, --version  show the version
 `;
+
+const style = styleFor(process.stdout);
+
+// On a TTY a command's stdout goes under the banner, indented like the brand's CLI sample.
+const sign = (command: string, text: string) => {
+  const banner = style.banner(command);
+  return banner && text ? banner + text.replace(/^(?=.)/gm, '  ') : text;
+};
+const signed = (command: string, r: CommandResult): CommandResult => ({ ...r, stdout: sign(command, r.stdout) });
 
 async function run(argv: string[]): Promise<CommandResult> {
   let parsed;
@@ -50,7 +60,7 @@ async function run(argv: string[]): Promise<CommandResult> {
   if (values.port !== undefined && command !== 'serve') return usage('--port applies to serve');
   if (command === 'validate') {
     if (values.out !== undefined) return usage('-o/--out applies to deliver, not validate');
-    return validateCommand(file, { json: !!values.json });
+    return values.json ? validateCommand(file, { json: true }) : signed(command, await validateCommand(file, { json: false }));
   }
   if (values.json) return usage(`--json applies to validate, not ${command}`);
   if (command === 'serve' && values.out !== undefined) return usage('-o/--out applies to deliver, not serve');
@@ -60,12 +70,12 @@ async function run(argv: string[]): Promise<CommandResult> {
   } catch (e) {
     return { code: 2, stdout: '', stderr: `stackmap: internal error: viewer template missing (${(e as Error).message})\n` };
   }
-  if (command === 'deliver') return deliverCommand(file, { template, out: values.out });
+  if (command === 'deliver') return signed(command, await deliverCommand(file, { template, out: values.out, style }));
 
   const port = values.port === undefined ? 4400 : Number(values.port);
   if (!Number.isInteger(port) || port < 0 || port > 65535) return usage(`--port must be 0-65535, got "${values.port}"`);
   const server = await serve(file, { template, port, log: (line) => process.stderr.write(`${line}\n`) });
-  process.stdout.write(`serving ${server.url} · watching ${file} · Ctrl-C to stop\n`);
+  process.stdout.write(sign(command, `serving ${style.path(server.url)} · watching ${file} · Ctrl-C to stop\n`));
   await new Promise<void>((resolve) => process.once('SIGINT', resolve));
   await server.close();
   return { code: 0, stdout: '', stderr: '' };

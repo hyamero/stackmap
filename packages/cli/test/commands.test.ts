@@ -74,6 +74,12 @@ describe('deliver', () => {
     expect(bytes.toString()).toContain('<title>Platform · stackmap</title>');
   });
 
+  it('styles the written path when given a terminal style', async () => {
+    const style = { banner: () => '', path: (t: string) => `<${t}>` };
+    const r = await deliverCommand(file('d.json', commerceApi), { template: TEMPLATE, style });
+    expect(r.stdout).toMatch(new RegExp(`^delivered <${join(dir, 'd.html')}> · sha256 `));
+  });
+
   it('is byte-identical across runs', async () => {
     const input = file('d.json', commerceApi);
     const a = await deliverCommand(input, { template: TEMPLATE, out: join(dir, 'a.html') });
