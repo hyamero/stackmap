@@ -199,7 +199,7 @@ export function ExportMenu() {
         </div>
       )}
       <span role="status" className="sr-only">
-        {status.kind === 'done' || status.kind === 'error' ? status.text : ''}
+        {status.kind === 'done' || status.kind === 'error' ? status.text : status.kind === 'busy' ? (status.text ?? 'Exporting…') : ''}
       </span>
       {status.kind === 'error' && (
         <p className="absolute top-full right-0 mt-2 w-max max-w-[260px] rounded-lg bg-panel px-3 py-2 text-[12px] text-fg" style={PANEL_STYLE}>

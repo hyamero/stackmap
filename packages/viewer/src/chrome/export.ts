@@ -164,7 +164,7 @@ export interface FlowEdge {
   start: number;
 }
 
-export const VIDEO = { duration: 6000, period: 3000, travel: 1200, fps: 30, maxWidth: 1920 } as const;
+export const VIDEO = { duration: 6000, period: 3000, travel: 1200, fps: 30, maxWidth: 1920, maxHeight: 1080 } as const;
 
 /**
  * A short video of the diagram with its flow animated: the snapshot every export uses, and a pulse running
@@ -173,7 +173,8 @@ export const VIDEO = { duration: 6000, period: 3000, travel: 1200, fps: 30, maxW
 export async function exportVideo(content: SceneRect, edges: FlowEdge[], type: string): Promise<Blob> {
   const width = Math.ceil(content.width + 2 * EXPORT_PADDING);
   const height = Math.ceil(content.height + 2 * EXPORT_PADDING);
-  const scale = Math.min(effectiveScale(width, height, 2), VIDEO.maxWidth / width);
+  // A frame the encoder can keep up with: the whole diagram inside 1920×1080.
+  const scale = Math.min(effectiveScale(width, height, 2), VIDEO.maxWidth / width, VIDEO.maxHeight / height);
   const { node, opts } = await options(content, scale);
   const base = await toCanvas(node, opts);
   const out = document.createElement('canvas');
@@ -205,21 +206,32 @@ export async function exportVideo(content: SceneRect, edges: FlowEdge[], type: s
   const stream = out.captureStream(VIDEO.fps);
   const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 8_000_000 });
   const chunks: Blob[] = [];
+  let failure: Error | null = null;
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onerror = () => (failure = new Error('the browser stopped recording'));
   const stopped = new Promise<void>((resolve) => (recorder.onstop = () => resolve()));
+  // A hidden tab stops drawing frames; say so rather than save a frozen video.
+  const onHidden = () => document.hidden && (failure ??= new Error('the tab was hidden while recording'));
+  document.addEventListener('visibilitychange', onHidden);
   recorder.start();
   const began = performance.now();
-  await new Promise<void>((resolve) => {
-    const tick = () => {
-      const ms = performance.now() - began;
-      frame(ms);
-      if (ms < VIDEO.duration) requestAnimationFrame(tick);
-      else resolve();
-    };
-    requestAnimationFrame(tick);
-  });
-  recorder.stop();
-  await stopped;
-  stream.getTracks().forEach((t) => t.stop());
+  try {
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        const ms = performance.now() - began;
+        frame(ms);
+        if (ms < VIDEO.duration && !failure) requestAnimationFrame(tick);
+        else resolve();
+      };
+      requestAnimationFrame(tick);
+    });
+  } finally {
+    document.removeEventListener('visibilitychange', onHidden);
+    if (recorder.state !== 'inactive') recorder.stop();
+    await stopped;
+    stream.getTracks().forEach((t) => t.stop());
+  }
+  if (failure) throw failure;
+  if (!chunks.length) throw new Error('the recording came out empty');
   return new Blob(chunks, { type: type.split(';')[0] });
 }
