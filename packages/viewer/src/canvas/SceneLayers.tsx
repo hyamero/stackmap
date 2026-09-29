@@ -32,7 +32,7 @@ function handleStyle(side: 'in' | 'out', horizontal: boolean): CSSProperties {
     : { left: '50%', bottom: 0, transform: 'translate(-50%, 50%)' };
 }
 
-function Frame({ frame, compact }: { frame: SceneFrame; compact: boolean }) {
+function Frame({ frame, compact, onLane }: { frame: SceneFrame; compact: boolean; onLane: boolean }) {
   // Q18: groups aren't in the refs — thin dashed container, faint fill, sentence-case label in the label band.
   // A trust boundary (`tone: security`) takes the security tint and a shield.
   const secure = frame.tone === 'security';
@@ -45,7 +45,7 @@ function Frame({ frame, compact }: { frame: SceneFrame; compact: boolean }) {
         ...place(frame.rect),
         borderColor: secure ? 'var(--sm-security-accent)' : 'var(--sm-group-border)',
         // Lane layouts put groups on the lane band; a second fill would read as a lane of its own.
-        background: compact ? 'transparent' : 'var(--sm-group-fill)',
+        background: onLane ? 'transparent' : 'var(--sm-group-fill)',
       }}
     >
       <div
@@ -74,7 +74,8 @@ function Lane({ lane }: { lane: SceneLane }) {
         border: exception ? '1px dashed var(--sm-group-border)' : undefined,
       }}
     >
-      <div className="flex w-[136px] items-start gap-1.5 px-4 pt-4 text-[12.5px] leading-[18px] font-medium break-words text-fg-muted">
+      {/* 128px: the layout keeps edges out of the rail's first 116px (LANE_HEAD - 28). */}
+      <div className="flex w-[128px] items-start gap-1.5 px-4 pt-4 text-[12.5px] leading-[18px] font-medium break-words text-fg-muted">
         {exception && <TriangleAlert size={13} strokeWidth={1.75} aria-hidden="true" className="mt-[2.5px] shrink-0" />}
         <span className="min-w-0">{lane.label}</span>
       </div>
@@ -91,7 +92,12 @@ function Phase({ phase, style, direction }: { phase: ScenePhase; style: Scene['p
         className="sm-phase absolute rounded-[18px] border border-dashed"
         style={{ ...place(phase.rect), borderColor: 'var(--sm-group-border)', background: 'var(--sm-group-fill)' }}
       >
-        <div className={`flex h-11 items-center px-5 text-[12.5px] font-medium text-fg-muted ${direction === 'RIGHT' ? 'justify-center' : ''}`}>{phase.label}</div>
+        <div className={`flex h-11 items-center px-5 text-[12.5px] font-medium text-fg-muted ${direction === 'RIGHT' ? 'justify-center' : ''}`}>
+          {/* DOWN bands keep their label in the layout's 160px left gutter. */}
+          <span className={`truncate ${direction === 'RIGHT' ? '' : 'max-w-[140px]'}`} title={phase.label}>
+            {phase.label}
+          </span>
+        </div>
       </div>
     );
   }
@@ -207,7 +213,7 @@ export const SceneLayers = memo(function SceneLayers({
         <Phase key={p.id} phase={p} style={scene.phaseStyle} direction={scene.direction} />
       ))}
       {scene.frames.map((f) => (
-        <Frame key={f.id} frame={f} compact={scene.compact} />
+        <Frame key={f.id} frame={f} compact={scene.compact} onLane={scene.lanes.length > 0} />
       ))}
       <svg
         aria-hidden="true"
