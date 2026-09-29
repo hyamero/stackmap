@@ -16,6 +16,7 @@ export const commerceApi: DiagramDraft = {
   kind: 'architecture',
   title: 'Commerce API',
   subtitle: 'Production topology',
+  source: { url: 'https://github.com/hyamero/stackmap/blob/main' },
   direction: 'RIGHT',
   nodes: [
     {
@@ -33,6 +34,10 @@ export const commerceApi: DiagramDraft = {
     api(3),
     {
       id: 'orders',
+      evidence: [
+        { file: 'infra/orders/postgres.tf', line: 12, note: 'Primary + 2 read replicas' },
+        { file: 'services/api/src/db.ts', line: 8 },
+      ],
       type: 'database',
       card: {
         title: 'Orders',
@@ -44,7 +49,7 @@ export const commerceApi: DiagramDraft = {
         ],
         statsNote: '2 replication links',
         footer: { left: { text: 'EU West', icon: 'region' }, right: { text: '3 members', icon: 'members' } },
-        cta: { label: 'Open cluster' },
+        cta: { label: 'Open cluster', href: 'https://console.example.com/clusters/orders' },
       },
     },
     {
@@ -60,7 +65,7 @@ export const commerceApi: DiagramDraft = {
         ],
         statsNote: '3 replication links',
         footer: { left: { text: 'EU West', icon: 'region' }, right: { text: '6 members', icon: 'members' } },
-        cta: { label: 'Open cluster' },
+        cta: { label: 'Open cluster', href: 'https://console.example.com/clusters/sessions' },
       },
     },
   ],

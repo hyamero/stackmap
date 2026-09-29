@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "Optional; set it to `https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json` for editor completion.",
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "architecture",
+        "dataflow"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "subtitle": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "source": {
+      "description": "Base URL for evidence links: `<url>/<file>#L<line>`.",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "pattern": "^https?:\\/\\/\\S+$"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "direction": {
+      "description": "Layout flow. Default RIGHT; prefer DOWN for tiered/grouped diagrams.",
+      "type": "string",
+      "enum": [
+        "RIGHT",
+        "DOWN"
+      ]
+    },
+    "groups": {
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "label": {
+            "type": "string",
+            "pattern": "\\S",
+            "description": "Shown small-caps above the frame."
+          },
+          "parent": {
+            "description": "Id of the enclosing group, for nesting.",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "nodes": {
+      "minItems": 1,
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "client",
+              "service",
+              "gateway",
+              "database",
+              "cache",
+              "queue",
+              "storage",
+              "external",
+              "security"
+            ],
+            "description": "Sets the card color. Never color by brand."
+          },
+          "group": {
+            "description": "Id of the group the node sits in.",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "card": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "pattern": "\\S",
+                "description": "Card title. Must fit the card; `stackmap validate` reports the character budget."
+              },
+              "subtitle": {
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "brand": {
+                "description": "simple-icons slug shown in the icon tile, e.g. \"postgresql\".",
+                "type": "string"
+              },
+              "rows": {
+                "description": "Key/value rows. `mono` renders the value in Geist Mono (ports, IPs).",
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "value": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "mono": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "stats": {
+                "description": "Stat tiles, e.g. replica counts.",
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    "label": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "statsNote": {
+                "description": "Line under the stat tiles; only shown with stats.",
+                "type": "string",
+                "pattern": "\\S"
+              },
+              "footer": {
+                "type": "object",
+                "properties": {
+                  "left": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "icon": {
+                        "type": "string",
+                        "enum": [
+                          "region",
+                          "secure",
+                          "members"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "right": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      },
+                      "icon": {
+                        "type": "string",
+                        "enum": [
+                          "region",
+                          "secure",
+                          "members"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "cta": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  },
+                  "href": {
+                    "type": "string",
+                    "pattern": "^https?:\\/\\/\\S+$"
+                  }
+                },
+                "required": [
+                  "label"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "evidence": {
+            "description": "Source locations backing this node; listed in the inspector.",
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "pattern": "^(?!\\/)(?!.*(?:^|\\/)\\.\\.(?:\\/|$))(?!.*\\\\)(?!.*:\\/\\/).*\\S.*$",
+                  "description": "Repo-relative path, e.g. \"src/orders/api.ts\"."
+                },
+                "line": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "note": {
+                  "type": "string",
+                  "pattern": "\\S"
+                }
+              },
+              "required": [
+                "file"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "card"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "maxItems": 2000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Source node id."
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "description": "Target node id."
+          },
+          "label": {
+            "description": "Short label; use sparingly.",
+            "type": "string",
+            "maxLength": 24,
+            "pattern": "\\S"
+          },
+          "kind": {
+            "description": "async edges render dashed.",
+            "type": "string",
+            "enum": [
+              "sync",
+              "async"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "to"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "views": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "label": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "caption": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_-]*$"
+            },
+            "description": "Node ids this guided view focuses; the rest are dimmed."
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "nodes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "kind",
+    "title",
+    "nodes",
+    "edges"
+  ],
+  "additionalProperties": false,
+  "title": "stackmap diagram",
+  "description": "Agent-authored diagram. Layout is computed by stackmap; never give coordinates.",
+  "$id": "https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json"
+}

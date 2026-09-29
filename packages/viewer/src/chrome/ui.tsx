@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 
 export const PANEL_CLASS = 'rounded-2xl bg-panel';
 export const PANEL_STYLE: CSSProperties = {
@@ -9,16 +9,22 @@ export function IconButton({
   label,
   onClick,
   pressed,
+  expanded,
+  ref,
   children,
 }: {
   label: string;
   onClick?: () => void;
   pressed?: boolean;
+  expanded?: boolean;
+  ref?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
+      aria-expanded={expanded}
       aria-label={label}
       title={label}
       aria-pressed={pressed}

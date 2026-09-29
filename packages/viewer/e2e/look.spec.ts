@@ -42,7 +42,7 @@ test.describe('accessibility', () => {
   test('cards are named for assistive tech and nothing suggests editing', async ({ page }) => {
     await page.goto('/?page=sample');
     await expect(page.getByRole('region', { name: 'Diagram canvas' })).toBeVisible();
-    await expect(page.getByRole('group', { name: 'Orders, Database' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Orders, Database' })).toBeVisible();
     const aria = await page.$$eval('.sm-stage [aria-label], .sm-stage [aria-describedby]', (els) =>
       els.map((e) => `${e.getAttribute('aria-label') ?? ''} ${e.getAttribute('aria-describedby') ?? ''}`.toLowerCase()).join(' '),
     );

@@ -121,18 +121,29 @@ export function NodeCard({ node }: { node: DiagramNode }) {
 
       {card.cta && (
         <div data-testid="card-cta" className="shrink-0 px-3" style={{ height: CARD.cta }}>
-          <a
-            href={card.cta.href}
-            target="_blank"
-            rel="noreferrer"
-            className="flex h-9 items-center justify-between rounded-lg px-3 text-[13px] font-medium text-fg"
-            style={{ background: tint('tile') }}
-          >
-            <span className="truncate" title={card.cta.label}>
-              {card.cta.label}
-            </span>
-            <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: tint('accent') }} />
-          </a>
+          {card.cta.href ? (
+            <a
+              href={card.cta.href}
+              // Not a tab stop inside the card (nested interactive); the inspector repeats the link.
+              tabIndex={-1}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-9 items-center justify-between rounded-lg px-3 text-[13px] font-medium text-fg"
+              style={{ background: tint('tile') }}
+            >
+              <span className="truncate" title={card.cta.label}>
+                {card.cta.label}
+              </span>
+              <ArrowUpRight size={15} strokeWidth={1.75} aria-hidden="true" style={{ color: tint('accent') }} />
+            </a>
+          ) : (
+            // No link: same tile, but no arrow promising navigation that isn't there.
+            <div className="flex h-9 items-center rounded-lg px-3 text-[13px] font-medium text-fg" style={{ background: tint('tile') }}>
+              <span className="truncate" title={card.cta.label}>
+                {card.cta.label}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

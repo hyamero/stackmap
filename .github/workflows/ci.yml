@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update-visual:
+        description: Regenerate the visual baselines and upload them as an artifact
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: test · typecheck · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - run: bun run test
+      - run: bun run typecheck
+      - run: bun run build
+      - name: CLI smoke (deliver is deterministic)
+        run: node packages/cli/scripts/smoke.mjs
+
+  e2e:
+    name: e2e · visual
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # The same image the visual baselines were generated in, so fonts rasterise identically.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g bun@1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Viewer e2e and visual regression
+        working-directory: packages/viewer
+        run: bunx playwright test ${{ inputs.update-visual && '--update-snapshots=all' || '' }}
+      - name: Delivered-file and live-serve e2e
+        if: success() || failure()
+        working-directory: packages/cli
+        run: bunx playwright test
+      # Always: a missing baseline is written by Playwright, and this is how it gets back into the repo.
+      - name: Upload visual snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: packages/viewer/e2e/visual.spec.ts-snapshots/
+      - name: Upload Playwright results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            packages/viewer/test-results/
+            packages/cli/test-results/

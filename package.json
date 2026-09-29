@@ -12,7 +12,7 @@
   "scripts": {
     "test": "bun run --filter './packages/*' test",
     "typecheck": "bun run --filter './packages/*' typecheck",
-    "build": "bun run --filter './packages/*' build"
+    "build": "bun run --filter @stackmap/viewer build && bun run --filter @hyamero/stackmap build"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

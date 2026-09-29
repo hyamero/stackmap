@@ -42,11 +42,20 @@ export interface CardData {
   cta?: { label: string; href?: string };
 }
 
+/** Where in the codebase a node comes from; shown in the inspector, never on the card. */
+export interface Evidence {
+  /** repo-relative path */
+  file: string;
+  line?: number;
+  note?: string;
+}
+
 export interface DiagramNode {
   id: string;
   type: NodeType;
   group?: string;
   card: CardData;
+  evidence?: Evidence[];
 }
 
 export interface DiagramEdge {
@@ -77,6 +86,8 @@ export interface DiagramDraft {
   title: string;
   subtitle?: string;
   direction?: Direction;
+  /** base URL evidence files are linked under, e.g. "https://github.com/acme/shop/blob/main" */
+  source?: { url: string };
   groups?: DiagramGroup[];
   nodes: DiagramNode[];
   edges: DiagramEdge[];
