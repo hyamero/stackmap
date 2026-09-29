@@ -29,7 +29,7 @@ const rich = (type: NodeType): DiagramNode => {
         : undefined,
       statsNote: clustered ? '2 replication links' : undefined,
       footer: { left: { text: 'EU West', icon: 'region' }, right: { text: clustered ? '3 members' : 'Stateless' } },
-      cta: clustered ? { label: 'Open cluster' } : undefined,
+      cta: clustered ? { label: 'Open cluster', href: `https://console.example.com/clusters/${type}` } : undefined,
     },
   };
 };

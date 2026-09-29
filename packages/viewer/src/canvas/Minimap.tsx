@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react';
+import { useRef, type PointerEvent } from 'react';
 import type { Rect } from '@stackmap/core';
 import { PANEL_CLASS, PANEL_STYLE } from '../chrome/ui';
 import type { Scene } from './scene';
@@ -26,24 +26,39 @@ export function Minimap({ scene }: { scene: Scene }) {
     height: Math.max(box.y + box.height, view.y + view.height) - y0,
   };
 
-  const onClick = (e: MouseEvent<SVGSVGElement>) => {
+  // Press to jump there; keep the button down and drag to steer the canvas live.
+  const dragging = useRef(false);
+  const toDiagram = (e: PointerEvent<SVGSVGElement>) => {
     const ctm = e.currentTarget.getScreenCTM();
-    if (!ctm) return;
-    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return ctm && new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+  };
+  const onPointerDown = (e: PointerEvent<SVGSVGElement>) => {
+    const p = toDiagram(e);
+    if (!p) return;
+    dragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
     centerOn({ x: p.x, y: p.y });
   };
+  const onPointerMove = (e: PointerEvent<SVGSVGElement>) => {
+    const p = dragging.current && toDiagram(e);
+    if (p) centerOn({ x: p.x, y: p.y }, { instant: true });
+  };
+  const stop = () => void (dragging.current = false);
 
   return (
     <div className={`${PANEL_CLASS} p-1.5`} style={PANEL_STYLE}>
       <svg
         role="img"
         aria-label="Minimap"
-        className="sm-minimap block cursor-pointer overflow-visible"
+        className="sm-minimap block cursor-pointer overflow-visible touch-none select-none"
         width={WIDTH}
         height={height}
         viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
         preserveAspectRatio="xMidYMid meet"
-        onClick={onClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={stop}
+        onPointerCancel={stop}
       >
         {scene.frames.map((f) => (
           <rect

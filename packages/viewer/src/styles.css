@@ -37,6 +37,13 @@ body {
   border: 1.5px solid var(--sm-handle);
 }
 
+/* The canvas is a drag surface: no text selection on drag, no page scroll/zoom on touch (d3-zoom owns it). */
+.sm-stage {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
 /* Explorer emphasis (M3). Opacity only: layout never changes in the viewer. */
 .sm-card,
 .sm-edge-path,

@@ -56,6 +56,7 @@ export function cardTextSlots(card: CardData): TextSlot[] {
     if (item) add(`/footer/${side}/text`, item.text, 'sans400', 12, half - (item.icon ? 13 + 6 : 0));
   }
 
-  add('/cta/label', card.cta?.label, 'sans500', 13, PANEL - 2 * 12 - 15); // px-3 link, 15px arrow
+  // px-3 tile; a linked CTA also shows a 15px arrow.
+  add('/cta/label', card.cta?.label, 'sans500', 13, PANEL - 2 * 12 - (card.cta?.href ? 15 : 0));
   return slots;
 }

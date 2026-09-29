@@ -303,3 +303,56 @@ test('a view fits its members clear of the toolbar and zoom bar', async ({ page 
     }
   }
 });
+
+test('holding an arrow key pans the full distance for every repeat', async ({ page }) => {
+  const start = await viewportOf(page);
+  await page.locator('.sm-stage').focus();
+  await page.keyboard.down('ArrowRight');
+  for (let i = 0; i < 4; i++) await page.keyboard.down('ArrowRight'); // auto-repeat
+  await page.keyboard.up('ArrowRight');
+  await settle(page);
+  expect((await viewportOf(page)).x).toBeCloseTo(start.x - 5 * 80, 0);
+});
+
+test('dragging on the minimap pans the canvas with the pointer', async ({ page }) => {
+  await page.getByRole('button', { name: 'Toggle minimap' }).click();
+  const map = (await page.locator('svg.sm-minimap').boundingBox())!;
+  const before = await viewportOf(page);
+  await page.mouse.move(map.x + map.width * 0.3, map.y + map.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(map.x + map.width * 0.7, map.y + map.height / 2, { steps: 6 });
+  const mid = await viewportOf(page);
+  await page.mouse.up();
+  expect(mid.x).toBeLessThan(before.x - 50); // moved during the drag, not only on release
+  expect(mid.k).toBeCloseTo(before.k, 5);
+});
+
+test('the canvas neither selects text nor scrolls the page on touch', async ({ page }) => {
+  const style = await page.locator('.sm-stage').evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { select: s.userSelect, touch: s.touchAction };
+  });
+  expect(style).toEqual({ select: 'none', touch: 'none' });
+});
+
+test('a canvas that mounts at zero size fits once it gets one, without errors', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // A constructed sheet survives document parsing (a <style> added this early doesn't).
+  await page.addInitScript(() => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync('section[aria-label="Diagram"] { height: 0 !important; flex: none !important; }');
+    document.adoptedStyleSheets = [sheet];
+  });
+  await page.goto('/?page=sample');
+  await expect(page.locator('.sm-card')).toHaveCount(6);
+  expect((await page.locator('.sm-stage').boundingBox())!.height).toBe(0);
+  await page.evaluate(() => (document.adoptedStyleSheets = []));
+  await settle(page);
+  const stage = (await page.locator('.sm-stage').boundingBox())!;
+  for (const id of ['edge', 'orders', 'commerce-api-3']) {
+    const c = (await card(page, id).boundingBox())!;
+    expect(c.x >= stage.x && c.y >= stage.y && c.x + c.width <= stage.x + stage.width && c.y + c.height <= stage.y + stage.height, id).toBe(true);
+  }
+  expect(errors).toEqual([]); // a zero-size zoom animation used to render NaN transforms
+});

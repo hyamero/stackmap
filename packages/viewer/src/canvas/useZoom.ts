@@ -7,14 +7,19 @@ import { clearStoredViewport, readStoredViewport } from '../live';
 import { CHROME_INSET, fitTransform, MAX_ZOOM, MIN_ZOOM, viewportRect, ZOOM_STEP, type Size, type Transform } from './viewport';
 
 /** Camera moves. Stable across renders, so consumers don't re-render on every pan/zoom frame. */
+/** `instant` skips the animation: drags and key auto-repeat would otherwise interrupt it every frame. */
+export interface MoveOptions {
+  instant?: boolean;
+}
+
 export interface Camera {
   zoomIn(): void;
   zoomOut(): void;
   fit(): void;
-  centerOn(p: Point): void;
+  centerOn(p: Point, opts?: MoveOptions): void;
   /** Fit an arbitrary diagram-space rect (e.g. a view's members), never zooming past 100%. */
   fitRect(r: Rect): void;
-  panBy(dx: number, dy: number): void;
+  panBy(dx: number, dy: number, opts?: MoveOptions): void;
   /** Pan the least distance that brings `r` fully on stage; no-op when it already is. */
   ensureVisible(r: Rect): void;
 }
@@ -27,13 +32,15 @@ export interface ViewportApi extends Camera {
   restored: boolean;
 }
 
-const duration = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
+const duration = (opts?: MoveOptions) => (opts?.instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
 const toZoom = (t: Transform) => zoomIdentity.translate(t.x, t.y).scale(t.k);
 
 export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rect): ViewportApi {
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
   const current = useRef(transform);
   current.current = transform;
+  // Where an animated pan is heading, so a press during the animation adds to it instead of losing the rest.
+  const pending = useRef<Transform | null>(null);
   const [stage, setStage] = useState<Size>({ width: 0, height: 0 });
   const behavior = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
   // Read once per mount; `stackmap serve` stores the camera right before it reloads the page.
@@ -46,6 +53,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     const z = zoom<HTMLDivElement, unknown>()
       .scaleExtent([MIN_ZOOM, MAX_ZOOM])
       .on('zoom', (event: D3ZoomEvent<HTMLDivElement, unknown>) => {
+        if (event.sourceEvent) pending.current = null; // the user took over
         const { x, y, k } = event.transform;
         setTransform({ x, y, k });
       });
@@ -57,11 +65,20 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     setStage(size);
     sel.call(z.transform, toZoom(stored ?? fitTransform(content, size, { inset: CHROME_INSET })));
     if (stored) clearStoredViewport();
+    // A stage that mounts hidden or collapsed has no size to fit to; fit on its first real one instead.
+    let fitted = stored !== null || (size.width > 0 && size.height > 0);
 
     const observer =
       typeof ResizeObserver === 'undefined'
         ? null
-        : new ResizeObserver(() => setStage({ width: el.clientWidth, height: el.clientHeight }));
+        : new ResizeObserver(() => {
+            const next = { width: el.clientWidth, height: el.clientHeight };
+            setStage(next);
+            if (!fitted && next.width > 0 && next.height > 0) {
+              fitted = true;
+              sel.call(z.transform, toZoom(fitTransform(content, next, { inset: CHROME_INSET })));
+            }
+          });
     observer?.observe(el);
     return () => {
       observer?.disconnect();
@@ -74,7 +91,8 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     (apply: (z: ZoomBehavior<HTMLDivElement, unknown>, el: HTMLDivElement) => void) => {
       const el = stageRef.current;
       const z = behavior.current;
-      if (el && z) apply(z, el);
+      // A 0×0 stage has nothing to show, and d3's zoom interpolation divides by its size (NaN transform).
+      if (el && z && el.clientWidth > 0 && el.clientHeight > 0) apply(z, el);
     },
     [stageRef],
   );
@@ -99,10 +117,13 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
   );
   // Centre between the chrome bands, not on the raw stage, so the node doesn't sit under the toolbar.
   const centerOn = useCallback(
-    (p: Point) =>
+    (p: Point, opts?: MoveOptions) =>
       animate((z, el) => {
         const anchor: [number, number] = [el.clientWidth / 2, (el.clientHeight + CHROME_INSET.top - CHROME_INSET.bottom) / 2];
-        select(el).transition().duration(duration()).call(z.translateTo, p.x, p.y, anchor);
+        pending.current = null;
+        // A 0ms transition still lands a frame later, so rapid instant moves would cancel each other.
+        if (opts?.instant) select(el).interrupt().call(z.translateTo, p.x, p.y, anchor);
+        else select(el).transition().duration(duration()).call(z.translateTo, p.x, p.y, anchor);
       }),
     [animate],
   );
@@ -123,8 +144,24 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     [animate],
   );
   const panBy = useCallback(
-    (dx: number, dy: number) =>
-      animate((z, el) => select(el).transition().duration(duration()).call(z.translateBy, dx / current.current.k, dy / current.current.k)),
+    (dx: number, dy: number, opts?: MoveOptions) =>
+      animate((z, el) => {
+        const base = pending.current ?? current.current;
+        const next = { x: base.x + dx, y: base.y + dy, k: base.k };
+        if (duration(opts) === 0) {
+          pending.current = null;
+          select(el).interrupt().call(z.transform, toZoom(next));
+          return;
+        }
+        pending.current = next;
+        select(el)
+          .transition()
+          .duration(duration())
+          .call(z.transform, toZoom(next))
+          .on('end', () => {
+            if (pending.current === next) pending.current = null;
+          });
+      }),
     [animate],
   );
   const ensureVisible = useCallback(

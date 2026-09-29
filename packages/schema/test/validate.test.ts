@@ -115,6 +115,15 @@ describe('validateDiagram', () => {
       expect(id!.allowedFixes).toEqual([expect.stringMatching(/^remove "id"/)]);
     });
 
+    it('an edge label limit counts characters, not UTF-16 units (emoji)', () => {
+      const emoji = '🚀'.repeat(13); // 13 characters, 26 UTF-16 units
+      expect(diags(base({ edges: [{ id: 'ab', from: 'a', to: 'b', label: emoji }] }))).toEqual([]);
+      expect(diags(base({ edges: [{ id: 'ab', from: 'a', to: 'b', label: '🚀'.repeat(25) }] }))[0]).toMatchObject({
+        subject: '/edges/0/label',
+        allowedFixes: ['shorten "label" to at most 24 characters'],
+      });
+    });
+
     it('limits say how far to cut', () => {
       const stats = Array.from({ length: 4 }, (_, i) => ({ value: String(i), label: 'x' }));
       expect(diags(base({ nodes: [node('a', { card: { title: 'a', stats } })] }))[0]).toMatchObject({

@@ -14,9 +14,12 @@ export const exportFileName = (title: string, ext: string) =>
       .replace(/^-|-$/g, '') || 'diagram'
   }.${ext}`;
 
-/** The requested scale, or less when the canvas would pass CANVAS_MAX on its longest side. */
+/** Canvas area Safari/WebKit renders; past it the canvas silently comes out blank. */
+export const CANVAS_AREA_MAX = 16_777_216;
+
+/** The requested scale, or less when the canvas would pass either browser limit. */
 export const effectiveScale = (width: number, height: number, scale: number) =>
-  Math.min(scale, CANVAS_MAX / Math.max(width, height));
+  Math.min(scale, CANVAS_MAX / Math.max(width, height), Math.sqrt(CANVAS_AREA_MAX / (width * height)));
 
 // Only properties that change how a card, frame or edge looks. Copying every computed property
 // inline made a 6-card SVG 1.4 MB (a 500-node one ~90 MB).

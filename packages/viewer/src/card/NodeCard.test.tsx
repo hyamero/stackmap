@@ -91,4 +91,21 @@ describe('NodeCard', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noreferrer');
   });
+
+  it('a CTA without href is plain text, not a link-looking button', () => {
+    const { container } = render(<NodeCard node={{ id: 'n', type: 'database', card: { title: 'Orders', cta: { label: 'Open cluster' } } }} />);
+    const cta = container.querySelector('[data-testid="card-cta"]')!;
+    expect(cta.querySelector('a')).toBeNull();
+    expect(cta.querySelector('svg')).toBeNull(); // no arrow promising navigation
+    expect(cta.textContent).toBe('Open cluster');
+  });
+
+  it('a CTA with href is a link that opens in a new tab', () => {
+    const { container } = render(
+      <NodeCard node={{ id: 'n', type: 'database', card: { title: 'Orders', cta: { label: 'Open cluster', href: 'https://example.com' } } }} />,
+    );
+    const a = container.querySelector('[data-testid="card-cta"] a')!;
+    expect(a).toHaveAttribute('href', 'https://example.com');
+    expect(a).toHaveAttribute('rel', 'noreferrer');
+  });
 });

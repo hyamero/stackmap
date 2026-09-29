@@ -21,19 +21,19 @@ function union(rects: Rect[]): Rect | null {
 }
 
 // Camera follows the explorer: a view fits its members (Overview fits everything, Q27); a revealing
-// selection (search, deep link) centres the node. Skips the first run for Overview so the initial fit stands.
+// selection (search, deep link) centres the node. The initial Overview needs nothing: useZoom already fit it.
 function useCameraEffects(scene: Scene, camera: Camera, restored: boolean) {
   const { draft, state } = useExplore();
   const rectOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
-  const first = useRef(true);
+  // Compare against the previous view, not a "first run" flag: StrictMode re-runs effects on mount.
+  const shownView = useRef<string | null | undefined>(restored ? state.view : null);
   useEffect(() => {
-    // After a live reload the restored camera stands; later view changes move it as usual.
-    if (first.current && restored) return void (first.current = false);
+    if (shownView.current === state.view) return;
+    shownView.current = state.view;
     const members = state.view ? (draft.views?.find((v) => v.id === state.view)?.nodes ?? []) : [];
     const box = union(members.flatMap((id) => rectOf.get(id) ?? []));
     if (box) camera.fitRect(box);
-    else if (!first.current) camera.fit();
-    first.current = false;
+    else camera.fit();
   }, [state.view, draft, rectOf, camera]);
   // The reveal a live reload restores from the hash is already on screen.
   const restoredReveal = useRef(restored ? state.reveal : -1);
@@ -99,7 +99,7 @@ export function DiagramCanvas({ diagram, children }: { diagram: LaidOutDiagram; 
       ArrowLeft: [PAN_STEP, 0],
       ArrowRight: [-PAN_STEP, 0],
     };
-    if (pan[e.key]) camera.panBy(...pan[e.key]!);
+    if (pan[e.key]) camera.panBy(...pan[e.key]!, { instant: e.repeat });
     else if (e.key === '+' || e.key === '=') camera.zoomIn();
     else if (e.key === '-') camera.zoomOut();
     else if (e.key === '0') camera.fit();
