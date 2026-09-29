@@ -183,9 +183,11 @@ describe('kind rules', () => {
     ];
     expect(codes(seq([call, reply, { ...call, id: 'c2' }, { ...reply, id: 'r2' }], bands))).toEqual([]);
     expect(codes(seq([call, { ...call, id: 'c2' }, reply, { ...reply, id: 'r2' }], [{ id: 'p', label: 'P', edges: ['c', 'r'] }, { id: 'q', label: 'Q', edges: ['c2'] }]))).toEqual([
+      'warning:semantics/phase-gap@/phases/0/edges',
       'error:semantics/phase-overlap@/phases/1',
     ]);
     expect(codes({ ...seq([call]), groups: [{ id: 'g', label: 'G' }] })).toContain('error:semantics/groups-for-kind@/groups');
+    expect(codes(seq([call, { ...call, id: 'c2' }, reply, { ...reply, id: 'r2' }], [{ id: 'p', label: 'P', edges: ['c', 'r'] }]))).toContain('warning:semantics/phase-gap@/phases/0/edges');
   });
 
   it('warns that lane kinds ignore direction', () => {

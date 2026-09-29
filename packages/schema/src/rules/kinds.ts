@@ -147,6 +147,19 @@ function sequenceDiagnostics(d: DiagramDraft): Diagnostic[] {
     const rows = (p.edges ?? []).flatMap((id) => (row.has(id) ? [row.get(id)!] : []));
     return rows.length ? [{ i, id: p.id, first: Math.min(...rows), last: Math.max(...rows) }] : [];
   });
+  // A band spans its first to its last message: messages in between it doesn't list are in it anyway.
+  for (const sp of spans) {
+    const listed = new Set(d.phases![sp.i]!.edges);
+    const unlisted = d.edges.slice(sp.first, sp.last + 1).filter((e) => !listed.has(e.id)).map((e) => e.id);
+    if (unlisted.length)
+      out.push({
+        ...error('semantics/phase-gap', `/phases/${sp.i}/edges`, `Phase "${sp.id}" also covers ${unlisted.map((x) => `"${x}"`).join(', ')}, between its first and last message`, { id: sp.id, unlisted }, [
+          `add ${unlisted.map((x) => `"${x}"`).join(', ')} to the phase`,
+          'reorder the messages so the band is contiguous',
+        ]),
+        severity: 'warning',
+      });
+  }
   for (let k = 1; k < spans.length; k++) {
     const prev = spans[k - 1]!;
     const cur = spans[k]!;
