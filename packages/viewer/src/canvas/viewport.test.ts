@@ -16,6 +16,22 @@ describe('viewport math', () => {
     expect(t.y).toBeCloseTo((600 - 400 * k) / 2 - 50 * k, 6);
   });
 
+  it('keeps a tall diagram clear of the chrome bands at the top and bottom of the stage', () => {
+    const inset = { top: 80, bottom: 76 };
+    const t = fitTransform({ x: 0, y: 0, width: 400, height: 1000 }, { width: 1000, height: 600 }, { inset });
+    expect(t.k).toBeCloseTo((600 - 80 - 76) / 1000, 6);
+    expect(t.y).toBeCloseTo(80, 6);
+    expect(t.y + 1000 * t.k).toBeCloseTo(600 - 76, 6);
+  });
+
+  it('centres a wide diagram between the chrome bands without shrinking it', () => {
+    const content = { x: 0, y: 0, width: 1000, height: 100 };
+    const stage = { width: 800, height: 600 };
+    const t = fitTransform(content, stage, { inset: { top: 80, bottom: 76 } });
+    expect(t.k).toBeCloseTo(fitTransform(content, stage).k, 6);
+    expect(t.y + (100 * t.k) / 2).toBeCloseTo((80 + 600 - 76) / 2, 6);
+  });
+
   it('clamps the fitted zoom and still centres', () => {
     const t = fitTransform({ x: 40, y: 40, width: 200, height: 100 }, { width: 600, height: 400 });
     expect(t).toEqual({ x: 20, y: 20, k: 2 });

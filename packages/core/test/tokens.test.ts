@@ -24,9 +24,9 @@ describe.each(THEMES)('%s theme contrast', (theme) => {
     expect(contrastRatio(tint.accent, t.stage)).toBeGreaterThanOrEqual(3); // handle dots, legend dots
   });
 
-  it('group frame outlines stay visible on their fill and on the stage', () => {
-    expect(contrastRatio(t.groupBorder, t.groupFill)).toBeGreaterThanOrEqual(2);
-    expect(contrastRatio(t.groupBorder, t.stage)).toBeGreaterThanOrEqual(2);
+  it('group frame outlines are 3:1 on their fill and on the stage', () => {
+    expect(contrastRatio(t.groupBorder, t.groupFill)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(t.groupBorder, t.stage)).toBeGreaterThanOrEqual(3);
   });
 
   it('edges are 3:1 on the stage and the primary pill is AA', () => {

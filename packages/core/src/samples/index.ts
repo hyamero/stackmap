@@ -85,7 +85,7 @@ export const groupedPlatform: DiagramDraft = {
   kind: 'architecture',
   title: 'Platform',
   subtitle: 'Grouped tiers',
-  direction: 'RIGHT',
+  direction: 'DOWN',
   groups: [
     { id: 'edge-tier', label: 'Edge' },
     { id: 'app-tier', label: 'App tier' },

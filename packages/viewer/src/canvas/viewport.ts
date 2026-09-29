@@ -18,15 +18,42 @@ export const FIT_PADDING = 0.15;
 
 export const clampZoom = (k: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k));
 
-// Same formula as React Flow's fitView, so M0's tuned layouts keep their fitted zoom.
-export function fitTransform(content: Rect, stage: Size, padding = FIT_PADDING): Transform {
+export interface Inset {
+  top: number;
+  bottom: number;
+}
+
+/** Stage bands under the top-left identity/toolbar row (15 + 52) and the zoom bar (15 + 48), plus a 12px gap. */
+export const CHROME_INSET: Inset = { top: 80, bottom: 76 };
+
+/**
+ * React Flow's fitView formula (so M0's tuned layouts keep their fitted zoom), except that each vertical
+ * side keeps the larger of its padding share and its chrome band: the band only costs zoom when the
+ * padding alone wouldn't clear it.
+ */
+export function fitTransform(
+  content: Rect,
+  stage: Size,
+  { inset = { top: 0, bottom: 0 }, padding = FIT_PADDING }: { inset?: Inset; padding?: number } = {},
+): Transform {
   if (stage.width <= 0 || stage.height <= 0 || content.width <= 0 || content.height <= 0) return { x: 0, y: 0, k: 1 };
+  const { width: W, height: H } = stage;
+  const { width: w, height: h } = content;
+  const half = padding / 2;
   const k = clampZoom(
-    Math.min(stage.width / (content.width * (1 + padding)), stage.height / (content.height * (1 + padding))),
+    Math.min(
+      W / (w * (1 + padding)),
+      H / (h * (1 + padding)),
+      (H - inset.top) / (h * (1 + half)),
+      (H - inset.bottom) / (h * (1 + half)),
+      (H - inset.top - inset.bottom) / h,
+    ),
   );
+  const top = Math.max(inset.top, half * h * k);
+  const bottom = Math.max(inset.bottom, half * h * k);
   return {
-    x: (stage.width - content.width * k) / 2 - content.x * k,
-    y: (stage.height - content.height * k) / 2 - content.y * k,
+    x: (W - w * k) / 2 - content.x * k,
+    y: top + (H - top - bottom - h * k) / 2 - content.y * k,
     k,
   };
 }

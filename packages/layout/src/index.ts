@@ -31,7 +31,8 @@ const rootOptions = (direction: Direction): Record<string, string> => ({
   'elk.padding': '[top=40,left=40,bottom=40,right=40]',
   'elk.spacing.nodeNode': '40',
   'elk.spacing.edgeNode': '20',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+  // The layer gap must fit an edge label pill, which is far wider than it is tall.
+  'elk.layered.spacing.nodeNodeBetweenLayers': direction === 'RIGHT' ? '120' : '72',
   'elk.layered.spacing.edgeNodeBetweenLayers': '24',
   'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
   // Draft order is the author's intended stacking; ELK otherwise reorders ties freely.

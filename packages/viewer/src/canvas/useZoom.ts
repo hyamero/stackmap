@@ -3,7 +3,7 @@ import 'd3-transition';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom';
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Point, Rect } from '@stackmap/core';
-import { fitTransform, MAX_ZOOM, MIN_ZOOM, ZOOM_STEP, type Size, type Transform } from './viewport';
+import { CHROME_INSET, fitTransform, MAX_ZOOM, MIN_ZOOM, ZOOM_STEP, type Size, type Transform } from './viewport';
 
 export interface ViewportApi {
   transform: Transform;
@@ -38,7 +38,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
 
     const size = { width: el.clientWidth, height: el.clientHeight };
     setStage(size);
-    sel.call(z.transform, toZoom(fitTransform(content, size)));
+    sel.call(z.transform, toZoom(fitTransform(content, size, { inset: CHROME_INSET })));
 
     const observer =
       typeof ResizeObserver === 'undefined'
@@ -75,7 +75,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
         select(el)
           .transition()
           .duration(duration())
-          .call(z.transform, toZoom(fitTransform(content, { width: el.clientWidth, height: el.clientHeight }))),
+          .call(z.transform, toZoom(fitTransform(content, { width: el.clientWidth, height: el.clientHeight }, { inset: CHROME_INSET }))),
       ),
     [animate, content],
   );

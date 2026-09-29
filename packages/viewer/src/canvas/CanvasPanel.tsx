@@ -16,5 +16,5 @@ export function CanvasPanel({
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={`absolute z-10 ${POSITION[position]} ${className}`}>{children}</div>;
+  return <div className={`sm-panel absolute z-10 ${POSITION[position]} ${className}`}>{children}</div>;
 }

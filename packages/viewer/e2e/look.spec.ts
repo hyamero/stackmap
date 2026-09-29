@@ -100,6 +100,24 @@ test.describe('interaction', () => {
     expect(await viewportOf(page)).toEqual(before);
   });
 
+  for (const sample of ['sample', 'grouped']) {
+    test(`the fitted ${sample} diagram clears the overlays`, async ({ page }) => {
+      await page.goto(`/?page=${sample}`);
+      await expect(page.locator('.sm-card').first()).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const boxes = async (sel: string) => (await page.locator(sel).all()).map((l) => l.boundingBox());
+      const panels = (await Promise.all(await boxes('.sm-panel'))).filter((b) => b !== null);
+      const cards = await Promise.all(await boxes('.sm-card, .sm-frame'));
+      expect(panels.length).toBeGreaterThanOrEqual(2);
+      for (const c of cards) {
+        for (const p of panels) {
+          const overlap = c!.x < p.x + p.width && p.x < c!.x + c!.width && c!.y < p.y + p.height && p.y < c!.y + c!.height;
+          expect(overlap, `card at ${c!.x},${c!.y} under a panel`).toBe(false);
+        }
+      }
+    });
+  }
+
   test('theme toggle flips the theme and survives a reload', async ({ page }) => {
     await page.addInitScript(() => {
       if (!sessionStorage.getItem('seeded')) {
