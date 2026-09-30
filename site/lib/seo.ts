@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { DIAGRAM_KINDS } from '@stackmap/core';
 
 type Env = Record<string, string | undefined>;
 
@@ -10,7 +11,7 @@ export const REPO = 'https://github.com/hyamero/stackmap';
 export const OPEN_GRAPH = { type: 'website', siteName: SITE_NAME, locale: 'en_US' } as const;
 
 /** Every static page; the sitemap test fails when a page.tsx is added without its route here. */
-export const ROUTES = ['/'] as const;
+export const ROUTES = ['/', '/docs', '/docs/schema', '/examples'] as const;
 
 // Vercel sets the production domain on every deployment, previews included, so canonical and OG URLs
 // never point at a preview. It follows a custom domain once one is attached.
@@ -24,7 +25,7 @@ export function robotsFor(env: Env = process.env): MetadataRoute.Robots {
 }
 
 export function sitemapFor(base: URL = siteUrl()): MetadataRoute.Sitemap {
-  return ROUTES.map((route) => ({ url: new URL(route, base).href }));
+  return [...ROUTES, ...DIAGRAM_KINDS.map((k) => `/kinds/${k}`)].map((route) => ({ url: new URL(route, base).href }));
 }
 
 export function softwareApplication(base: URL, version: string) {

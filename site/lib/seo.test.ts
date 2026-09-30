@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { DIAGRAM_KINDS } from '@stackmap/core';
 import { ROUTES, robotsFor, siteUrl, sitemapFor, softwareApplication } from './seo';
 
 const site = fileURLToPath(new URL('..', import.meta.url));
@@ -51,6 +52,11 @@ describe('sitemap', () => {
     const urls = sitemapFor(new URL('https://stackmap.dev')).map((e) => e.url);
     expect(urls).toContain('https://stackmap.dev/');
     for (const u of urls) expect(u).toMatch(/^https:\/\/stackmap\.dev\//);
+  });
+
+  it('lists a page for each kind of diagram', () => {
+    const urls = sitemapFor(new URL('https://stackmap.dev')).map((e) => e.url);
+    for (const kind of DIAGRAM_KINDS) expect(urls).toContain(`https://stackmap.dev/kinds/${kind}`);
   });
 });
 

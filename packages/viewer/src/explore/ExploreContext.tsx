@@ -15,6 +15,8 @@ export interface Explore {
 const ExploreContext = createContext<Explore | null>(null);
 // `dispatch` never changes; cards read it from here so explorer state changes don't re-render them all.
 const DispatchContext = createContext<Dispatch<ExploreAction> | null>(null);
+/** For scenes drawn without an explorer (StaticScene): cards dispatch into this instead. */
+export const DispatchProvider = DispatchContext.Provider;
 
 export function useExploreDispatch(): Dispatch<ExploreAction> {
   const d = useContext(DispatchContext);

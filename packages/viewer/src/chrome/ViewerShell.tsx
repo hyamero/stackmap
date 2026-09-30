@@ -88,10 +88,13 @@ export function ViewerShell({
   diagram,
   theme,
   onToggleTheme,
+  titleAs: Title = 'h1',
 }: {
   diagram: LaidOutDiagram;
   theme: ThemeChoice;
   onToggleTheme: () => void;
+  /** h2 when the shell sits in a page that has its own h1 (the website) */
+  titleAs?: 'h1' | 'h2';
 }) {
   const { draft } = diagram;
   const [inspectorCollapsed, setInspectorCollapsed] = useState(() => innerWidth < INSPECTOR_BREAKPOINT);
@@ -141,7 +144,7 @@ export function ViewerShell({
         {!presenting && (
         <header className="mx-8 mt-4 flex gap-8 border-b border-divider">
           <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3">
-            <h1 className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</h1>
+            <Title className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</Title>
             <span
               className="shrink-0 rounded-lg bg-panel px-2 py-0.5 text-[13px] text-fg-muted"
               style={{ boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
