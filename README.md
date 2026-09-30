@@ -5,6 +5,8 @@
   </picture>
 </p>
 
+https://github.com/user-attachments/assets/1d4d134c-8738-4486-9de1-6f2c092db59d
+
 Ask your coding agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and delivers one self-contained HTML viewer. No server, no account, nothing to install to open it.
 
 Five kinds of diagram: **architecture** (components and what they call), **dataflow** (data moving through stages), **workflow** (steps across owner lanes), **lifecycle** (the states of one thing) and **sequence** (messages over time).
