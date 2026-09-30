@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LaidOutDiagram } from '@stackmap/core';
 import { commerceApi } from '@stackmap/core/samples';
-import { embedDiagram, EMPTY_DATA_BLOCK } from '../src/embed';
+import { BRANDS_BLOCK_ID, embedDiagram, EMPTY_DATA_BLOCK } from '../src/embed';
 
 const template = `<!doctype html><html><head><title>stackmap</title></head><body><div id="root"></div>${EMPTY_DATA_BLOCK}</body></html>`;
 const laidOut = (title: string): LaidOutDiagram => ({ draft: { ...commerceApi, title }, nodes: {}, groups: {}, edges: {}, bounds: { width: 0, height: 0 } });
@@ -37,5 +37,15 @@ describe('embedDiagram', () => {
     expect(() => embedDiagram('<html></html>', laidOut('T'))).toThrow(/template/);
     expect(() => embedDiagram(template + EMPTY_DATA_BLOCK, laidOut('T'))).toThrow(/template/);
     expect(() => embedDiagram(`<head></head><script>"<title>x</title>"</script>${EMPTY_DATA_BLOCK}`, laidOut('T'))).toThrow(/<title>/);
+  });
+
+  it('keeps only the brand marks the diagram uses', () => {
+    const marks = { postgresql: { title: 'PostgreSQL', path: 'M1' }, redis: { title: 'Redis', path: 'M2' }, nginx: { title: 'NGINX', path: 'M3' } };
+    const withBrands = template.replace('</body>', `<script type="application/json" id="${BRANDS_BLOCK_ID}">${JSON.stringify(marks)}</script></body>`);
+    const html = embedDiagram(withBrands, laidOut('T'));
+    const m = html.match(new RegExp(`<script type="application/json" id="${BRANDS_BLOCK_ID}">([\\s\\S]*?)</script>`));
+    // commerceApi uses postgresql and redis.
+    expect(JSON.parse(m![1]!)).toEqual({ postgresql: marks.postgresql, redis: marks.redis });
+    expect(dataOf(html)).toEqual(laidOut('T'));
   });
 });
