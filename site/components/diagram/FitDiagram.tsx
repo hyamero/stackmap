@@ -11,7 +11,22 @@ const GRID = 20;
  * A diagram at rest, scaled to fit its box and never past 100%. `width` is the box's width at the design
  * size, so the server's markup is already fitted; once hydrated it follows the box's real size.
  */
-export function FitDiagram({ diagram, width, height, pad = 24, className = '' }: { diagram: LaidOutDiagram; width: number; height: number; pad?: number; className?: string }) {
+export function FitDiagram({
+  diagram,
+  width,
+  height,
+  pad = 24,
+  fill = false,
+  className = '',
+}: {
+  diagram: LaidOutDiagram;
+  width: number;
+  height: number;
+  pad?: number;
+  /** take the parent's height instead of `height`, which then only sets the first fit */
+  fill?: boolean;
+  className?: string;
+}) {
   const { content } = useMemo(() => toScene(diagram), [diagram]);
   const fit = useCallback((w: number, h: number) => Math.min(1, (w - 2 * pad) / content.width, (h - 2 * pad) / content.height), [content, pad]);
   const box = useRef<HTMLDivElement>(null);
@@ -32,7 +47,7 @@ export function FitDiagram({ diagram, width, height, pad = 24, className = '' }:
       aria-label={`${diagram.draft.title}: ${diagram.draft.nodes.length} nodes, ${diagram.draft.edges.length} connections`}
       className={`relative overflow-hidden bg-stage ${className}`}
       style={{
-        height,
+        height: fill ? '100%' : height,
         backgroundImage: 'radial-gradient(circle, var(--sm-grid) 1px, transparent 1.25px)',
         backgroundSize: `${GRID * k}px ${GRID * k}px`,
         backgroundPosition: 'center',

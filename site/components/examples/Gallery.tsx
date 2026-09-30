@@ -25,12 +25,11 @@ export interface Filter {
 
 const matches = (f: Filter | undefined, i: GalleryItem) => !f || ((!f.kind || f.kind === i.kind) && (!f.agent || !!i.prompt));
 
-const FRAME_H = 680;
 
 // The viewer reads the window (hash, size, keys), so it mounts on the client; until then the frame
 // shows the same diagram at rest, which is also what a reader without JavaScript gets.
 function Resting({ diagram }: { diagram: LaidOutDiagram }) {
-  return <FitDiagram diagram={diagram} width={1248} height={FRAME_H} pad={48} className="size-full" />;
+  return <FitDiagram diagram={diagram} width={1248} height={680} pad={48} fill />;
 }
 const Viewer = dynamic(() => import('./LiveViewer'), { ssr: false });
 
@@ -73,7 +72,7 @@ export function Gallery({ items, thumbs, filters }: { items: GalleryItem[]; thum
             </button>
           </div>
         </div>
-        <div className="relative mt-4 overflow-hidden rounded-[22px] bg-page shadow-panel" style={{ height: FRAME_H }}>
+        <div className="relative mt-4 h-[480px] overflow-hidden rounded-[22px] bg-page shadow-panel md:h-[680px]">
           {live ? (
             <Viewer key={current.id} diagram={current.diagram} />
           ) : (
