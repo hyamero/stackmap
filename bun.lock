@@ -110,6 +110,7 @@
         "react-dom": "^19.3.0",
       },
       "devDependencies": {
+        "@playwright/test": "^1.63.0",
         "@stackmap/layout": "workspace:*",
         "@stackmap/schema": "workspace:*",
         "@tailwindcss/postcss": "^4.3.3",

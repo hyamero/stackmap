@@ -9,7 +9,8 @@
     "build": "bun run data && next build",
     "start": "next start",
     "test": "vitest run",
-    "typecheck": "bun run data && next typegen && tsc --noEmit"
+    "typecheck": "bun run data && next typegen && tsc --noEmit",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -22,6 +23,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@stackmap/layout": "workspace:*",
     "@stackmap/schema": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
