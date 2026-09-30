@@ -1,0 +1,29 @@
+name: Bug report
+description: Something renders wrong, fails to validate, or the CLI misbehaves
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead. Screenshots help for anything visual.
+    validations:
+      required: true
+  - type: textarea
+    id: diagram
+    attributes:
+      label: Diagram JSON
+      description: The smallest diagram that shows the problem. Remove anything private first.
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: stackmap version
+      description: "`npx @hyamero/stackmap --version`, or the version in the skill's SKILL.md"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, OS and agent
+      description: e.g. Chrome 140 on macOS 15, via Claude Code
