@@ -60,6 +60,25 @@ jobs:
       - name: CLI smoke (deliver is deterministic)
         run: node packages/cli/scripts/smoke.mjs
 
+  site:
+    name: site · test · typecheck · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      # build-data needs the viewer template for the delivered-file receipt.
+      - run: bun run --filter @stackmap/viewer build
+      - run: bun run --filter @stackmap/site test
+      - run: bun run --filter @stackmap/site typecheck
+      - run: bun run --filter @stackmap/site build
+
   e2e:
     name: e2e · visual
     runs-on: ubuntu-latest
