@@ -76,7 +76,7 @@ export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoic
   return (
     <div
       ref={root}
-      className={`${PANEL_CLASS} relative flex items-center gap-0.5 p-1.5`}
+      className={`${PANEL_CLASS} relative flex items-center gap-0.5 p-1.5 @max-md:flex-wrap`}
       style={PANEL_STYLE}
       onKeyDown={(e) => {
         if (e.key !== 'Escape' || !lensOpen) return;

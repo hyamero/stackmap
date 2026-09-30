@@ -10,6 +10,8 @@ export const LINKS = {
   schema: { label: 'Schema', href: '/docs/schema' },
   cli: { label: 'CLI', href: '/docs#cli' },
   authoring: { label: 'Authoring contract', href: `${repo}/blob/main/skill/references/authoring-contract.md` },
+  // The film is the video in the README, hosted by GitHub.
+  film: { label: 'Watch the film', href: `${repo}#readme` },
   github: { label: 'GitHub', href: repo },
   npm: { label: 'npm', href: 'https://www.npmjs.com/package/@hyamero/stackmap' },
   contributing: { label: 'Contributing', href: `${repo}/blob/main/CONTRIBUTING.md` },

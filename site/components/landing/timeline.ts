@@ -30,7 +30,8 @@ const IDENTITY = { x: 0, y: 0, z: 0, scale: 1, rotation: 0, rotationX: 0, rotati
 /**
  * A CSS transform string as GSAP's own transform properties, which it animates on HTML and SVG alike
  * (it writes SVG transforms as attributes, where a CSS string doesn't parse). GSAP composes them as
- * translate, rotate, scale, the order nearly every board transform is already written in.
+ * translate, rotate, scale, the order nearly every board transform is already written in; a translate
+ * the board writes after a rotateX moves in the tilted frame, so it's turned into the same move in world space.
  */
 export function transformVars(css: string): gsap.TweenVars {
   if (css.trim() === 'none') return { ...IDENTITY };
@@ -40,7 +41,12 @@ export function transformVars(css: string): gsap.TweenVars {
     const n = (i: number) => parseFloat(v[i] ?? '0');
     // A percentage moves by the element's own size: GSAP's xPercent and yPercent.
     const axis = (i: number, name: 'x' | 'y') => ((v[i] ?? '').endsWith('%') ? { [`${name}Percent`]: n(i) } : { [name]: n(i) });
-    if (fn === 'translate') Object.assign(out, axis(0, 'x'), axis(1, 'y'));
+    const tilt = ((Number(out.rotationX) || 0) * Math.PI) / 180;
+    if (tilt && (fn === 'translateY' || fn === 'translateZ')) {
+      const [y, z] = fn === 'translateY' ? [n(0), 0] : [0, n(0)];
+      out.y = (Number(out.y) || 0) + y * Math.cos(tilt) - z * Math.sin(tilt);
+      out.z = (Number(out.z) || 0) + y * Math.sin(tilt) + z * Math.cos(tilt);
+    } else if (fn === 'translate') Object.assign(out, axis(0, 'x'), axis(1, 'y'));
     else if (fn === 'translateX') Object.assign(out, axis(0, 'x'));
     else if (fn === 'translateY') Object.assign(out, axis(0, 'y'));
     else if (fn === 'translateZ') out.z = n(0);

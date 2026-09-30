@@ -140,10 +140,10 @@ export function ViewerShell({
   }, [reloaded]);
   return (
     <ExploreProvider draft={draft}>
-      <div ref={shell} data-presenting={presenting || undefined} className="flex h-full flex-col bg-page font-sans text-fg">
+      <div ref={shell} data-presenting={presenting || undefined} className="@container flex h-full flex-col bg-page font-sans text-fg">
         {!presenting && (
-        <header className="mx-8 mt-4 flex gap-8 border-b border-divider">
-          <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3">
+        <header className="mx-8 mt-4 flex gap-8 border-b border-divider @max-md:mx-4 @max-md:mt-2 @max-md:flex-wrap @max-md:gap-x-4 @max-md:gap-y-0">
+          <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3 @max-md:max-w-full @max-md:basis-full @max-md:pb-1">
             <Title className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</Title>
             <span
               className="shrink-0 rounded-lg bg-panel px-2 py-0.5 text-[13px] text-fg-muted"
@@ -159,7 +159,7 @@ export function ViewerShell({
         </header>
         )}
         {!presenting && <ViewCaption />}
-        <main className={`flex min-h-0 flex-1 gap-4 ${presenting ? '' : 'px-8 pt-4 pb-6'}`}>
+        <main className={`flex min-h-0 flex-1 gap-4 @max-md:gap-2 ${presenting ? '' : 'px-8 pt-4 pb-6 @max-md:px-3 @max-md:pt-3 @max-md:pb-3'}`}>
           <section
             id={DIAGRAM_ID}
             role="tabpanel"
@@ -168,8 +168,11 @@ export function ViewerShell({
             style={presenting ? undefined : { boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
           >
             <DiagramCanvas diagram={diagram} chrome={!presenting}>
-              <CanvasPanel position="top-left" className="flex gap-2">
-                <IdentityCard draft={draft} />
+              <CanvasPanel position="top-left" className="flex gap-2 @max-md:right-[15px]">
+                {/* Narrow, the header already names the diagram: the toolbar gets the room. */}
+                <div className="contents @max-md:hidden">
+                  <IdentityCard draft={draft} />
+                </div>
                 <Toolbar theme={theme} onToggleTheme={onToggleTheme} onPresent={() => present(true)} />
               </CanvasPanel>
             </DiagramCanvas>

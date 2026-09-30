@@ -198,6 +198,8 @@
   .vx {position:absolute;left:720px;top:450px;width:0;height:0}
   .vring {position:absolute;left:0;top:0}
   .vchip {position:absolute;left:0;top:0;white-space:nowrap;padding:8px 14px;border-radius:9px;background:var(--sm-panel);box-shadow:inset 0 0 0 1px var(--sm-panel-border);font-family:var(--font-mono);line-height:1.5;color:var(--sm-text)}
+  /* Decorative texture: the names are drawn, not text, so they carry no contrast duty. */
+  .vchip[data-label]::before {content:attr(data-label)}
   .vghost {padding:0;background:none;box-shadow:none}
   .kline-wrap {position:absolute;inset:0;transform-origin:720px 450px}
   .kl {position:absolute;left:96px;margin:0;font-size:96px;line-height:1;font-weight:600;letter-spacing:-0.045em;color:var(--sm-text);white-space:nowrap;transition:color 300ms ease}

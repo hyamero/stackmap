@@ -6,14 +6,29 @@ const accent = (p: FlowPulse) => `var(--sm-${p.tint}-accent)`;
 const polyline = (p: FlowPulse) => `M${p.path.map((q) => `${q.x} ${q.y}`).join('L')}`;
 const PACKETS = [0, 1, 2];
 
+/** Drives the layer: calls `draw` with ms into playback, or null to hide every pulse; returns a stop. */
+export type FlowClock = (draw: (ms: number | null) => void) => () => void;
+
+const playing: FlowClock = (draw) => {
+  let began: number | null = null;
+  let frame = 0;
+  const tick = (now: number) => {
+    began ??= now;
+    draw(now - began);
+    frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(frame);
+};
+
 /**
  * Flow playback on the canvas, drawing `pulseFrame` for every pulse: a landing glow behind the target, a
  * tapering trail lighting the wire, the port flash, and the head (a dot; a train of packets on an async edge;
  * a hollow ring on a reply). Sits above the edges and under the cards, so glows bloom out from behind a card
  * and a pulse slides out of one card into the next. One rAF loop writes attributes; React renders only when
- * the flow changes. Exports skip it (`data-flow`).
+ * the flow changes; a `clock` (a scroll scrub) can drive it instead. Exports skip it (`data-flow`).
  */
-export function FlowLayer({ flow, width, height }: { flow: Flow; width: number; height: number }) {
+export function FlowLayer({ flow, width, height, clock }: { flow: Flow; width: number; height: number; clock?: FlowClock }) {
   const root = useRef<SVGGElement>(null);
   useEffect(() => {
     const groups = [...(root.current?.children ?? [])] as SVGGElement[];
@@ -31,13 +46,12 @@ export function FlowLayer({ flow, width, height }: { flow: Flow; width: number; 
       if (el.style.visibility !== v) el.style.visibility = v;
       return on;
     };
-    let began: number | null = null;
-    let frame = 0;
-    const tick = (now: number) => {
-      began ??= now;
+    // Only the viewer's own playback says which edges are in flight; a borrowed clock is someone else's.
+    const tracked = !clock;
+    const draw = (ms: number | null) => {
       const flying: string[] = [];
       flow.pulses.forEach((p, i) => {
-        const f = pulseFrame(flow, p, now - began!);
+        const f = ms === null ? null : pulseFrame(flow, p, ms);
         const el = parts[i]!;
         if (!show(groups[i]!, !!f) || !f) return;
         if (f.head !== null) flying.push(p.id);
@@ -74,15 +88,14 @@ export function FlowLayer({ flow, width, height }: { flow: Flow; width: number; 
           h.setAttribute('transform', `translate(${at.x} ${at.y})`);
         });
       });
-      setInFlight(flying);
-      frame = requestAnimationFrame(tick);
+      if (tracked) setInFlight(flying);
     };
-    frame = requestAnimationFrame(tick);
+    const stop = (clock ?? playing)(draw);
     return () => {
-      cancelAnimationFrame(frame);
-      setInFlight([]);
+      stop();
+      if (tracked) setInFlight([]);
     };
-  }, [flow]);
+  }, [flow, clock]);
   return (
     <svg aria-hidden="true" data-flow="" className="pointer-events-none absolute top-0 left-0 overflow-visible" width={width} height={height}>
       <g ref={root}>

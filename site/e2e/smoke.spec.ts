@@ -64,3 +64,53 @@ test('the docs copy button confirms', async ({ page, context }) => {
   await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npx skills add hyamero/stackmap');
 });
+
+test('on a phone the nav menu opens the site links and closes on Escape', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await page.goto('/docs');
+  const menu = page.getByRole('button', { name: 'Menu' });
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await menu.click();
+  await expect(menu).toHaveAttribute('aria-expanded', 'true');
+  const links = page.getByRole('navigation', { name: 'Site menu' });
+  await expect(links.getByRole('link', { name: 'Examples' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await expect(menu).toBeFocused();
+  await menu.click();
+  await links.getByRole('link', { name: 'Examples' }).click();
+  await expect(page).toHaveURL(/\/examples$/);
+  await expect(page.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
+  await page.close();
+});
+
+test('each kind plays its flow while it holds', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await expect(page.locator('.lp-d')).toHaveClass(/live/);
+  const visible = page.locator('.lp-d #kinds .kl0 [data-pulse]:not([style*="hidden"])');
+  expect(await visible.count()).toBe(0);
+  // A little way into the first kind's hold, its opening pulses are on the wire.
+  await page.evaluate(() => {
+    const spacer = document.querySelector('.lp-d [data-scene="kinds"]')!.closest('.pin-spacer') as HTMLElement;
+    const top = spacer.getBoundingClientRect().top + scrollY;
+    scrollTo(0, top + (spacer.offsetHeight - innerHeight) * 0.02);
+  });
+  await expect.poll(() => visible.count()).toBeGreaterThan(0);
+  await page.close();
+});
+
+test('the landing viewer keeps its own button colours', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await expect(page.locator('.lp-d')).toHaveClass(/live/);
+  await page.evaluate(() => {
+    const spacer = document.querySelector('.lp-d [data-scene="viewer"]')!.closest('.pin-spacer') as HTMLElement;
+    scrollTo(0, spacer.getBoundingClientRect().top + scrollY + (spacer.offsetHeight - innerHeight) * 0.9);
+  });
+  const exportButton = page.locator('.lp-d .vreal button[aria-haspopup="menu"]');
+  await expect(exportButton).toBeVisible();
+  const [fg, bg] = await exportButton.evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]);
+  expect(fg).not.toBe(bg);
+  await page.close();
+});

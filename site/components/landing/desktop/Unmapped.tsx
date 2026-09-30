@@ -21,9 +21,7 @@ export function Unmapped() {
             <div className="s2-grid grid-bg a-s2grid" aria-hidden="true"></div>
             <div className="vx a-vx" aria-hidden="true">
               <div className="vring" style={s({ animation: 'spin 34s linear infinite', filter: 'blur(2.6px)', opacity: '0.36' })}>
-                <span className="vchip" style={s({ transform: 'rotate(0deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })}>
-                  .github/workflows/deploy.yml
-                </span>
+                <span className="vchip" data-label=".github/workflows/deploy.yml" style={s({ transform: 'rotate(0deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })} />
                 <span className="vchip vghost" style={s({ transform: 'rotate(45deg) translateX(700px) rotate(90deg) translate(-50%, -50%)' })}>
                   <span className="ghost">
                     <span className="g-tile"></span>
@@ -33,9 +31,7 @@ export function Unmapped() {
                     </span>
                   </span>
                 </span>
-                <span className="vchip" style={s({ transform: 'rotate(90deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })}>
-                  packages/ui/Button.tsx
-                </span>
+                <span className="vchip" data-label="packages/ui/Button.tsx" style={s({ transform: 'rotate(90deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })} />
                 <span className="vchip vghost" style={s({ transform: 'rotate(135deg) translateX(700px) rotate(90deg) translate(-50%, -50%)' })}>
                   <span className="ghost">
                     <span className="g-tile"></span>
@@ -45,9 +41,7 @@ export function Unmapped() {
                     </span>
                   </span>
                 </span>
-                <span className="vchip" style={s({ transform: 'rotate(180deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })}>
-                  infra/queue/order-events.tf
-                </span>
+                <span className="vchip" data-label="infra/queue/order-events.tf" style={s({ transform: 'rotate(180deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })} />
                 <span className="vchip vghost" style={s({ transform: 'rotate(225deg) translateX(700px) rotate(90deg) translate(-50%, -50%)' })}>
                   <span className="ghost">
                     <span className="g-tile"></span>
@@ -57,9 +51,7 @@ export function Unmapped() {
                     </span>
                   </span>
                 </span>
-                <span className="vchip" style={s({ transform: 'rotate(270deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })}>
-                  apps/storefront/next.config.js
-                </span>
+                <span className="vchip" data-label="apps/storefront/next.config.js" style={s({ transform: 'rotate(270deg) translateX(700px) rotate(90deg) translate(-50%, -50%)', fontSize: '16px' })} />
                 <span className="vchip vghost" style={s({ transform: 'rotate(315deg) translateX(700px) rotate(90deg) translate(-50%, -50%)' })}>
                   <span className="ghost">
                     <span className="g-tile"></span>
@@ -71,41 +63,19 @@ export function Unmapped() {
                 </span>
               </div>
               <div className="vring" style={s({ animation: 'spin 24s linear infinite reverse', filter: 'blur(1.2px)', opacity: '0.62' })}>
-                <span className="vchip" style={s({ transform: 'rotate(30deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })}>
-                  apps/storefront/app/checkout/page.tsx
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(90deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })}>
-                  services/api/src/routes/orders.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(150deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })}>
-                  infra/cache/redis.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(210deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })}>
-                  services/api/src/payments/stripe.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(270deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })}>
-                  infra/storage/receipts.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(330deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })}>
-                  docker-compose.yml
-                </span>
+                <span className="vchip" data-label="apps/storefront/app/checkout/page.tsx" style={s({ transform: 'rotate(30deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })} />
+                <span className="vchip" data-label="services/api/src/routes/orders.ts" style={s({ transform: 'rotate(90deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })} />
+                <span className="vchip" data-label="infra/cache/redis.tf" style={s({ transform: 'rotate(150deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })} />
+                <span className="vchip" data-label="services/api/src/payments/stripe.ts" style={s({ transform: 'rotate(210deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })} />
+                <span className="vchip" data-label="infra/storage/receipts.tf" style={s({ transform: 'rotate(270deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })} />
+                <span className="vchip" data-label="docker-compose.yml" style={s({ transform: 'rotate(330deg) translateX(480px) rotate(90deg) translate(-50%, -50%)', fontSize: '18px' })} />
               </div>
               <div className="vring" style={s({ animation: 'spin 16s linear infinite', filter: 'blur(0px)', opacity: '1' })}>
-                <span className="vchip" style={s({ transform: 'rotate(60deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })}>
-                  server.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(132deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })}>
-                  postgres.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(204deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })}>
-                  App.tsx
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(276deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })}>
-                  session.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(348deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })}>
-                  consume.ts
-                </span>
+                <span className="vchip" data-label="server.ts" style={s({ transform: 'rotate(60deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })} />
+                <span className="vchip" data-label="postgres.tf" style={s({ transform: 'rotate(132deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })} />
+                <span className="vchip" data-label="App.tsx" style={s({ transform: 'rotate(204deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })} />
+                <span className="vchip" data-label="session.ts" style={s({ transform: 'rotate(276deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })} />
+                <span className="vchip" data-label="consume.ts" style={s({ transform: 'rotate(348deg) translateX(290px) rotate(90deg) translate(-50%, -50%)', fontSize: '22px' })} />
               </div>
             </div>
             <div className="kline-wrap a-kw">

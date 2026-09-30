@@ -21,55 +21,25 @@ export function Unmapped() {
             <div className="s2-grid grid-bg a-s2grid" aria-hidden="true"></div>
             <div className="vx a-vx" aria-hidden="true">
               <div className="vring" style={s({ animation: 'spin 34s linear infinite', filter: 'blur(2.2px)', opacity: '0.36' })}>
-                <span className="vchip" style={s({ transform: 'rotate(0deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })}>
-                  .github/workflows/deploy.yml
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(60deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })}>
-                  packages/ui/Button.tsx
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(120deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })}>
-                  infra/queue/order-events.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(180deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })}>
-                  apps/storefront/next.config.js
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(240deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })}>
-                  infra/storage/receipts.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(300deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })}>
-                  docker-compose.yml
-                </span>
+                <span className="vchip" data-label=".github/workflows/deploy.yml" style={s({ transform: 'rotate(0deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })} />
+                <span className="vchip" data-label="packages/ui/Button.tsx" style={s({ transform: 'rotate(60deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })} />
+                <span className="vchip" data-label="infra/queue/order-events.tf" style={s({ transform: 'rotate(120deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })} />
+                <span className="vchip" data-label="apps/storefront/next.config.js" style={s({ transform: 'rotate(180deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })} />
+                <span className="vchip" data-label="infra/storage/receipts.tf" style={s({ transform: 'rotate(240deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })} />
+                <span className="vchip" data-label="docker-compose.yml" style={s({ transform: 'rotate(300deg) translateX(300px) rotate(90deg) translate(-50%, -50%)', fontSize: '12px' })} />
               </div>
               <div className="vring" style={s({ animation: 'spin 24s linear infinite reverse', filter: 'blur(1px)', opacity: '0.62' })}>
-                <span className="vchip" style={s({ transform: 'rotate(30deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })}>
-                  checkout/page.tsx
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(102deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })}>
-                  routes/orders.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(174deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })}>
-                  redis.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(246deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })}>
-                  payments/stripe.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(318deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })}>
-                  receipts.tf
-                </span>
+                <span className="vchip" data-label="checkout/page.tsx" style={s({ transform: 'rotate(30deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })} />
+                <span className="vchip" data-label="routes/orders.ts" style={s({ transform: 'rotate(102deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })} />
+                <span className="vchip" data-label="redis.tf" style={s({ transform: 'rotate(174deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })} />
+                <span className="vchip" data-label="payments/stripe.ts" style={s({ transform: 'rotate(246deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })} />
+                <span className="vchip" data-label="receipts.tf" style={s({ transform: 'rotate(318deg) translateX(205px) rotate(90deg) translate(-50%, -50%)', fontSize: '13px' })} />
               </div>
               <div className="vring" style={s({ animation: 'spin 16s linear infinite', filter: 'blur(0px)', opacity: '0.9' })}>
-                <span className="vchip" style={s({ transform: 'rotate(60deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })}>
-                  server.ts
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(150deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })}>
-                  postgres.tf
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(240deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })}>
-                  App.tsx
-                </span>
-                <span className="vchip" style={s({ transform: 'rotate(330deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })}>
-                  session.ts
-                </span>
+                <span className="vchip" data-label="server.ts" style={s({ transform: 'rotate(60deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })} />
+                <span className="vchip" data-label="postgres.tf" style={s({ transform: 'rotate(150deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })} />
+                <span className="vchip" data-label="App.tsx" style={s({ transform: 'rotate(240deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })} />
+                <span className="vchip" data-label="session.ts" style={s({ transform: 'rotate(330deg) translateX(125px) rotate(90deg) translate(-50%, -50%)', fontSize: '14px' })} />
               </div>
             </div>
             <div className="kline-wrap a-kw">

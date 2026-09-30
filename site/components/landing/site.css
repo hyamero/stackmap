@@ -21,12 +21,15 @@
 .lp *::after {
   box-sizing: border-box;
 }
-:where(.lp) button {
-  font: inherit;
-  color: inherit;
-}
-:where(.lp) a {
-  color: inherit;
+/* Element resets sit in the base layer: unlayered, they'd beat the viewer's utility classes (its Export label). */
+@layer base {
+  :where(.lp) button {
+    font: inherit;
+    color: inherit;
+  }
+  :where(.lp) a {
+    color: inherit;
+  }
 }
 .lp-m {
   display: none;
@@ -94,6 +97,12 @@
 }
 .lp .kface-in {
   transform-origin: 0 0;
+}
+.lp .kflow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .lp .kslot,
