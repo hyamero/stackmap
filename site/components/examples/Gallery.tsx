@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState, type ReactNode } from 'react';
 import type { LaidOutDiagram } from '@stackmap/core';
+import type { StaticDiagram } from '@/lib/data/static-html';
 import { FitDiagram } from '@/components/diagram/FitDiagram';
 import { ArrowIcon } from '@/components/ui/icons';
 
@@ -28,8 +29,8 @@ const matches = (f: Filter | undefined, i: GalleryItem) => !f || ((!f.kind || f.
 
 // The viewer reads the window (hash, size, keys), so it mounts on the client; until then the frame
 // shows the same diagram at rest, which is also what a reader without JavaScript gets.
-function Resting({ diagram }: { diagram: LaidOutDiagram }) {
-  return <FitDiagram diagram={diagram} width={1248} height={680} pad={48} fill />;
+function Resting({ still }: { still: StaticDiagram }) {
+  return <FitDiagram still={still} width={1248} height={680} pad={48} fill />;
 }
 const Viewer = dynamic(() => import('./LiveViewer'), { ssr: false });
 
@@ -37,14 +38,18 @@ function Agent() {
   return <span className="inline-flex items-center gap-1.5 text-fg before:size-1.5 before:rounded-full before:bg-fg">Written by an agent</span>;
 }
 
-export function Gallery({ items, thumbs, filters }: { items: GalleryItem[]; thumbs: Record<string, ReactNode>; filters?: Filter[] }) {
+/** `rest` is the first item pre-rendered: the frame before the viewer opens. Stepping or picking opens it. */
+export function Gallery({ items, rest, thumbs, filters }: { items: GalleryItem[]; rest: StaticDiagram; thumbs: Record<string, ReactNode>; filters?: Filter[] }) {
   const [filter, setFilter] = useState(filters?.[0]?.id);
   const shown = items.filter((i) => matches(filters?.find((f) => f.id === filter), i));
   const [selected, setSelected] = useState(items[0]!.id);
   const [live, setLive] = useState(false);
   const at = Math.max(0, shown.findIndex((i) => i.id === selected));
   const current = shown[at] ?? items[0]!;
-  const step = (by: number) => setSelected(shown[(at + by + shown.length) % shown.length]!.id);
+  const step = (by: number) => {
+    setSelected(shown[(at + by + shown.length) % shown.length]!.id);
+    setLive(true);
+  };
   const pick = (id: string) => {
     setSelected(id);
     setLive(true);
@@ -79,10 +84,9 @@ export function Gallery({ items, thumbs, filters }: { items: GalleryItem[]; thum
             <button
               type="button"
               onClick={() => setLive(true)}
-              aria-label={`Open ${current.title} in the viewer`}
               className="group relative block size-full cursor-pointer text-left"
             >
-              <Resting diagram={current.diagram} />
+              <Resting still={rest} />
               <span className="absolute top-5 left-5 max-w-[70%] rounded-2xl bg-panel px-4 py-3 shadow-panel">
                 <span className="block truncate text-[17px] font-semibold tracking-tight text-fg">{current.title}</span>
                 <span className="mt-0.5 block text-[13px] text-fg-muted">Select to explore it in the viewer</span>

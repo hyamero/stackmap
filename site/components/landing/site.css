@@ -1,0 +1,107 @@
+/* Site-owned additions to the ported boards: the root the boards' `.site` was, and where a board's
+   hand-drawn stand-in became the real diagram or viewer. */
+
+.lp {
+  position: relative;
+  color: var(--sm-text);
+  background: var(--sm-page);
+  overflow-x: clip;
+}
+/* Declared per theme: a custom property resolves where it's declared, so one on the root would keep the root's border. */
+.lp,
+.lp [data-theme] {
+  --shadow-panel: inset 0 0 0 1px var(--sm-panel-border), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.12);
+}
+.lp [data-theme] {
+  /* The boards' theme classes also reset the colour; inherited text would keep the root's theme. */
+  color: var(--sm-text);
+}
+.lp *,
+.lp *::before,
+.lp *::after {
+  box-sizing: border-box;
+}
+:where(.lp) button {
+  font: inherit;
+  color: inherit;
+}
+:where(.lp) a {
+  color: inherit;
+}
+.lp-m {
+  display: none;
+}
+@media (max-width: 767px) {
+  .lp-d {
+    display: none;
+  }
+  .lp-m {
+    display: block;
+  }
+}
+
+/* #viewer: the intro plane only exists while the page scrubs; at rest the real viewer is the frame. */
+.lp .vintro {
+  display: none;
+}
+.lp.live .vintro {
+  display: block;
+}
+.lp .vreal {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: var(--sm-page);
+  box-shadow: var(--shadow-panel);
+}
+.lp .plane-dg {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform-origin: 50% 0;
+  transform-style: preserve-3d;
+}
+.lp .plane-dg div {
+  transform-style: preserve-3d;
+}
+
+/* #kinds: the checkout's cards are the slots; the layers draw only lanes, phases, frames and connections. */
+.lp-d .klayer .sm-card {
+  visibility: hidden;
+}
+.lp .kslot,
+.lp .klayer,
+.lp .kface,
+.lp .kcam,
+.lp .kn-col,
+.lp .kdef {
+  transition:
+    left 420ms cubic-bezier(0.77, 0, 0.175, 1),
+    top 420ms cubic-bezier(0.77, 0, 0.175, 1),
+    width 420ms cubic-bezier(0.77, 0, 0.175, 1),
+    height 420ms cubic-bezier(0.77, 0, 0.175, 1),
+    transform 420ms cubic-bezier(0.77, 0, 0.175, 1),
+    opacity 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.lp.live .kslot,
+.lp.live .klayer,
+.lp.live .kface,
+.lp.live .kcam,
+.lp.live .kn-col,
+.lp.live .kdef {
+  transition: none;
+}
+.lp .kface-in {
+  transform-origin: 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp .kslot,
+  .lp .klayer,
+  .lp .kface,
+  .lp .kcam,
+  .lp .kn-col,
+  .lp .kdef {
+    transition: none;
+  }
+}

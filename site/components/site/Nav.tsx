@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { ThemeName } from '@stackmap/core';
 import { GitHubIcon } from '@/components/ui/icons';
 import { LINKS } from './links';
@@ -9,9 +12,12 @@ const ITEMS = [LINKS.viewer, { ...LINKS.kinds, label: 'Kinds' }, LINKS.examples,
 const panel = 'pointer-events-auto rounded-2xl bg-panel shadow-panel transition-[background-color,box-shadow] duration-200';
 
 /** Floating nav: the header itself lets clicks through, only its panels take them. */
-export function Nav({ theme = 'light' }: { theme?: ThemeName }) {
+export function Nav() {
+  const path = usePathname();
+  // The landing opens on a dark scene; its scroll driver retunes the nav per scene from there.
+  const theme: ThemeName = path === '/' ? 'dark' : 'light';
   return (
-    <header data-theme={theme} className="pointer-events-none fixed inset-x-0 top-0 z-60 flex items-center gap-2 bg-transparent px-4 pt-4 md:px-[72px]">
+    <header data-nav="" data-theme={theme} className="pointer-events-none fixed inset-x-0 top-0 z-60 flex items-center gap-2 bg-transparent px-4 pt-4 md:px-[72px]">
       <Link href="/" aria-label="stackmap home" className={`${panel} flex h-11 items-center px-3 md:h-12 md:px-3.5`}>
         <Lockup height={24} />
       </Link>
@@ -20,7 +26,8 @@ export function Nav({ theme = 'light' }: { theme?: ThemeName }) {
           <Link
             key={l.href}
             href={l.href}
-            className="inline-flex h-9 items-center rounded-xl px-3 text-sm text-fg-muted transition-colors duration-150 hover:bg-page hover:text-fg"
+            aria-current={path.startsWith(l.href) && !l.href.includes('#') ? 'page' : undefined}
+            className="inline-flex h-9 items-center rounded-xl px-3 text-sm text-fg-muted transition-colors duration-150 hover:bg-page hover:text-fg aria-[current=page]:text-fg"
           >
             {l.label}
           </Link>

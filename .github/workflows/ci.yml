@@ -78,6 +78,17 @@ jobs:
       - run: bun run --filter @stackmap/site test
       - run: bun run --filter @stackmap/site typecheck
       - run: bun run --filter @stackmap/site build
+      - name: Site smoke against the production build
+        working-directory: site
+        run: |
+          bunx playwright install --with-deps chromium
+          bunx playwright test
+      - name: Upload site Playwright results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-playwright-results
+          path: site/test-results/
 
   e2e:
     name: e2e · visual

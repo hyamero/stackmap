@@ -1,0 +1,144 @@
+import { SITE } from '@/lib/site-data';
+import { BoardCopy } from '../BoardCopy';
+import { s } from '../style';
+
+export function Hero() {
+  return (
+    <>
+      <section
+        className="scn"
+        data-anchor="top"
+        data-scene="top"
+        data-runway="0.5"
+        data-fw="390"
+        data-fh="844"
+        data-theme-sec="dark"
+        style={s({ height: '844px' })}
+        aria-label="stackmap"
+        data-theme="dark"
+      >
+        <div className="stage" data-stage="">
+          <div className="frame" data-frame="" style={s({ width: '390px', height: '844px' })}>
+            <div className="hero-grid grid-bg" aria-hidden="true"></div>
+            <div className="hero-chips a-hero-chips" aria-hidden="true">
+              <div className="par par0">
+                <span className="chip dp0 dr-a" style={s({ left: '150px', top: '92px', animationDelay: '0.0s, 120ms' })}>
+                  .github/workflows/deploy.yml
+                </span>
+                <span className="chip dp0 dr-c" style={s({ left: '-30px', top: '800px', animationDelay: '-8.5s, 345ms' })}>
+                  infra/queue/order-events.tf
+                </span>
+                <span className="chip dp0 dr-b" style={s({ left: '220px', top: '700px', animationDelay: '-10.2s, 390ms' })}>
+                  packages/auth/session.ts
+                </span>
+              </div>
+              <div className="par par1">
+                <span className="chip dp1 dr-c" style={s({ left: '196px', top: '642px', animationDelay: '-3.4s, 210ms' })}>
+                  docker-compose.yml
+                </span>
+                <span className="chip dp1 dr-a" style={s({ left: '16px', top: '700px', animationDelay: '-5.1s, 255ms' })}>
+                  infra/edge/gateway.yaml
+                </span>
+              </div>
+              <div className="par par2">
+                <span className="chip dp2 dr-b" style={s({ left: '14px', top: '108px', animationDelay: '-1.7s, 165ms' })}>
+                  infra/orders/postgres.tf
+                </span>
+                <span className="chip dp2 dr-b" style={s({ left: '128px', top: '752px', animationDelay: '-6.8s, 300ms' })}>
+                  services/api/src/server.ts
+                </span>
+              </div>
+            </div>
+            <svg className="h-route" width="390" height="844" viewBox="0 0 390 844" aria-hidden="true">
+              <defs>
+                <linearGradient id="hr-fade-m" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="130">
+                  <stop offset="0" style={s({ stopColor: 'var(--sm-text)', stopOpacity: '0' })} />
+                  <stop offset="1" style={s({ stopColor: 'var(--sm-text)', stopOpacity: '1' })} />
+                </linearGradient>
+              </defs>
+              <path className="rt rt-in" d="M 10 0 V 275 Q 10 287 22 287 H 27" pathLength="1" />
+              <path className="rt h-bridge a-hbridge" d="M 27 287 H 330" pathLength="1" />
+              <g className="a-hmarks">
+                <path className="ah" d="M27 284 L34 287 L27 290 Z" />
+              </g>
+              <path
+                className="rt"
+                data-route="top"
+                data-r0="0.05"
+                data-r1="0.96"
+                data-head="h-top"
+                d="M 330 287 H 368 Q 380 287 380 299 V 844"
+                pathLength="1"
+              />
+              <path className="rt" data-route="top" data-r0="0.96" data-r1="1" d="M 380 844 V 2044" pathLength="1" />
+              <g className="a-hmarks">
+                <circle className="hd2" cx="325" cy="287" r="3.5" />
+              </g>
+              <g className="rhead" data-route-head="h-top">
+                <circle r="9" className="rh-halo" />
+                <circle r="3.25" className="rh-core" />
+              </g>
+            </svg>
+            <i className="comet" aria-hidden="true"></i>
+            <div className="h-content a-hero-out">
+              <h1 className="hero-h">
+                <span className="hl">
+                  <span className="hw" style={s({ '--x': '-60px', '--y': '-70px', '--z': '520px', '--bl': '6px', animationDelay: '180ms' })}>
+                    Every
+                  </span>{' '}
+                  <span className="hw" style={s({ '--x': '70px', '--y': '60px', '--z': '340px', '--bl': '4px', animationDelay: '270ms' })}>
+                    layer
+                  </span>
+                </span>
+                <span className="hl">
+                  <span className="hw" style={s({ '--x': '-30px', '--y': '110px', '--z': '600px', '--bl': '7px', animationDelay: '360ms' })}>
+                    of
+                  </span>{' '}
+                  <span className="hw" style={s({ '--x': '80px', '--y': '-80px', '--z': '420px', '--bl': '5px', animationDelay: '450ms' })}>
+                    your
+                  </span>{' '}
+                  <span className="hw" style={s({ '--x': '-70px', '--y': '40px', '--z': '300px', '--bl': '3px', animationDelay: '540ms' })}>
+                    stack,
+                  </span>
+                </span>
+                <span className="hl hl3">
+                  <span className="hacc">
+                    <i className="hglow" aria-hidden="true"></i>
+                    <span className="hw" style={s({ '--x': '60px', '--y': '-40px', '--z': '480px', '--bl': '6px', animationDelay: '630ms' })}>
+                      on
+                    </span>{' '}
+                    <span className="hw" style={s({ '--x': '-50px', '--y': '90px', '--z': '380px', '--bl': '4px', animationDelay: '720ms' })}>
+                      one
+                    </span>{' '}
+                    <span className="hw" style={s({ '--x': '70px', '--y': '30px', '--z': '560px', '--bl': '6px', animationDelay: '810ms' })}>
+                      map.
+                    </span>
+                  </span>
+                </span>
+              </h1>
+              <p className="h-lede">Interactive system diagrams your coding agent writes, as one offline HTML file.</p>
+              <div className="h-cta">
+                <div className="cmd pnl">
+                  <span className="mono cmd-p" aria-hidden="true">
+                    $
+                  </span>
+                  <code className="mono cmd-t">{SITE.install.skill}</code>
+                  <BoardCopy text={SITE.install.skill} label="Copy the install command" />
+                </div>
+                <div className="h-links">
+                  <a className="lnk" href="https://github.com/hyamero/stackmap" target="_blank" rel="noreferrer">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                </div>
+              </div>
+              <p className="h-works">Works with Claude Code, Cursor, Codex and other coding agents.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}

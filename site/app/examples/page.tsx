@@ -22,7 +22,7 @@ const FILTERS: Filter[] = [
 const agents = EXAMPLES.filter((e) => e.prompt).length;
 
 export default function ExamplesPage() {
-  const { items, thumbs } = galleryProps(EXAMPLES);
+  const { items, thumbs, rest } = galleryProps(EXAMPLES);
   return (
     <main data-theme="light" className="bg-page text-fg">
       <div className="mx-auto max-w-[1440px] px-5 pt-28 pb-28 md:px-10 lg:pt-[120px] xl:px-24">
@@ -31,7 +31,7 @@ export default function ExamplesPage() {
           {spell(EXAMPLES.length, true)} diagrams laid out by stackmap: {spell(EXAMPLES.length - agents)} across the {spell(DIAGRAM_KINDS.length)} kinds, and{' '}
           {spell(agents)} that coding agents wrote from a plain request in the skill’s eval runs. Pick one to open it in the viewer.
         </p>
-        <Gallery items={items} thumbs={thumbs} filters={FILTERS} />
+        <Gallery items={items} rest={rest} thumbs={thumbs} filters={FILTERS} />
       </div>
     </main>
   );

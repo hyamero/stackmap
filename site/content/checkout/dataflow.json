@@ -1,0 +1,24 @@
+{
+  "kind": "dataflow",
+  "title": "Checkout",
+  "subtitle": "One checkout, as data moving",
+  "density": "compact",
+  "phases": [
+    { "id": "collect", "label": "Collect", "nodes": ["cart", "priced"] },
+    { "id": "charge", "label": "Charge", "nodes": ["payment"] },
+    { "id": "record", "label": "Record", "nodes": ["row", "placed"] }
+  ],
+  "nodes": [
+    { "id": "cart", "type": "client", "card": { "title": "Cart", "subtitle": "Line items" } },
+    { "id": "priced", "type": "service", "card": { "title": "Priced order", "subtitle": "Tax and totals" } },
+    { "id": "payment", "type": "external", "card": { "title": "Payment", "subtitle": "Stripe charge" } },
+    { "id": "row", "type": "database", "card": { "title": "Order row", "subtitle": "Orders DB" } },
+    { "id": "placed", "type": "queue", "card": { "title": "Order placed", "subtitle": "Event" } }
+  ],
+  "edges": [
+    { "id": "d1", "from": "cart", "to": "priced" },
+    { "id": "d2", "from": "priced", "to": "payment" },
+    { "id": "d3", "from": "payment", "to": "row" },
+    { "id": "d4", "from": "row", "to": "placed", "kind": "async" }
+  ]
+}
