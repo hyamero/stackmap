@@ -52,7 +52,7 @@ export function Kinds({ checkout }: { checkout: Record<string, LaidOutDiagram> }
             ))}
           </p>
           <KindPills rest={REST} />
-          <KindsStage checkout={checkout} area={{ cx: 720, cy: 640, width: 1248, height: 522 }} prefix="d-" root=".lp-d" />
+          <KindsStage checkout={checkout} area={{ cx: 720, cy: 640, width: 1248, height: 522 }} root=".lp-d" />
         </div>
       </div>
     </section>

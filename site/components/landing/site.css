@@ -47,12 +47,6 @@
 .lp.live .vintro {
   display: block;
 }
-.lp-d.live .vintro {
-  animation: d-tl-vintro 10000ms linear both paused;
-}
-.lp-m.live .vintro {
-  animation: m-tl-vintro 10000ms linear both paused;
-}
 .lp .vreal {
   position: absolute;
   inset: 0;
@@ -60,12 +54,6 @@
   border-radius: 22px;
   background: var(--sm-page);
   box-shadow: var(--shadow-panel);
-}
-.lp-d.live .vreal {
-  animation: d-tl-vreal 10000ms linear both paused;
-}
-.lp-m.live .vreal {
-  animation: m-tl-vreal 10000ms linear both paused;
 }
 .lp .plane-dg {
   position: absolute;
@@ -76,14 +64,6 @@
 }
 .lp .plane-dg div {
   transform-style: preserve-3d;
-}
-.lp-d.live .plane .sm-edges,
-.lp-d.live .plane .sm-edge-label {
-  animation: d-tl-vedges 10000ms linear both paused;
-}
-.lp-m.live .plane .sm-edges,
-.lp-m.live .plane .sm-edge-label {
-  animation: m-tl-vedges 10000ms linear both paused;
 }
 
 /* #kinds: the checkout's cards are the slots; the layers draw only lanes, phases, frames and connections. */
@@ -124,23 +104,4 @@
   .lp .kdef {
     transition: none;
   }
-}
-
-@keyframes d-tl-vintro {
-  0% { opacity: 1; visibility: visible; }
-  76% { opacity: 1; visibility: visible; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  80% { opacity: 0; visibility: hidden; }
-  100% { opacity: 0; visibility: hidden; }
-}
-@keyframes d-tl-vreal {
-  0% { opacity: 0; visibility: hidden; }
-  60% { opacity: 0; visibility: visible; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  76% { opacity: 1; visibility: visible; }
-  100% { opacity: 1; visibility: visible; }
-}
-@keyframes d-tl-vedges {
-  0% { opacity: 0; }
-  47% { opacity: 0; animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1); }
-  58% { opacity: 1; }
-  100% { opacity: 1; }
 }

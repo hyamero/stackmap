@@ -1,6 +1,7 @@
 import { DIAGRAM_KINDS, type DiagramKind, type LaidOutDiagram, type Rect } from '@stackmap/core';
 import { toScene, type SceneCard } from '@stackmap/viewer/src/canvas/scene';
 import { SLOT_COUNT, SLOTS } from '@/lib/checkout';
+import type { Tween } from './timeline';
 
 /** The stage the kinds share, in frame pixels: its centre is the camera's origin. */
 export interface Area {
@@ -76,9 +77,9 @@ export const HOLDS: [number, number][] = [
   [83, 100],
 ];
 
-const MOVE = 'cubic-bezier(0.77, 0, 0.175, 1)';
-const ENTER = 'cubic-bezier(0.23, 1, 0.32, 1)';
-const round = (n: number) => Math.round(n * 10) / 10;
+const MOVE = 'cb:0.77,0,0.175,1';
+const ENTER = 'cb:0.23,1,0.32,1';
+const px = (n: number) => `${Math.round(n * 10) / 10}px`;
 
 // Where a slot sits in a kind that leaves it empty: where it last was, or where it first will be.
 function standIn(faces: (SlotFace | null)[], k: number): SlotFace {
@@ -87,32 +88,43 @@ function standIn(faces: (SlotFace | null)[], k: number): SlotFace {
   throw new Error('a slot with no card in any kind');
 }
 
-/** Visible through kind k's hold, fading over `fade` percent either side; the first kind starts shown, the last stays. */
-function window(k: number, fade: number): string {
+/** Held through each kind, moving between them on the in-out curve. */
+function holds(at: (k: number) => Record<string, string>): Tween['frames'] {
+  const frames: Tween['frames'] = {};
+  HOLDS.forEach(([a, b], k) => {
+    frames[`${a}%`] = { ...at(k), ...(k ? { ease: MOVE } : {}) };
+    frames[`${b}%`] = at(k);
+  });
+  return frames;
+}
+
+/** Shown through kind k's hold, fading over `fade` percent either side; the first kind starts shown, the last stays. */
+function shownIn(k: number, fade: number): Tween['frames'] {
   const [a, b] = HOLDS[k]!;
-  const frames = [k === 0 ? '0%{opacity:1}' : `0%{opacity:0}${a - fade}%{opacity:0;animation-timing-function:${ENTER}}${a}%{opacity:1}`];
-  frames.push(k === HOLDS.length - 1 ? '100%{opacity:1}' : `${b}%{opacity:1;animation-timing-function:${ENTER}}${b + fade}%{opacity:0}100%{opacity:0}`);
-  return frames.join('');
+  const last = k === HOLDS.length - 1;
+  return {
+    '0%': { opacity: k === 0 ? '1' : '0' },
+    ...(k === 0 ? {} : { [`${a - fade}%`]: { opacity: '0' }, [`${a}%`]: { opacity: '1', ease: ENTER } }),
+    [`${b}%`]: { opacity: '1' },
+    ...(last ? {} : { [`${b + fade}%`]: { opacity: '0', ease: ENTER } }),
+    '100%': { opacity: last ? '1' : '0' },
+  };
 }
 
 /** The scene's generated timelines: slots glide between kinds, layers and faces cross over, the camera refits. */
-export function kindsKeyframes(g: KindsGeometry, prefix: string): string {
-  const out: string[] = [];
+export function kindsTweens(g: KindsGeometry): Tween[] {
+  const out: Tween[] = [];
   g.slots.forEach((faces, i) => {
-    const frames = HOLDS.flatMap(([a, b], k) => {
-      const f = faces[k] ?? standIn(faces, k);
-      const r = f.rect;
-      const at = `left:${round(r.x)}px;top:${round(r.y)}px;width:${round(r.width)}px;height:${round(r.height)}px;opacity:${faces[k] ? 1 : 0};animation-timing-function:${MOVE}`;
-      return [`${a}%{${at}}`, `${b}%{${at}}`];
+    out.push({
+      target: `.ks${i}`,
+      frames: holds((k) => {
+        const { x, y, width, height } = (faces[k] ?? standIn(faces, k)).rect;
+        return { left: px(x), top: px(y), width: px(width), height: px(height), opacity: faces[k] ? '1' : '0' };
+      }),
     });
-    out.push(`@keyframes ${prefix}tl-ks${i}{${frames.join('')}}`);
-    faces.forEach((f, k) => f && out.push(`@keyframes ${prefix}tl-kf${i}_${k}{${window(k, 4)}}`));
+    faces.forEach((f, k) => f && out.push({ target: `.kf${i}_${k}`, frames: shownIn(k, 4) }));
   });
-  g.layers.forEach((_, k) => out.push(`@keyframes ${prefix}tl-kl${k}{${window(k, 3)}}`));
-  const cam = HOLDS.flatMap(([a, b], k) => {
-    const at = `transform:scale(${round(g.layers[k]!.cam * 1000) / 1000});animation-timing-function:${MOVE}`;
-    return [`${a}%{${at}}`, `${b}%{${at}}`];
-  });
-  out.push(`@keyframes ${prefix}tl-kcam{${cam.join('')}}`);
-  return out.join('\n');
+  g.layers.forEach((_, k) => out.push({ target: `.kl${k}`, frames: shownIn(k, 3) }));
+  out.push({ target: '.kcam', frames: holds((k) => ({ scale: String(Math.round(g.layers[k]!.cam * 1000) / 1000) })) });
+  return out;
 }

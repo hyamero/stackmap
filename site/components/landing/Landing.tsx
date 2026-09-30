@@ -29,7 +29,7 @@ export function Landing({ demo, checkout }: { demo: LaidOutDiagram; checkout: Re
         <Files />
         <Install />
       </div>
-      <LandingMotion rootId="lp-d" prefix="d-" />
+      <LandingMotion composition="desktop" />
     </>
   );
 }

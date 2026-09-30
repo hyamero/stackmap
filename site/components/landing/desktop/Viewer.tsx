@@ -1,9 +1,10 @@
 import type { LaidOutDiagram } from '@stackmap/core';
 import { toScene } from '@stackmap/viewer/src/canvas/scene';
 import { StaticScene } from '@/components/diagram/StaticScene';
-import { dropLayers } from '../drops';
+import { viewerTweens } from '../drops';
 import { LazyViewer } from '../LazyViewer';
 import { s } from '../style';
+import { TWEENS } from './timelines';
 
 // The plane the cards drop onto, inside the viewer's stage (the board's .plane-wrap).
 const PLANE = { width: 734, height: 656 };
@@ -12,10 +13,10 @@ const PLANE = { width: 734, height: 656 };
 export function Viewer({ demo }: { demo: LaidOutDiagram }) {
   const { content } = toScene(demo);
   const k = Math.min(1, PLANE.width / content.width, PLANE.height / content.height);
-  const drops = [...dropLayers(demo)].map(([id, layer]) => `.lp-d.live .plane [data-card-id="${id}"]{animation:d-tl-drop${layer} 10000ms linear both paused}`);
+  const timelines = JSON.stringify(viewerTweens(demo, TWEENS)).replace(/</g, '\\u003c');
   return (
     <section className="scn" id="viewer" data-scene="viewer" data-runway="2.4" data-fw="1440" data-fh="900" data-theme-sec="light" style={s({ height: '900px' })} aria-label="The viewer" data-theme="dark">
-      <style>{drops.join('\n')}</style>
+      <script type="application/json" data-timelines="" dangerouslySetInnerHTML={{ __html: timelines }} />
       <div className="stage" data-stage="">
         <div className="frame" data-frame="" style={s({ width: '1440px', height: '900px' })}>
           <svg className="v-route-dark" width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true">

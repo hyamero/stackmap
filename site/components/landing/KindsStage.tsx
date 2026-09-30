@@ -2,16 +2,16 @@ import { DIAGRAM_KINDS, type DiagramKind, type LaidOutDiagram } from '@stackmap/
 import { NodeCard } from '@stackmap/viewer/src/card/NodeCard';
 import { StepCard } from '@stackmap/viewer/src/card/StepCard';
 import { StaticScene } from '@/components/diagram/StaticScene';
-import { kindsGeometry, kindsKeyframes, type Area } from './kinds-geometry';
+import { kindsGeometry, kindsTweens, type Area } from './kinds-geometry';
 import { s } from './style';
 
 const px = (n: number) => `${Math.round(n * 10) / 10}px`;
 
 /**
  * One checkout, five ways: each kind's layer (its lanes, phases and connections) plus the card slots that
- * glide between kinds. At rest the scene's data-kind picks what shows; the generated rules below say where.
+ * glide between kinds. At rest the scene's data-kind picks what shows; scrolling plays the tweens it carries.
  */
-export function KindsStage({ checkout, area, prefix, root }: { checkout: Record<string, LaidOutDiagram>; area: Area; prefix: string; root: string }) {
+export function KindsStage({ checkout, area, root }: { checkout: Record<string, LaidOutDiagram>; area: Area; root: string }) {
   const g = kindsGeometry(checkout, area);
   const at = (kind: DiagramKind) => `${root} [data-kind="${kind}"]`;
   const restRules = DIAGRAM_KINDS.flatMap((kind, k) => [
@@ -24,16 +24,12 @@ export function KindsStage({ checkout, area, prefix, root }: { checkout: Record<
       return `${at(kind)} .ks${i} {left:${px(r.x)};top:${px(r.y)};width:${px(r.width)};height:${px(r.height)};opacity:${f ? 1 : 0}}${f ? `${at(kind)} .kf${i}_${k} {opacity:1}` : ''}`;
     }),
   ]);
-  const live = g.slots.flatMap((faces, i) => [
-    `${root}.live .ks${i}{animation:${prefix}tl-ks${i} 10000ms linear both paused}`,
-    ...faces.map((f, k) => (f ? `${root}.live .kf${i}_${k}{animation:${prefix}tl-kf${i}_${k} 10000ms linear both paused}` : '')),
-  ]);
-  live.push(...g.layers.map((_, k) => `${root}.live .kl${k}{animation:${prefix}tl-kl${k} 10000ms linear both paused}`), `${root}.live .kcam{animation:${prefix}tl-kcam 10000ms linear both paused}`);
-  // Inside .live, the rest rules must not win over the timeline: animations override them by the cascade.
-  const css = [...restRules, ...live.filter(Boolean), kindsKeyframes(g, prefix)].join('\n');
+  // Escaping `<` keeps the JSON from closing its script early.
+  const timelines = JSON.stringify(kindsTweens(g)).replace(/</g, '\\u003c');
   return (
     <div className="kstage" aria-hidden="true">
-      <style>{css}</style>
+      <style>{restRules.join('\n')}</style>
+      <script type="application/json" data-timelines="" dangerouslySetInnerHTML={{ __html: timelines }} />
       <div className="kcam" style={s({ transformOrigin: `${area.cx}px ${area.cy}px` })}>
         {g.layers.map((l, k) => (
           <div key={l.kind} className={`klayer kl${k}`} style={s({ left: px(l.left), top: px(l.top), transform: `scale(${g.scale})` })}>
