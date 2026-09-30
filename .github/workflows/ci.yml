@@ -99,7 +99,9 @@ jobs:
   release:
     name: release
     needs: [check, e2e]
-    if: github.event_name == 'push'
+    # Off until launch: the repository variable RELEASE_ENABLED is set to true once v0.0.0 is tagged and staging exists.
+    # Without the tag, semantic-release counts every commit and picks 1.0.0.
+    if: github.event_name == 'push' && vars.RELEASE_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
