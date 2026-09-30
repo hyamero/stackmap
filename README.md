@@ -1,7 +1,9 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.svg">
-  <img alt="stackmap: architecture diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="640">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.svg">
+    <img alt="stackmap: architecture diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="100%">
+  </picture>
+</p>
 
 You ask your agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and hands you a single self-contained viewer — pan and zoom, search, trace, routes between two nodes, guided views, presentation mode, dark and light themes, image and video export. No server, no account, nothing to install to open it.
 
