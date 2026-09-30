@@ -300,6 +300,11 @@ function RouteDetail({ toggle }: { toggle: ReactNode }) {
   );
 }
 
+// Narrow, a 300px column would leave the canvas a sliver: the inspector floats over the stage instead,
+// its toggle where the stage's bottom-right panel would sit and its body as a sheet along the bottom.
+const NARROW_COLLAPSED = '@max-2xl:absolute @max-2xl:right-[27px] @max-2xl:bottom-[27px] @max-2xl:z-20';
+const NARROW_OPEN = '@max-2xl:absolute @max-2xl:inset-x-5 @max-2xl:bottom-5 @max-2xl:z-20 @max-2xl:max-h-[min(60%,480px)] @max-2xl:w-auto';
+
 function Toggle({ collapsed, onToggle, ref }: { collapsed: boolean; onToggle: () => void; ref: Ref<HTMLButtonElement> }) {
   return (
     <IconButton ref={ref} label={collapsed ? 'Show inspector' : 'Hide inspector'} expanded={!collapsed} onClick={onToggle}>
@@ -339,13 +344,13 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
   );
   if (collapsed) {
     return (
-      <aside aria-label="Inspector" className="shrink-0 rounded-[20px] bg-panel p-1.5" style={PANEL_STYLE}>
+      <aside aria-label="Inspector" className={`shrink-0 rounded-[20px] bg-panel p-1.5 ${NARROW_COLLAPSED}`} style={PANEL_STYLE}>
         {toggle}
       </aside>
     );
   }
   return (
-    <aside aria-label="Inspector" className="relative w-[300px] shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5" style={PANEL_STYLE}>
+    <aside aria-label="Inspector" className={`relative w-[300px] shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5 ${NARROW_OPEN}`} style={PANEL_STYLE}>
       <div ref={body}>
       {state.route || state.routing ? (
         <RouteDetail toggle={toggle} />

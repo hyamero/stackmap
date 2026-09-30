@@ -59,6 +59,16 @@ describe('ViewerShell', () => {
     expect(screen.getByText('100%')).toBeInTheDocument(); // zero-size stage in jsdom → identity transform
   });
 
+  it('the identity card’s details button opens the inspector on the diagram, leaving any selection', () => {
+    innerWidth = 900;
+    render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Orders, Database' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Diagram details' }));
+    const inspector = screen.getByRole('complementary', { name: 'Inspector' });
+    expect(within(inspector).getByRole('heading', { level: 2, name: 'Commerce API' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Orders, Database' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('has no editor controls', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
     for (const name of [/add/i, /undo/i, /redo/i, /lock/i]) expect(screen.queryByRole('button', { name })).toBeNull();

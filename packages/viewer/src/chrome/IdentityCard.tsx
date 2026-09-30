@@ -2,10 +2,10 @@ import { Ellipsis, Workflow } from 'lucide-react';
 import type { DiagramDraft } from '@stackmap/core';
 import { IconButton, PANEL_CLASS, PANEL_STYLE } from './ui';
 
-export function IdentityCard({ draft }: { draft: DiagramDraft }) {
+export function IdentityCard({ draft, onDetails }: { draft: DiagramDraft; onDetails?: () => void }) {
   return (
-    <div className={`${PANEL_CLASS} flex items-center gap-3 py-2 pr-2 pl-3`} style={PANEL_STYLE}>
-      <div className="grid size-9 place-items-center rounded-xl bg-page text-fg-muted">
+    <div className={`${PANEL_CLASS} flex min-w-0 items-center gap-3 py-2 pr-2 pl-3`} style={PANEL_STYLE}>
+      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-page text-fg-muted">
         <Workflow size={17} strokeWidth={1.75} aria-hidden="true" />
       </div>
       <div className="min-w-0 pr-4">
@@ -18,7 +18,7 @@ export function IdentityCard({ draft }: { draft: DiagramDraft }) {
           </div>
         )}
       </div>
-      <IconButton label="Diagram menu">
+      <IconButton label="Diagram details" onClick={onDetails}>
         <Ellipsis size={17} strokeWidth={1.75} />
       </IconButton>
     </div>

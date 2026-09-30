@@ -281,6 +281,28 @@ test('the inspector starts collapsed on a narrow window and can be opened', asyn
   await expect(inspector(page).getByRole('list', { name: 'Legend' })).toBeVisible();
 });
 
+test('on a phone the inspector opens over the canvas, and the toolbar keeps to one row', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.locator('.sm-card')).toHaveCount(6);
+  const stage = page.getByRole('tabpanel', { name: 'Diagram' });
+  const full = (await stage.boundingBox())!;
+  expect(full.width).toBeGreaterThan(350);
+  const [first, last] = await Promise.all([page.getByRole('button', { name: 'Search nodes (/)' }).boundingBox(), page.getByRole('button', { name: 'Export' }).boundingBox()]);
+  expect(Math.abs(first!.y + first!.height / 2 - (last!.y + last!.height / 2))).toBeLessThan(2);
+  await inspector(page).getByRole('button', { name: 'Show inspector' }).click();
+  await expect(inspector(page).getByRole('list', { name: 'Legend' })).toBeVisible();
+  expect((await stage.boundingBox())!.width).toBe(full.width);
+  const sheet = (await inspector(page).boundingBox())!;
+  expect(sheet.x).toBeGreaterThanOrEqual(full.x);
+  expect(sheet.x + sheet.width).toBeLessThanOrEqual(full.x + full.width);
+  expect(sheet.y + sheet.height).toBeLessThanOrEqual(full.y + full.height);
+  await card(page, 'orders').click({ force: true });
+  await expect(inspector(page).getByRole('heading', { level: 2, name: 'Orders' })).toBeVisible();
+  await inspector(page).getByRole('button', { name: 'Hide inspector' }).click();
+  await expect(inspector(page).getByRole('button', { name: 'Show inspector' })).toBeFocused();
+});
+
 test('with reduced motion the camera jumps instead of animating', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.reload();

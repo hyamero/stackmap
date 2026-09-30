@@ -78,6 +78,20 @@ function ViewTabs() {
   );
 }
 
+/** The identity card's details button shows the diagram itself in the inspector, whatever was selected. */
+function DiagramIdentity({ onDetails }: { onDetails: () => void }) {
+  const { draft, dispatch } = useExplore();
+  return (
+    <IdentityCard
+      draft={draft}
+      onDetails={() => {
+        dispatch({ type: 'clear' });
+        onDetails();
+      }}
+    />
+  );
+}
+
 function ViewCaption() {
   const { draft, state } = useExplore();
   const caption = draft.views?.find((v) => v.id === state.view)?.caption;
@@ -143,7 +157,7 @@ export function ViewerShell({
     <ExploreProvider draft={draft}>
       <div ref={shell} data-presenting={presenting || undefined} className="@container flex h-full flex-col bg-page font-sans text-fg">
         {!presenting && (
-        <header className="mx-8 mt-4 flex gap-8 border-b border-divider @max-md:mx-4 @max-md:mt-2 @max-md:flex-wrap @max-md:gap-x-4 @max-md:gap-y-0">
+        <header className="mx-8 mt-4 flex gap-8 border-b border-divider @max-2xl:mx-4 @max-2xl:mt-2 @max-md:flex-wrap @max-md:gap-x-4 @max-md:gap-y-0">
           <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3 @max-md:max-w-full @max-md:basis-full @max-md:pb-1">
             <Title className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</Title>
             <span
@@ -160,19 +174,20 @@ export function ViewerShell({
         </header>
         )}
         {!presenting && <ViewCaption />}
-        <Main className={`flex min-h-0 flex-1 gap-4 @max-md:gap-2 ${presenting ? '' : 'px-8 pt-4 pb-6 @max-md:px-3 @max-md:pt-3 @max-md:pb-3'}`}>
+        <Main className={`relative flex min-h-0 flex-1 gap-4 @max-2xl:gap-2 ${presenting ? '' : 'px-8 pt-4 pb-6 @max-2xl:px-3 @max-2xl:pt-3 @max-2xl:pb-3'}`}>
           <section
             id={DIAGRAM_ID}
             role="tabpanel"
             aria-label="Diagram"
-            className={`relative min-w-0 flex-1 overflow-hidden bg-stage ${presenting ? '' : 'rounded-[20px]'}`}
+            className={`@container/stage relative min-w-0 flex-1 overflow-hidden bg-stage ${presenting ? '' : 'rounded-[20px]'}`}
             style={presenting ? undefined : { boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
           >
             <DiagramCanvas diagram={diagram} chrome={!presenting}>
-              <CanvasPanel position="top-left" className="flex gap-2 @max-md:right-[15px]">
+              {/* Never wider than the stage: the identity card gives way (truncating, then hidden) before the toolbar. */}
+              <CanvasPanel position="top-left" className="flex max-w-[calc(100%-30px)] gap-2">
                 {/* Narrow, the header already names the diagram: the toolbar gets the room. */}
-                <div className="contents @max-md:hidden">
-                  <IdentityCard draft={draft} />
+                <div className="flex min-w-0 @max-[640px]/stage:hidden">
+                  <DiagramIdentity onDetails={() => setInspectorCollapsed(false)} />
                 </div>
                 <Toolbar theme={theme} onToggleTheme={onToggleTheme} onPresent={() => present(true)} />
               </CanvasPanel>

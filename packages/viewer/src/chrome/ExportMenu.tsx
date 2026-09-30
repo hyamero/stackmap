@@ -137,10 +137,11 @@ export function ExportMenu() {
             setOpen(true);
           }
         }}
-        className="sm-press flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-fg disabled:opacity-60"
+        className="sm-press flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-fg disabled:opacity-60 @max-md:px-2.5"
       >
         <Download size={16} strokeWidth={2} aria-hidden="true" />
-        {status.kind === 'busy' ? (status.text ?? 'Exporting…') : 'Export'}
+        {/* Phone width: the icon alone keeps the toolbar to one row. */}
+        <span className="@max-md:sr-only">{status.kind === 'busy' ? (status.text ?? 'Exporting…') : 'Export'}</span>
       </button>
       {open && (
         <div
