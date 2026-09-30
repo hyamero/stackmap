@@ -62,7 +62,9 @@ function cycles(nodes: string[], edges: [string, string][]): string[][] {
   return out;
 }
 
-/** Duplicate ids, orphans, self-loops, parallel edges, dataflow cycles, empty views and groups. */
+const LARGE_DIAGRAM = 60;
+
+/** Size, duplicate ids, orphans, self-loops, parallel edges, dataflow cycles, empty views and groups. */
 export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
   const out: Diagnostic[] = [
     ...duplicates(d.nodes, 'nodes'),
@@ -84,6 +86,18 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
         allowedFixes: ['add "stats"', 'remove "statsNote"', 'move the note into a card row'],
       });
   });
+
+  // The authoring contract aims for ~10–40 nodes; well past that cards are unreadable at fit, and a grouped
+  // layout of a few hundred nodes takes ELK tens of seconds.
+  if (d.nodes.length > LARGE_DIAGRAM)
+    out.push({
+      code: 'semantics/large-diagram',
+      severity: 'warning',
+      subject: '/nodes',
+      message: `The diagram has ${d.nodes.length} nodes; past ~${LARGE_DIAGRAM} its cards are too small to read on one screen`,
+      evidence: { nodes: d.nodes.length, limit: LARGE_DIAGRAM },
+      allowedFixes: ['split it into an overview (subsystems as single nodes) plus one diagram per subsystem', 'merge nodes the reader need not tell apart'],
+    });
 
   const linked = new Set(d.edges.flatMap((e) => [e.from, e.to]));
   if (d.nodes.length > 1) {

@@ -23,7 +23,7 @@ How to model a system as a stackmap diagram. The [schema reference](schema.md) s
 
 ## Size
 
-A diagram is read on one screen. Aim for **~10–40 nodes**; past that, cards get too small at fit and the picture stops answering a question. For a larger system, deliver an **overview** diagram (subsystems as single nodes) plus **one diagram per subsystem** in sibling folders (`.stackmap/<system>-overview/`, `.stackmap/<system>-payments/`, …). Views don't reduce size — every node is still drawn. The schema's hard caps (500 nodes, 2000 edges) are a safety limit, not a target; if you hit one, split rather than delete.
+A diagram is read on one screen. Aim for **~10–40 nodes**; past that, cards get too small at fit and the picture stops answering a question. For a larger system, deliver an **overview** diagram (subsystems as single nodes) plus **one diagram per subsystem** in sibling folders (`.stackmap/<system>-overview/`, `.stackmap/<system>-payments/`, …). Views don't reduce size — every node is still drawn. `validate` warns past 60 nodes. The schema's hard caps (500 nodes, 2000 edges) are a safety limit, not a target; if you hit one, split rather than delete.
 
 ## From Mermaid
 

@@ -268,6 +268,15 @@ describe('validateDiagram', () => {
       expect(only(base({ kind: 'sequence', edges }), 'semantics/parallel-edge')).toEqual([]);
     });
 
+    it('past 60 nodes the diagram warns once to split', () => {
+      const nodes = (n: number) => Array.from({ length: n }, (_, i) => node(`n${i}`));
+      const chain = (n: number) => Array.from({ length: n - 1 }, (_, i) => ({ id: `e${i}`, from: `n${i}`, to: `n${i + 1}` }));
+      expect(only(base({ nodes: nodes(60), edges: chain(60) }), 'semantics/large-diagram')).toEqual([]);
+      expect(only(base({ nodes: nodes(61), edges: chain(61) }), 'semantics/large-diagram')).toMatchObject([
+        { subject: '/nodes', severity: 'warning', evidence: { nodes: 61, limit: 60 } },
+      ]);
+    });
+
     it('cycles warn in dataflow diagrams only', () => {
       const edges = [
         { id: 'ab', from: 'a', to: 'b' },
