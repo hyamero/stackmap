@@ -5,6 +5,7 @@ import type { LaidOutDiagram } from '@stackmap/core';
 import { GALLERY } from '@stackmap/core/gallery';
 import { layoutDiagram } from '@stackmap/layout';
 import { validateDiagram } from '@stackmap/schema';
+import { formatJson } from './json-format';
 import { DEMO, EXAMPLES_DIR, QUICK_START, SKILL_EXAMPLES_DIR } from './paths';
 
 export interface SiteDiagrams {
@@ -56,7 +57,7 @@ export interface SiteSources {
 // adds back from the CLI version where it shows one, so the text here never goes stale.
 function source(file: URL): string {
   const { $schema: _, ...rest } = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
-  return JSON.stringify(rest, null, 2);
+  return formatJson(rest);
 }
 
 export function readSources(): SiteSources {

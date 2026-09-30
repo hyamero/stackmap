@@ -3,6 +3,9 @@
 
 /* Viewer components are mounted unchanged, so Tailwind must see their class names. */
 @source '../../packages/viewer/src';
+/* Explicit: automatic detection follows the repo's .gitignore, which once hid every `docs` folder. */
+@source '../app';
+@source '../components';
 
 @theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
