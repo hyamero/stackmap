@@ -84,22 +84,9 @@ Bun workspaces monorepo; tests run on Node via Vitest and Playwright.
 ```bash
 bun install
 bun run test && bun run typecheck && bun run build   # unit tests, types, viewer template + CLI bundle
-cd packages/viewer && bunx playwright test            # viewer e2e (dev server)
-cd packages/cli && bunx playwright test               # delivered-file + live-serve e2e
 ```
 
-| Package | What it does |
-|---|---|
-| `packages/core` | types, theme tokens, card metrics, headless text measurement (generated Geist metrics), samples |
-| `packages/schema` | Zod schema → `stackmap.schema.json`, the validator and its diagnostics |
-| `packages/layout` | ELK wrapper: diagram → absolute node/group/edge geometry |
-| `packages/viewer` | React viewer, built into one self-contained HTML template |
-| `packages/cli` | `@hyamero/stackmap`: validate · deliver · serve |
-| `skill/` | the agent skill that `npx skills add` installs |
-
-The mark, lockups, icons and social card are in [`assets/brand/`](assets/brand/), with the rules for using them.
-
-Visual regression baselines are Linux-only and are checked in CI. Regenerate them with the CI workflow's *update-visual* run (it uploads them as an artifact), or locally with `bun run --filter @stackmap/viewer visual:update` (Playwright's Linux image in Docker). `bun run --filter @stackmap/viewer metrics:gen` regenerates the font metrics after a font change.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the packages, the e2e and visual regression tests, branches, commit messages and how releases work. The mark, lockups, icons and social card are in [`assets/brand/`](assets/brand/), with the rules for using them.
 
 ## Credits
 
