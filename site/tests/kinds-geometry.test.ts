@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { DIAGRAM_KINDS, type LaidOutDiagram } from '@stackmap/core';
-import { kindsGeometry, kindsTweens, type KindsGeometry } from '../components/landing/kinds-geometry';
+import { HOLDS, holdTime, kindsGeometry, kindsTweens, restingFlow, type KindsGeometry } from '../components/landing/kinds-geometry';
 import { layoutSite } from '../lib/data/diagrams';
 
 const AREA = { cx: 720, cy: 640, width: 1248, height: 522 };
@@ -56,5 +56,36 @@ describe('kinds geometry', () => {
     const slot0 = kindsTweens(g).find((t) => t.target === '.ks0')!;
     expect(slot0.frames['23%']!.ease).toBe('cb:0.77,0,0.175,1');
     expect(slot0.frames['16%']!.left).toBe(slot0.frames['0%']!.left);
+  });
+});
+
+describe('kind flows', () => {
+  it('gives every kind a flow along its own drawn connections', () => {
+    for (const kind of DIAGRAM_KINDS) {
+      const { flow, width, height } = restingFlow(checkout[kind]!);
+      expect(flow.pulses.length).toBeGreaterThan(0);
+      expect(width).toBeGreaterThan(0);
+      expect(height).toBeGreaterThan(0);
+    }
+  });
+
+  it('lands on a ripple instead of a glow when asked to', () => {
+    const { flow } = restingFlow(checkout.workflow!, { glows: false });
+    expect(flow.pulses.every((p) => p.glow === null)).toBe(true);
+  });
+
+  it('scrubs one loop of a kind\'s flow through its hold, and none outside it', () => {
+    const [a, b] = HOLDS[1]!;
+    expect(holdTime(a / 100, 1, 3000)).toBe(0);
+    expect(holdTime((a + b) / 200, 1, 3000)).toBeCloseTo(1500, 5);
+    // The loop's end is its start again: the hold's last instant already belongs outside it.
+    expect(holdTime(b / 100, 1, 3000)).toBeNull();
+    expect(holdTime((b - 0.13) / 100, 1, 3000)).toBeCloseTo(2970, 5);
+    expect(holdTime((a - 1) / 100, 1, 3000)).toBeNull();
+    expect(holdTime((b + 1) / 100, 1, 3000)).toBeNull();
+  });
+
+  it('shows nothing before the scene starts scrubbing', () => {
+    expect(holdTime(0, 0, 3000)).toBeNull();
   });
 });

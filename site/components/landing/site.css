@@ -98,6 +98,12 @@
 @media (prefers-reduced-motion: reduce) {
   .lp .kslot,
   .lp .klayer,
+.lp .kflow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
   .lp .kface,
   .lp .kcam,
   .lp .kn-col,

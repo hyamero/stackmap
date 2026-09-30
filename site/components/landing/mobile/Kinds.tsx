@@ -3,7 +3,8 @@ import { toScene } from '@stackmap/viewer/src/canvas/scene';
 import { Still } from '@/components/diagram/Still';
 import { stillOf } from '@/lib/diagrams';
 import { KindCount } from '../KindCount';
-import { crossfadeTweens } from '../kinds-geometry';
+import { KindFlow } from '../KindFlow';
+import { crossfadeTweens, restingFlow } from '../kinds-geometry';
 import { s } from '../style';
 
 const REST = DIAGRAM_KINDS.indexOf('workflow');
@@ -73,6 +74,7 @@ export function Kinds({ checkout }: { checkout: Record<string, LaidOutDiagram> }
             {layers.map((l, k) => (
               <div key={l.kind} className={`klayer kl${k}`} style={s({ left: px(l.left), top: px(l.top), transform: `scale(${l.k})` })}>
                 <Still still={stillOf(`checkout/${l.kind}`)} />
+                <KindFlow data={restingFlow(l.diagram, { glows: false })} k={k} />
               </div>
             ))}
           </div>

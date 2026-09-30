@@ -1,5 +1,9 @@
 import { DIAGRAM_KINDS, type DiagramKind, type LaidOutDiagram, type Rect } from '@stackmap/core';
 import { toScene, type SceneCard } from '@stackmap/viewer/src/canvas/scene';
+import { buildGraph } from '@stackmap/viewer/src/explore/graph';
+import { INITIAL } from '@stackmap/viewer/src/explore/state';
+import type { Flow } from '@stackmap/viewer/src/motion/flow';
+import { flowOf } from '@stackmap/viewer/src/motion/flowOf';
 import { SLOT_COUNT, SLOTS } from '@/lib/checkout';
 import type { Tween } from './timeline';
 
@@ -132,4 +136,37 @@ export function kindsTweens(g: KindsGeometry): Tween[] {
   g.layers.forEach((_, k) => out.push({ target: `.kl${k}`, frames: shownIn(k, 3) }));
   out.push({ target: '.kcam', frames: holds((k) => ({ scale: String(Math.round(g.layers[k]!.cam * 1000) / 1000) })) });
   return out;
+}
+
+export interface KindFlow {
+  flow: Flow;
+  /** the drawn content's corner in diagram px, which the layer's still is cut to */
+  origin: { x: number; y: number };
+  width: number;
+  height: number;
+}
+
+/**
+ * The flow the viewer plays on a diagram left alone. `glows: false` lands each pulse on a ripple: where the
+ * layer draws its own cards, a glow would sit over them rather than behind.
+ */
+export function restingFlow(diagram: LaidOutDiagram, { glows = true } = {}): KindFlow {
+  const scene = toScene(diagram);
+  const { draft } = diagram;
+  const graph = buildGraph(draft.nodes.map((n) => n.id), draft.edges, { timed: draft.kind === 'sequence' });
+  const flow = flowOf(scene, graph, INITIAL, { active: false, nodes: new Map(), edges: new Map() });
+  return {
+    flow: glows ? flow : { ...flow, pulses: flow.pulses.map((p) => ({ ...p, glow: null })) },
+    origin: { x: scene.content.x, y: scene.content.y },
+    width: scene.bounds.width,
+    height: scene.bounds.height,
+  };
+}
+
+/** "Each hold scrubs one loop of that kind's flow": ms into kind k's loop at scene progress p, or null outside its hold. */
+export function holdTime(p: number, k: number, period: number): number | null {
+  const [a, b] = HOLDS[k]!;
+  const pct = p * 100;
+  if (p <= 0 || pct < a || pct >= b) return null;
+  return ((pct - a) / (b - a)) * period;
 }

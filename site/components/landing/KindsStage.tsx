@@ -3,14 +3,16 @@ import { NodeCard } from '@stackmap/viewer/src/card/NodeCard';
 import { StepCard } from '@stackmap/viewer/src/card/StepCard';
 import { Still } from '@/components/diagram/Still';
 import { stillOf } from '@/lib/diagrams';
-import { kindsGeometry, kindsTweens, type Area } from './kinds-geometry';
+import { KindFlow } from './KindFlow';
+import { kindsGeometry, kindsTweens, restingFlow, type Area } from './kinds-geometry';
 import { s } from './style';
 
 const px = (n: number) => `${Math.round(n * 10) / 10}px`;
 
 /**
  * One checkout, five ways: each kind's layer (its lanes, phases and connections) plus the card slots that
- * glide between kinds. At rest the scene's data-kind picks what shows; scrolling plays the tweens it carries.
+ * glide between kinds. At rest the scene's data-kind picks what shows; scrolling plays the tweens it carries,
+ * and each kind's flow in its hold.
  */
 export function KindsStage({ checkout, area, root }: { checkout: Record<string, LaidOutDiagram>; area: Area; root: string }) {
   const g = kindsGeometry(checkout, area);
@@ -35,6 +37,7 @@ export function KindsStage({ checkout, area, root }: { checkout: Record<string, 
         {g.layers.map((l, k) => (
           <div key={l.kind} className={`klayer kl${k}`} style={s({ left: px(l.left), top: px(l.top), transform: `scale(${g.scale})` })}>
             <Still still={stillOf(`checkout/${l.kind}`)} />
+            <KindFlow data={restingFlow(l.diagram)} k={k} />
           </div>
         ))}
         {g.slots.map((faces, i) => (
