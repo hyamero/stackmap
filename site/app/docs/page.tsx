@@ -71,7 +71,7 @@ function Transcript() {
   return (
     <div data-theme="dark" className="mt-5 overflow-hidden rounded-[14px] bg-page text-fg-muted shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
       <div className="flex h-[42px] items-center px-[18px] font-mono text-[12.5px] shadow-[inset_0_-1px_0_var(--sm-panel-border)]">A repair round, as the agent sees it</div>
-      <pre className="m-0 overflow-x-auto px-5 pt-4 pb-[18px] font-mono text-code leading-[1.75]">
+      <pre tabIndex={0} className="m-0 overflow-x-auto px-5 pt-4 pb-[18px] font-mono text-code leading-[1.75] focus-visible:-outline-offset-2">
         {prompt('validate')}
         {broken.map(line)}
         <span className="block"> </span>

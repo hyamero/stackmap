@@ -13,7 +13,7 @@ export const docs = {
 
 export function Code({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded-md bg-panel px-1.5 py-px font-mono text-[0.88em] whitespace-nowrap shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">{children}</code>
+    <code className="rounded-md bg-panel px-1.5 py-px font-mono text-[0.88em] [overflow-wrap:anywhere] box-decoration-clone shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">{children}</code>
   );
 }
 

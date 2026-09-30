@@ -48,7 +48,7 @@ function Table({ section, placement }: { section: SchemaSection; placement: Plac
           Set <Code>source.url</Code> on the diagram and every evidence entry links to <Code>&lt;url&gt;/&lt;file&gt;#L&lt;line&gt;</Code>.
         </p>
       )}
-      <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
+      <div tabIndex={0} className="-mx-5 overflow-x-auto px-5 focus-visible:-outline-offset-2 md:mx-0 md:px-0">
         <table className="mt-[18px] w-full min-w-[560px] border-collapse text-sm">
           <thead>
             <tr>

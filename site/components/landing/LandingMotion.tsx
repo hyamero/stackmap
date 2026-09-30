@@ -4,8 +4,6 @@ import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { CustomEase } from 'gsap/CustomEase';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { TWEENS as DESKTOP } from './desktop/timelines';
-import { TWEENS as MOBILE } from './mobile/timelines';
 import { sceneExtras, sceneTimeline, type Tween } from './timeline';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, CustomEase);
@@ -165,9 +163,11 @@ function animate(root: HTMLElement, tweens: Tween[]) {
   };
 }
 
+// Each composition's timelines load only once its widths match with motion allowed: the other one's,
+// or both under reduced motion, never download.
 const COMPOSITIONS = {
-  desktop: { rootId: 'lp-d', media: '(min-width: 768px)', tweens: DESKTOP },
-  phone: { rootId: 'lp-m', media: '(max-width: 767px)', tweens: MOBILE },
+  desktop: { rootId: 'lp-d', media: '(min-width: 768px)', tweens: () => import('./desktop/timelines').then((m) => m.TWEENS) },
+  phone: { rootId: 'lp-m', media: '(max-width: 767px)', tweens: () => import('./mobile/timelines').then((m) => m.TWEENS) },
 };
 
 /** Scrubs one composition, desktop or phone, while its widths match and motion is allowed. */
@@ -178,7 +178,10 @@ export function LandingMotion({ composition }: { composition: keyof typeof COMPO
     if (!root) return;
     root.querySelector('[data-mark-route]')?.classList.add('drawn');
     const mm = gsap.matchMedia();
-    mm.add(`${media} and (prefers-reduced-motion: no-preference)`, () => animate(root, tweens));
+    mm.add(`${media} and (prefers-reduced-motion: no-preference)`, (ctx) => {
+      // Added to the context once loaded, so leaving the widths reverts it like any other; skipped if they already have.
+      void tweens().then((t) => ctx.isReverted || ctx.add(() => animate(root, t)));
+    });
     return () => mm.revert();
   }, [rootId, media, tweens]);
   return null;

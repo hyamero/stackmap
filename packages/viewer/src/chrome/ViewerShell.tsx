@@ -93,10 +93,11 @@ export function ViewerShell({
   diagram: LaidOutDiagram;
   theme: ThemeChoice;
   onToggleTheme: () => void;
-  /** h2 when the shell sits in a page that has its own h1 (the website) */
+  /** h2 when the shell sits in a page that has its own h1 and main landmark (the website); its main is then a plain div */
   titleAs?: 'h1' | 'h2';
 }) {
   const { draft } = diagram;
+  const Main = Title === 'h1' ? 'main' : 'div';
   const [inspectorCollapsed, setInspectorCollapsed] = useState(() => innerWidth < INSPECTOR_BREAKPOINT);
   const shell = useRef<HTMLDivElement>(null);
   // Presentation (F): the stage alone, full screen where the browser allows it, stepping through the views.
@@ -159,7 +160,7 @@ export function ViewerShell({
         </header>
         )}
         {!presenting && <ViewCaption />}
-        <main className={`flex min-h-0 flex-1 gap-4 @max-md:gap-2 ${presenting ? '' : 'px-8 pt-4 pb-6 @max-md:px-3 @max-md:pt-3 @max-md:pb-3'}`}>
+        <Main className={`flex min-h-0 flex-1 gap-4 @max-md:gap-2 ${presenting ? '' : 'px-8 pt-4 pb-6 @max-md:px-3 @max-md:pt-3 @max-md:pb-3'}`}>
           <section
             id={DIAGRAM_ID}
             role="tabpanel"
@@ -179,7 +180,7 @@ export function ViewerShell({
             {presenting && <PresentBar onExit={() => present(false)} />}
           </section>
           {!presenting && <Inspector collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((v) => !v)} />}
-        </main>
+        </Main>
       </div>
     </ExploreProvider>
   );

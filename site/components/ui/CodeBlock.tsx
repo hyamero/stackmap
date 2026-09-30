@@ -33,7 +33,7 @@ export function CodeBlock({ file, code, copy, maxLines, className = '' }: { file
         <span className="font-mono">{file}</span>
         {copy && <CopyButton text={code} label={`Copy ${file}`} className="size-8" />}
       </div>
-      <pre className="m-0 overflow-x-auto px-5 pt-4 pb-[18px] font-mono text-code text-fg-muted">
+      <pre tabIndex={0} className="m-0 overflow-x-auto px-5 pt-4 pb-[18px] font-mono text-code text-fg-muted focus-visible:-outline-offset-2">
         <code>
           {lines.map((l, i) => (
             <span key={i} className="block whitespace-pre">

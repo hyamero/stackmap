@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { INFRA_TYPES, STATE_TYPES, type DiagramKind, type DiagramNode, type NodeType } from '@stackmap/core';
+import { INFRA_TYPES, KIND_LABELS, STATE_TYPES, type DiagramKind, type DiagramNode, type NodeType } from '@stackmap/core';
 import { NodeCard } from '@stackmap/viewer/src/card/NodeCard';
 import { StepCard } from '@stackmap/viewer/src/card/StepCard';
 import { TypeChip } from '@/components/ui/TypeChip';
@@ -189,17 +189,20 @@ const LABELS: Partial<Record<DiagramKind, ReactNode[]>> = {
 
 export function Parts({ kind, page }: { kind: DiagramKind; page: KindPage }) {
   return (
-    <ul className="m-0 mt-28 grid list-none grid-cols-1 gap-6 p-0 sm:grid-cols-2 lg:grid-cols-4">
-      {page.parts.map((p, i) => (
-        <li key={p.title}>
-          <div aria-hidden="true" className="relative h-[150px] overflow-hidden rounded-2xl bg-stage shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
-            {VISUALS[kind][i]}
-            {LABELS[kind]?.[i]}
-          </div>
-          <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.015em]">{p.title}</h3>
-          <p className="mt-1.5 text-sm leading-[1.55] text-fg-muted">{p.text}</p>
-        </li>
-      ))}
-    </ul>
+    <section className="mt-28">
+      <h2 className="sr-only">{KIND_LABELS[kind]}, part by part</h2>
+      <ul className="m-0 grid list-none grid-cols-1 gap-6 p-0 sm:grid-cols-2 lg:grid-cols-4">
+        {page.parts.map((p, i) => (
+          <li key={p.title}>
+            <div aria-hidden="true" className="relative h-[150px] overflow-hidden rounded-2xl bg-stage shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
+              {VISUALS[kind][i]}
+              {LABELS[kind]?.[i]}
+            </div>
+            <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.015em]">{p.title}</h3>
+            <p className="mt-1.5 text-sm leading-[1.55] text-fg-muted">{p.text}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

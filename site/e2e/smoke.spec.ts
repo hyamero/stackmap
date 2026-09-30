@@ -18,7 +18,40 @@ for (const route of ROUTES) {
     await page.waitForLoadState('networkidle');
     expect(errors).toEqual([]);
   });
+
+  test(`${route} shares with a title, description and image`, async ({ page }) => {
+    await page.goto(route);
+    for (const p of ['og:title', 'og:description', 'og:url', 'og:image']) await expect(page.locator(`meta[property="${p}"]`), p).toHaveAttribute('content', /\S/);
+    const image = await page.locator('meta[property="og:image"]').getAttribute('content');
+    expect((await page.request.get(new URL(image!).pathname)).status()).toBe(200);
+  });
+
+  test(`${route} never scrolls sideways on a 320px phone`, async ({ browser }) => {
+    const page = await browser.newPage({ viewport: { width: 320, height: 700 }, reducedMotion: 'reduce' });
+    await page.goto(route);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+    await page.close();
+  });
+
+  test(`${route} never skips a heading level`, async ({ page }) => {
+    await page.goto(route);
+    // Headings the reader can reach: the other composition's copy is display:none on the landing.
+    const levels = await page.locator('h1, h2, h3, h4, h5, h6').evaluateAll((hs) =>
+      hs.filter((h) => h.getClientRects().length || h.closest('.sr-only, .sr')).map((h) => Number(h.tagName[1])),
+    );
+    levels.forEach((l, i) => expect(l, `heading ${i} after h${levels[i - 1]}`).toBeLessThanOrEqual((levels[i - 1] ?? 0) + 1));
+  });
 }
+
+test('an unknown address gets the 404 page, kept out of the index', async ({ page }) => {
+  const res = await page.goto('/no/such/page');
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole('heading', { level: 1, name: 'Off the map.' })).toBeVisible();
+  await expect(page).toHaveTitle(/^Page not found · stackmap$/);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  await page.getByRole('navigation', { name: 'Ways back' }).getByRole('link', { name: /Examples/ }).click();
+  await expect(page).toHaveURL(/\/examples$/);
+});
 
 test('with reduced motion every landing scene is its resting frame, nothing pinned', async ({ page }) => {
   await page.goto('/');
