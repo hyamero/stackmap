@@ -7,7 +7,16 @@ import { Install } from './desktop/Install';
 import { Kinds } from './desktop/Kinds';
 import { Unmapped } from './desktop/Unmapped';
 import { Viewer } from './desktop/Viewer';
+import { HashAnchors } from './HashAnchors';
 import { LandingMotion } from './LandingMotion';
+import { Agent as MAgent } from './mobile/Agent';
+import { Features as MFeatures } from './mobile/Features';
+import { Files as MFiles } from './mobile/Files';
+import { Hero as MHero } from './mobile/Hero';
+import { Install as MInstall } from './mobile/Install';
+import { Kinds as MKinds } from './mobile/Kinds';
+import { Unmapped as MUnmapped } from './mobile/Unmapped';
+import { Viewer as MViewer } from './mobile/Viewer';
 import './desktop.css';
 import './mobile.css';
 import './site.css';
@@ -29,7 +38,19 @@ export function Landing({ demo, checkout }: { demo: LaidOutDiagram; checkout: Re
         <Files />
         <Install />
       </div>
+      <div id="lp-m" className="lp lp-m" data-theme="dark" data-h="7744">
+        <MHero />
+        <MUnmapped />
+        <MAgent />
+        <MViewer demo={demo} />
+        <MFeatures />
+        <MKinds checkout={checkout} />
+        <MFiles />
+        <MInstall />
+      </div>
       <LandingMotion composition="desktop" />
+      <LandingMotion composition="phone" />
+      <HashAnchors />
     </>
   );
 }

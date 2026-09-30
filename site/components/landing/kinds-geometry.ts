@@ -111,6 +111,11 @@ function shownIn(k: number, fade: number): Tween['frames'] {
   };
 }
 
+/** The phone's kinds: whole diagrams crossfading in their holds, one layer each. */
+export function crossfadeTweens(count: number): Tween[] {
+  return Array.from({ length: count }, (_, k) => ({ target: `.kl${k}`, frames: shownIn(k, 3) }));
+}
+
 /** The scene's generated timelines: slots glide between kinds, layers and faces cross over, the camera refits. */
 export function kindsTweens(g: KindsGeometry): Tween[] {
   const out: Tween[] = [];

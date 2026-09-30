@@ -67,7 +67,7 @@
 }
 
 /* #kinds: the checkout's cards are the slots; the layers draw only lanes, phases, frames and connections. */
-.lp .klayer .sm-card {
+.lp-d .klayer .sm-card {
   visibility: hidden;
 }
 .lp .kslot,
