@@ -23,6 +23,14 @@ describe('ViewerShell', () => {
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
   });
 
+  it('leaves the main landmark to the page it is embedded in', () => {
+    const { unmount } = render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    unmount();
+    render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} titleAs="h2" />);
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+  });
+
   it('lists Overview first, then agent views, as tabs', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
