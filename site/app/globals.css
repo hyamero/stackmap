@@ -12,7 +12,8 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
   --color-accent: var(--site-accent);
 
-  --text-mega: clamp(60px, 13.9vw, 200px);
+  /* The floor lets the longest title, "Architecture.", fit a 320px screen. */
+  --text-mega: clamp(44px, 13.9vw, 200px);
   --text-mega--line-height: 0.92;
   --text-mega--letter-spacing: -0.05em;
   --text-mega--font-weight: 600;
