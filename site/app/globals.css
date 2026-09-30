@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+@import '@stackmap/viewer/src/viewer.css';
+
+/* Viewer components are mounted unchanged, so Tailwind must see their class names. */
+@source '../../packages/viewer/src';
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --color-accent: var(--site-accent);
+
+  --text-mega: clamp(60px, 13.9vw, 200px);
+  --text-mega--line-height: 0.92;
+  --text-mega--letter-spacing: -0.05em;
+  --text-mega--font-weight: 600;
+  --text-feature: clamp(56px, 8.3vw, 120px);
+  --text-feature--line-height: 0.95;
+  --text-feature--letter-spacing: -0.05em;
+  --text-feature--font-weight: 600;
+  --text-hero: clamp(52px, 7.8vw, 112px);
+  --text-hero--line-height: 0.9375;
+  --text-hero--letter-spacing: -0.045em;
+  --text-hero--font-weight: 600;
+  --text-kinetic: clamp(44px, 6.7vw, 96px);
+  --text-kinetic--line-height: 1;
+  --text-kinetic--letter-spacing: -0.045em;
+  --text-kinetic--font-weight: 600;
+  --text-section: clamp(34px, 5vw, 72px);
+  --text-section--line-height: 1.01;
+  --text-section--letter-spacing: -0.04em;
+  --text-section--font-weight: 600;
+  --text-display: clamp(36px, 4.2vw, 60px);
+  --text-display--line-height: 1.1667;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+  --text-h2: clamp(28px, 2.8vw, 40px);
+  --text-h2--line-height: 1.1;
+  --text-h2--letter-spacing: -0.03em;
+  --text-h2--font-weight: 600;
+  --text-lede: clamp(17px, 1.53vw, 22px);
+  --text-lede--line-height: 1.41;
+  --text-body: 16px;
+  --text-body--line-height: 1.6875;
+  --text-prompt: clamp(26px, 4.4vw, 64px);
+  --text-prompt--line-height: 1.3;
+  --text-code: 13px;
+  --text-code--line-height: 1.7;
+}
+
+html {
+  background: var(--sm-page);
+  color: var(--sm-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
+
+@utility shadow-panel {
+  box-shadow:
+    inset 0 0 0 1px var(--sm-panel-border),
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 8px 24px -12px rgb(0 0 0 / 0.12);
+}
+
+/* Both lockups are in the markup; the nearest forced theme picks one, so the nav can follow each scene. */
+[data-theme='dark'] .lockup-light,
+[data-theme='light'] .lockup-dark {
+  display: none;
+}

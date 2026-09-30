@@ -1,0 +1,33 @@
+{
+  "name": "@stackmap/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data": "bun scripts/build-data.ts",
+    "dev": "bun run data && next dev",
+    "build": "bun run data && next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "bun run data && next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@stackmap/core": "workspace:*",
+    "@stackmap/viewer": "workspace:*",
+    "geist": "^1.7.2",
+    "next": "^16.3.7",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@stackmap/layout": "workspace:*",
+    "@stackmap/schema": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.2"
+  }
+}

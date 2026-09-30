@@ -1,0 +1,47 @@
+{
+  "kind": "architecture",
+  "title": "Commerce API",
+  "subtitle": "Production topology",
+  "direction": "DOWN",
+  "groups": [{ "id": "data", "label": "Data tier" }],
+  "nodes": [
+    { "id": "storefront", "type": "client", "card": { "title": "Storefront", "subtitle": "Next.js", "brand": "nextdotjs" } },
+    { "id": "mobile", "type": "client", "card": { "title": "Mobile app", "subtitle": "iOS · Android" } },
+    { "id": "edge", "type": "gateway", "card": { "title": "Edge gateway", "subtitle": "Public routing" },
+      "evidence": [{ "file": "infra/edge/gateway.yaml", "line": 4 }] },
+    { "id": "auth", "type": "security", "card": { "title": "Auth", "subtitle": "Sessions · JWT" },
+      "evidence": [{ "file": "packages/auth/session.ts", "line": 21 }] },
+    { "id": "api", "type": "service", "card": { "title": "shop-api", "subtitle": "REST API" },
+      "evidence": [{ "file": "services/api/src/server.ts", "line": 12 }] },
+    { "id": "stripe", "type": "external", "card": { "title": "Stripe", "subtitle": "Payments", "brand": "stripe" },
+      "evidence": [{ "file": "services/api/src/payments/stripe.ts", "line": 7 }] },
+    { "id": "redis", "type": "cache", "group": "data", "card": { "title": "Redis cache", "subtitle": "Hot reads", "brand": "redis" },
+      "evidence": [{ "file": "infra/cache/redis.tf", "line": 3 }] },
+    { "id": "orders", "type": "database", "group": "data", "card": { "title": "Orders DB", "subtitle": "PostgreSQL", "brand": "postgresql" },
+      "evidence": [{ "file": "infra/orders/postgres.tf", "line": 12 }] },
+    { "id": "events", "type": "queue", "card": { "title": "Order events", "subtitle": "Async queue" },
+      "evidence": [{ "file": "infra/queue/order-events.tf", "line": 9 }] },
+    { "id": "worker", "type": "service", "card": { "title": "Orders worker", "subtitle": "Background jobs" },
+      "evidence": [{ "file": "workers/orders/consume.ts", "line": 18 }] },
+    { "id": "receipts", "type": "storage", "group": "data", "card": { "title": "Receipts", "subtitle": "Object storage" },
+      "evidence": [{ "file": "infra/storage/receipts.tf", "line": 6 }] }
+  ],
+  "edges": [
+    { "id": "e-sf-edge", "from": "storefront", "to": "edge" },
+    { "id": "e-mob-edge", "from": "mobile", "to": "edge" },
+    { "id": "e-edge-auth", "from": "edge", "to": "auth" },
+    { "id": "e-edge-api", "from": "edge", "to": "api" },
+    { "id": "e-api-stripe", "from": "api", "to": "stripe" },
+    { "id": "e-api-redis", "from": "api", "to": "redis" },
+    { "id": "e-api-orders", "from": "api", "to": "orders" },
+    { "id": "e-api-events", "from": "api", "to": "events", "kind": "async" },
+    { "id": "e-events-worker", "from": "events", "to": "worker", "kind": "async" },
+    { "id": "e-worker-orders", "from": "worker", "to": "orders" },
+    { "id": "e-worker-receipts", "from": "worker", "to": "receipts" }
+  ],
+  "views": [
+    { "id": "checkout", "label": "Checkout path", "caption": "A purchase from the storefront to the order row",
+      "nodes": ["storefront", "edge", "auth", "api", "stripe", "orders"] },
+    { "id": "data", "label": "Data tier", "caption": "Where state lives", "nodes": ["redis", "orders", "receipts"] }
+  ]
+}

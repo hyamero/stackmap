@@ -1,0 +1,165 @@
+{
+  "kind": "architecture",
+  "title": "Production VPC",
+  "subtitle": "Web frontend, core API and reporting pipeline",
+  "direction": "DOWN",
+  "groups": [
+    {
+      "id": "vpc",
+      "label": "Production VPC"
+    },
+    {
+      "id": "pub",
+      "label": "Public subnet",
+      "parent": "vpc"
+    },
+    {
+      "id": "priv",
+      "label": "Private subnet",
+      "parent": "vpc"
+    },
+    {
+      "id": "data",
+      "label": "Data subnet",
+      "parent": "vpc"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "type": "client",
+      "card": {
+        "title": "User"
+      }
+    },
+    {
+      "id": "lb",
+      "type": "gateway",
+      "group": "pub",
+      "card": {
+        "title": "ALB",
+        "subtitle": "Application Load Balancer"
+      }
+    },
+    {
+      "id": "web",
+      "type": "service",
+      "group": "priv",
+      "card": {
+        "title": "web-frontend",
+        "subtitle": "ECS service",
+        "stats": [
+          {
+            "value": "4",
+            "label": "Tasks"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api",
+      "type": "service",
+      "group": "priv",
+      "card": {
+        "title": "core-api",
+        "subtitle": "ECS service",
+        "stats": [
+          {
+            "value": "6",
+            "label": "Tasks"
+          }
+        ]
+      }
+    },
+    {
+      "id": "worker",
+      "type": "service",
+      "group": "priv",
+      "card": {
+        "title": "report-worker",
+        "subtitle": "AWS Lambda"
+      }
+    },
+    {
+      "id": "rds",
+      "type": "database",
+      "group": "data",
+      "card": {
+        "title": "Aurora PostgreSQL",
+        "subtitle": "RDS cluster",
+        "brand": "postgresql"
+      }
+    },
+    {
+      "id": "es",
+      "type": "database",
+      "group": "data",
+      "card": {
+        "title": "OpenSearch",
+        "subtitle": "Search domain",
+        "brand": "opensearch"
+      }
+    },
+    {
+      "id": "s3",
+      "type": "storage",
+      "card": {
+        "title": "S3 reports bucket",
+        "subtitle": "Object storage"
+      }
+    },
+    {
+      "id": "sentry",
+      "type": "external",
+      "card": {
+        "title": "Sentry",
+        "subtitle": "Error tracking",
+        "brand": "sentry"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "user-lb",
+      "from": "user",
+      "to": "lb"
+    },
+    {
+      "id": "lb-web",
+      "from": "lb",
+      "to": "web"
+    },
+    {
+      "id": "web-api",
+      "from": "web",
+      "to": "api"
+    },
+    {
+      "id": "api-worker",
+      "from": "api",
+      "to": "worker"
+    },
+    {
+      "id": "api-rds",
+      "from": "api",
+      "to": "rds"
+    },
+    {
+      "id": "api-es",
+      "from": "api",
+      "to": "es"
+    },
+    {
+      "id": "worker-s3",
+      "from": "worker",
+      "to": "s3",
+      "kind": "async",
+      "label": "nightly"
+    },
+    {
+      "id": "api-sentry",
+      "from": "api",
+      "to": "sentry"
+    }
+  ]
+}

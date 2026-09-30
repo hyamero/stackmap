@@ -1,0 +1,319 @@
+{
+  "kind": "architecture",
+  "title": "Food Delivery Platform",
+  "subtitle": "Ordering, dispatch and notifications",
+  "direction": "DOWN",
+  "groups": [
+    {
+      "id": "clients",
+      "label": "Clients"
+    },
+    {
+      "id": "edge",
+      "label": "Edge"
+    },
+    {
+      "id": "services",
+      "label": "Services"
+    },
+    {
+      "id": "data",
+      "label": "Data & messaging"
+    },
+    {
+      "id": "external",
+      "label": "External"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ios",
+      "type": "client",
+      "group": "clients",
+      "card": {
+        "title": "iOS App",
+        "subtitle": "Customer app"
+      }
+    },
+    {
+      "id": "web",
+      "type": "client",
+      "group": "clients",
+      "card": {
+        "title": "Web App",
+        "subtitle": "React",
+        "brand": "react"
+      }
+    },
+    {
+      "id": "kong",
+      "type": "gateway",
+      "group": "edge",
+      "card": {
+        "title": "Kong",
+        "subtitle": "API gateway",
+        "brand": "kong"
+      }
+    },
+    {
+      "id": "accounts",
+      "type": "service",
+      "group": "services",
+      "card": {
+        "title": "accounts",
+        "subtitle": "Accounts service"
+      }
+    },
+    {
+      "id": "restaurants",
+      "type": "service",
+      "group": "services",
+      "card": {
+        "title": "restaurants",
+        "subtitle": "Restaurants service"
+      }
+    },
+    {
+      "id": "orders",
+      "type": "service",
+      "group": "services",
+      "card": {
+        "title": "orders",
+        "subtitle": "Orders service"
+      }
+    },
+    {
+      "id": "dispatch",
+      "type": "service",
+      "group": "services",
+      "card": {
+        "title": "dispatch",
+        "subtitle": "Assigns couriers"
+      }
+    },
+    {
+      "id": "notifications",
+      "type": "service",
+      "group": "services",
+      "card": {
+        "title": "notifications",
+        "subtitle": "Push + SMS worker"
+      }
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "group": "data",
+      "card": {
+        "title": "Postgres",
+        "subtitle": "Shared cluster",
+        "brand": "postgresql",
+        "stats": [
+          {
+            "value": "1",
+            "label": "Primary"
+          },
+          {
+            "value": "2",
+            "label": "Replicas"
+          }
+        ],
+        "statsNote": "Used by orders + accounts"
+      }
+    },
+    {
+      "id": "mongo",
+      "type": "database",
+      "group": "data",
+      "card": {
+        "title": "MongoDB",
+        "subtitle": "Restaurants store",
+        "brand": "mongodb"
+      }
+    },
+    {
+      "id": "redis",
+      "type": "cache",
+      "group": "data",
+      "card": {
+        "title": "Redis",
+        "subtitle": "Sessions + rate limits",
+        "brand": "redis"
+      }
+    },
+    {
+      "id": "kafka",
+      "type": "queue",
+      "group": "data",
+      "card": {
+        "title": "Kafka",
+        "subtitle": "Order events"
+      }
+    },
+    {
+      "id": "auth0",
+      "type": "security",
+      "group": "external",
+      "card": {
+        "title": "Auth0",
+        "subtitle": "Authentication",
+        "brand": "auth0"
+      }
+    },
+    {
+      "id": "stripe",
+      "type": "external",
+      "group": "external",
+      "card": {
+        "title": "Stripe",
+        "subtitle": "Payments",
+        "brand": "stripe"
+      }
+    },
+    {
+      "id": "firebase",
+      "type": "external",
+      "group": "external",
+      "card": {
+        "title": "Firebase",
+        "subtitle": "Push notifications",
+        "brand": "firebase"
+      }
+    },
+    {
+      "id": "twilio",
+      "type": "external",
+      "group": "external",
+      "card": {
+        "title": "Twilio",
+        "subtitle": "SMS"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "ios-kong",
+      "from": "ios",
+      "to": "kong",
+      "label": "HTTPS"
+    },
+    {
+      "id": "web-kong",
+      "from": "web",
+      "to": "kong",
+      "label": "HTTPS"
+    },
+    {
+      "id": "kong-accounts",
+      "from": "kong",
+      "to": "accounts"
+    },
+    {
+      "id": "kong-restaurants",
+      "from": "kong",
+      "to": "restaurants"
+    },
+    {
+      "id": "kong-orders",
+      "from": "kong",
+      "to": "orders"
+    },
+    {
+      "id": "kong-dispatch",
+      "from": "kong",
+      "to": "dispatch"
+    },
+    {
+      "id": "kong-auth0",
+      "from": "kong",
+      "to": "auth0",
+      "label": "verify token"
+    },
+    {
+      "id": "kong-redis",
+      "from": "kong",
+      "to": "redis",
+      "label": "rate limit"
+    },
+    {
+      "id": "accounts-postgres",
+      "from": "accounts",
+      "to": "postgres"
+    },
+    {
+      "id": "accounts-redis",
+      "from": "accounts",
+      "to": "redis",
+      "label": "sessions"
+    },
+    {
+      "id": "restaurants-mongo",
+      "from": "restaurants",
+      "to": "mongo"
+    },
+    {
+      "id": "orders-postgres",
+      "from": "orders",
+      "to": "postgres"
+    },
+    {
+      "id": "orders-stripe",
+      "from": "orders",
+      "to": "stripe",
+      "label": "charge"
+    },
+    {
+      "id": "orders-kafka",
+      "from": "orders",
+      "to": "kafka",
+      "kind": "async",
+      "label": "publish"
+    },
+    {
+      "id": "kafka-dispatch",
+      "from": "kafka",
+      "to": "dispatch",
+      "kind": "async",
+      "label": "consume"
+    },
+    {
+      "id": "kafka-notifications",
+      "from": "kafka",
+      "to": "notifications",
+      "kind": "async",
+      "label": "consume"
+    },
+    {
+      "id": "notifications-firebase",
+      "from": "notifications",
+      "to": "firebase",
+      "label": "push"
+    },
+    {
+      "id": "notifications-twilio",
+      "from": "notifications",
+      "to": "twilio",
+      "label": "SMS"
+    }
+  ],
+  "views": [
+    {
+      "id": "order-path",
+      "label": "Order path",
+      "caption": "Placing an order through payment, dispatch and notification",
+      "nodes": [
+        "ios",
+        "web",
+        "kong",
+        "orders",
+        "postgres",
+        "stripe",
+        "kafka",
+        "dispatch",
+        "notifications",
+        "firebase",
+        "twilio"
+      ]
+    }
+  ]
+}

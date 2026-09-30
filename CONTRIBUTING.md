@@ -31,8 +31,10 @@ bun run test && bun run typecheck && bun run build   # unit tests, types, viewer
 | `packages/viewer` | React viewer, built into one self-contained HTML template |
 | `packages/cli` | `@hyamero/stackmap`: validate · deliver · serve (the only published package) |
 | `skill/` | the agent skill that `npx skills add` installs: `SKILL.md`, the schema reference, examples |
+| `site/` | `@stackmap/site`: the website (Next.js), deployed on Vercel; never published |
 
 To work on the viewer, `bun run --filter @stackmap/viewer dev` serves it with its sample diagrams.
+To work on the website, build the viewer once (`bun run --filter @stackmap/viewer build`), then run `bun run --filter @stackmap/site dev`.
 
 ## Checks
 
@@ -76,7 +78,8 @@ docs(skill): map Mermaid sequence diagrams
 
 - **Types:** `feat` (a minor release), `fix` and `perf` (a patch), and `docs`, `test`, `refactor`, `build`, `ci`,
   `chore`, `style` (no release).
-- **Scopes** are optional; use the package or area: `viewer`, `schema`, `layout`, `core`, `cli`, `skill`, `readme`.
+- **Scopes** are optional; use the package or area: `viewer`, `schema`, `layout`, `core`, `cli`, `skill`, `readme`, `site`.
+- **Website changes** (`site/`) use `docs(site): …`. `feat`, `fix`, `perf` and `revert` with the `site` scope are rejected, because they would publish a new npm version.
 - **Subject:** imperative and lower case, with no full stop.
 - **Breaking changes:** add `!` after the type (`feat(schema)!: …`) or a `BREAKING CHANGE:` footer. A change is
   breaking when a diagram that validated before no longer does, or when the CLI's flags, output or exit codes

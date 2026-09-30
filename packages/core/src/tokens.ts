@@ -104,7 +104,8 @@ export const tokens: Record<ThemeName, ThemeTokens> = { light, dark };
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
-function themeVars(t: ThemeTokens): string {
+/** One theme's `--sm-*` declarations, without a selector. */
+export function themeVars(t: ThemeTokens): string {
   const { tints, ...base } = t;
   let out = '';
   for (const [key, value] of Object.entries(base)) out += `--sm-${kebab(key)}:${value};`;
