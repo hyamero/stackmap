@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 export class CliError extends Error {}
@@ -19,6 +19,7 @@ export function readText(path: string): string {
 export function writeAtomic(path: string, data: string): void {
   const tmp = join(dirname(path), `.${basename(path)}.${randomBytes(4).toString('hex')}.tmp`);
   try {
+    mkdirSync(dirname(path), { recursive: true });
     writeFileSync(tmp, data);
     renameSync(tmp, path);
   } catch (e) {
