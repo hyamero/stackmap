@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.svg">
-    <img alt="stackmap: architecture diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="100%">
+    <img alt="stackmap: interactive system diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="100%">
   </picture>
 </p>
 
