@@ -5,15 +5,15 @@
   </picture>
 </p>
 
-https://github.com/user-attachments/assets/1d4d134c-8738-4486-9de1-6f2c092db59d
+<p align="center">
+  <img src="assets/readme/tour.webp" alt="A 25-second tour of the viewer on an agent tool call workflow: zoom in and select the planner, open the Approval gate guided view, pick a route from User to Final reply, play the flow hop by hop, then switch to the dark theme" width="100%" />
+</p>
 
 Ask your coding agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and delivers one self-contained HTML viewer. No server, no account, nothing to install to open it.
 
 Five kinds of diagram: **architecture** (components and what they call), **dataflow** (data moving through stages), **workflow** (steps across owner lanes), **lifecycle** (the states of one thing) and **sequence** (messages over time).
 
-<p align="center">
-  <img src="assets/readme/tour.webp" alt="A 25-second tour of the viewer on an agent tool call workflow: zoom in and select the planner, open the Approval gate guided view, pick a route from User to Final reply, play the flow hop by hop, then switch to the dark theme" width="100%" />
-</p>
+https://github.com/user-attachments/assets/4dd05dfc-fa5a-42e7-ad1a-6150aeb9ad9f
 
 ## Quick start
 
