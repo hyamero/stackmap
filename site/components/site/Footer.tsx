@@ -29,7 +29,7 @@ export function Footer() {
           <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 md:gap-16">
             {COLUMNS.map((c) => (
               <div key={c.title}>
-                <h3 className="m-0 mb-3.5 text-[13px] font-semibold text-fg">{c.title}</h3>
+                <h2 className="m-0 mb-3.5 text-[13px] font-semibold text-fg">{c.title}</h2>
                 <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
                   {c.links.map((l) => (
                     <li key={l.href}>
