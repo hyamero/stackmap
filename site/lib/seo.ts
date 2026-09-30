@@ -7,8 +7,14 @@ export const SITE_NAME = 'stackmap';
 export const DESCRIPTION = 'Interactive system diagrams your coding agent writes, as one offline HTML file.';
 export const REPO = 'https://github.com/hyamero/stackmap';
 
-// Next merges metadata shallowly: a page that sets openGraph replaces the layout's, so pages spread this.
-export const OPEN_GRAPH = { type: 'website', siteName: SITE_NAME, locale: 'en_US' } as const;
+// Next merges metadata shallowly: a page that sets openGraph replaces the layout's, and with it the root's
+// opengraph-image file, so pages spread this and it names the image (and its alt.txt) again.
+export const OPEN_GRAPH = {
+  type: 'website' as const,
+  siteName: SITE_NAME,
+  locale: 'en_US',
+  images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: 'stackmap: every layer of your stack, on one map' }],
+};
 
 /** Every static page; the sitemap test fails when a page.tsx is added without its route here. */
 export const ROUTES = ['/', '/docs', '/docs/schema', '/examples'] as const;
