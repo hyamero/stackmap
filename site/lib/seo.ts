@@ -10,7 +10,7 @@ export const REPO = 'https://github.com/hyamero/stackmap';
 export const OPEN_GRAPH = { type: 'website', siteName: SITE_NAME, locale: 'en_US' } as const;
 
 /** Every static page; the sitemap test fails when a page.tsx is added without its route here. */
-export const ROUTES = ['/', '/docs', '/docs/schema'] as const;
+export const ROUTES = ['/', '/docs', '/docs/schema', '/examples'] as const;
 
 // Vercel sets the production domain on every deployment, previews included, so canonical and OG URLs
 // never point at a preview. It follows a custom domain once one is attached.
