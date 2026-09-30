@@ -4,6 +4,7 @@ import { useExplore } from '../explore/ExploreContext';
 import type { ThemeChoice } from '../theme/theme';
 import { ExportMenu } from './ExportMenu';
 import { LensPanel } from './LensPanel';
+import { PlayButton } from './PlayButton';
 import { SearchPanel } from './SearchPanel';
 import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
@@ -121,6 +122,7 @@ export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoic
       <IconButton label="Route between two nodes (R)" pressed={!!state.routing || !!state.route} onClick={() => dispatch({ type: 'toggleRoute' })}>
         <Waypoints size={17} strokeWidth={1.75} />
       </IconButton>
+      <PlayButton />
       <ToolbarDivider />
       {onPresent && (
         <IconButton label="Present (F)" onClick={onPresent}>

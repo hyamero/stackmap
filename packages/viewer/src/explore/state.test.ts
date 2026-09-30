@@ -68,6 +68,16 @@ describe('route picking', () => {
     expect(explore(s, { type: 'toggleRoute' }).route).toBeNull();
   });
 
+  it('plays the flow as a mode: survives clear and deep links', () => {
+    const s = explore(INITIAL, { type: 'togglePlay' });
+    expect(s.playing).toBe(true);
+    expect(explore(s, { type: 'clear' }).playing).toBe(true);
+    expect(formatHash(s)).toBe('#play=1');
+    expect(parseHash('#route=api~db&play=1', known)).toMatchObject({ playing: true, route: { from: 'api', to: 'db' } });
+    expect(parseHash('#play=yes', known).playing).toBe(false);
+    expect(explore(s, { type: 'togglePlay' }).playing).toBe(false);
+  });
+
   it('reads a route from the hash, dropping unknown ends', () => {
     expect(parseHash('#route=api~db', known).route).toEqual({ from: 'api', to: 'db' });
     expect(parseHash('#route=api~ghost', known).route).toBeNull();

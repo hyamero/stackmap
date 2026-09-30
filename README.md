@@ -66,9 +66,10 @@ Nine node types set the colour (`client`, `gateway`, `service`, `database`, `cac
 - **Explore:** click a card for its details, connections and source evidence (linked to your repo when `source.url` is set). **Trace** keeps a node's upstream and downstream and dims the rest. **Route** (`R`) picks two nodes and lights every directed path between them, listing the shortest.
 - **Find:** `/` searches titles, subtitles, ids and types; the **lens** dims node types you don't care about.
 - **Guided views:** tabs the agent defines (“Checkout path”, “Data tier”) that dim everything else and fit the camera. **Present** (`F`) goes full screen and steps through them with the arrow keys.
+- **Flow:** **Play** (`P`) sends pulses along the connections, looping. It plays whatever you're looking at: the whole diagram as one wave in reading order (time order for a sequence), a view's connections, a selection's (its whole trace when tracing), or a route hop by hop from its start. It keeps playing while you present.
 - **Radar:** the minimap (`M`) mirrors what's lit and dimmed, and drags the camera.
-- **Share:** state lives in the URL hash (`#view=…&node=…&lens=…&route=…`); export PNG (1×/2×), copy PNG, JPEG, WebP, an SVG snapshot, or a short video of the diagram with its flow animated (WebM, or MP4 where that's what the browser records).
-- **Keyboard:** Tab reaches the toolbar, then the canvas; arrows move between cards, Enter selects (or picks a route end), Esc clears a selection or ends a route; `/`, `R`, `F` and `M` open search, route, presentation and the radar; with the canvas focused, arrows pan and `+`/`-`/`0` zoom. Honours reduced motion.
+- **Share:** state lives in the URL hash (`#view=…&node=…&lens=…&route=…&play=1`); export PNG (1×/2×), copy PNG, JPEG, WebP, an SVG snapshot, or a short video of that flow (WebM, or MP4 where that's what the browser records).
+- **Keyboard:** Tab reaches the toolbar, then the canvas; arrows move between cards, Enter selects (or picks a route end), Esc clears a selection or ends a route; `/`, `R`, `F`, `P` and `M` open search, route, presentation, flow playback and the radar; with the canvas focused, arrows pan and `+`/`-`/`0` zoom. Honours reduced motion.
 
 ## Development
 

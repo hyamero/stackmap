@@ -9,6 +9,8 @@ import { neighbourInDirection, type Direction } from '../explore/graph';
 import { arrowMarkerId, ArrowMarkerDefs, edgeStroke, type EdgeColor } from './ArrowMarker';
 import type { Scene, SceneCard, SceneEdge, SceneFrame, SceneLane, ScenePhase } from './scene';
 import { useCamera } from './ViewportContext';
+import type { Flow } from '../motion/flow';
+import { FlowLayer } from './FlowLayer';
 
 const ARROWS: Record<string, Direction> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
 export const focusCard = (id: string) => document.querySelector<HTMLElement>(`.sm-card[data-card-id="${CSS.escape(id)}"]`)?.focus();
@@ -199,17 +201,20 @@ const Card = memo(function Card({
   );
 });
 
-// Paint order is the z-order: frames < edges < cards (+ handle dots) < edge labels.
+// Paint order is the z-order: frames < edges < flow pulses < cards (+ handle dots) < edge labels.
 // Memoised: `scene` and `emphasis` are stable across pan/zoom frames, so without this every d3-zoom
 // transform update re-rendered every card.
 export const SceneLayers = memo(function SceneLayers({
   scene,
   emphasis,
   selected,
+  flow = null,
 }: {
   scene: Scene;
   emphasis: Emphasis;
   selected: string | null;
+  /** the flow playing, if any */
+  flow?: Flow | null;
 }) {
   const horizontal = scene.direction === 'RIGHT';
   const typeOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.node.type])), [scene]);
@@ -301,6 +306,7 @@ export const SceneLayers = memo(function SceneLayers({
               );
             })}
       </svg>
+      {flow && <FlowLayer flow={flow} width={scene.bounds.width} height={scene.bounds.height} />}
       {scene.cards.map((c) => (
         <Card
           key={c.node.id}

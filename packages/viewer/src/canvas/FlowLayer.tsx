@@ -1,0 +1,129 @@
+import { useEffect, useRef } from 'react';
+import { FLOW, glowAt, pointAt, PULSE, pulseFrame, ringAt, type Flow, type FlowPulse } from '../motion/flow';
+import { setInFlight } from '../motion/inFlight';
+
+const accent = (p: FlowPulse) => `var(--sm-${p.tint}-accent)`;
+const polyline = (p: FlowPulse) => `M${p.path.map((q) => `${q.x} ${q.y}`).join('L')}`;
+const PACKETS = [0, 1, 2];
+
+/**
+ * Flow playback on the canvas, drawing `pulseFrame` for every pulse: a landing glow behind the target, a
+ * tapering trail lighting the wire, the port flash, and the head (a dot; a train of packets on an async edge;
+ * a hollow ring on a reply). Sits above the edges and under the cards, so glows bloom out from behind a card
+ * and a pulse slides out of one card into the next. One rAF loop writes attributes; React renders only when
+ * the flow changes. Exports skip it (`data-flow`).
+ */
+export function FlowLayer({ flow, width, height }: { flow: Flow; width: number; height: number }) {
+  const root = useRef<SVGGElement>(null);
+  useEffect(() => {
+    const groups = [...(root.current?.children ?? [])] as SVGGElement[];
+    if (!groups.length) return;
+    const parts = groups.map((g) => ({
+      glow: g.querySelector<SVGRectElement>('[data-part="glow"]'),
+      trails: [...g.querySelectorAll<SVGPathElement>('[data-part="trail"]')],
+      flash: g.querySelector<SVGCircleElement>('[data-part="flash"]')!,
+      ripple: g.querySelector<SVGCircleElement>('[data-part="ripple"]'),
+      heads: [...g.querySelectorAll<SVGGElement>('[data-part="head"]')],
+    }));
+    // Most pulses rest most of the loop: only write when visibility actually changes.
+    const show = (el: SVGElement, on: boolean) => {
+      const v = on ? '' : 'hidden';
+      if (el.style.visibility !== v) el.style.visibility = v;
+      return on;
+    };
+    let began: number | null = null;
+    let frame = 0;
+    const tick = (now: number) => {
+      began ??= now;
+      const flying: string[] = [];
+      flow.pulses.forEach((p, i) => {
+        const f = pulseFrame(flow, p, now - began!);
+        const el = parts[i]!;
+        if (!show(groups[i]!, !!f) || !f) return;
+        if (f.head !== null) flying.push(p.id);
+        if (el.glow && show(el.glow, f.land !== null)) {
+          const g = glowAt(p.glow!, f.land!);
+          el.glow.setAttribute('x', `${g.rect.x}`);
+          el.glow.setAttribute('y', `${g.rect.y}`);
+          el.glow.setAttribute('width', `${g.rect.width}`);
+          el.glow.setAttribute('height', `${g.rect.height}`);
+          el.glow.setAttribute('rx', `${g.radius}`);
+          el.glow.style.opacity = `${g.opacity}`;
+        }
+        if (el.ripple && show(el.ripple, f.land !== null)) {
+          const r = ringAt(f.land!, 3, 12);
+          el.ripple.setAttribute('r', `${r.r}`);
+          el.ripple.style.opacity = `${r.opacity}`;
+        }
+        el.trails.forEach((t, j) => {
+          if (!show(t, !!f.trail)) return;
+          const [from, to] = f.trail!;
+          const start = Math.max(from, to - (to - from) * PULSE.trail[j]![0]);
+          t.style.strokeDasharray = `${to - start} ${p.length + FLOW.tail}`;
+          t.style.strokeDashoffset = `${-start}`;
+        });
+        if (show(el.flash, f.depart !== null)) {
+          const r = ringAt(f.depart!, 2, 9);
+          el.flash.setAttribute('r', `${r.r}`);
+          el.flash.style.opacity = `${r.opacity}`;
+        }
+        el.heads.forEach((h, j) => {
+          const d = f.head === null ? -1 : f.head - j * PULSE.packetGap;
+          if (!show(h, d >= 0)) return;
+          const at = pointAt(p.path, d);
+          h.setAttribute('transform', `translate(${at.x} ${at.y})`);
+        });
+      });
+      setInFlight(flying);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      setInFlight([]);
+    };
+  }, [flow]);
+  return (
+    <svg aria-hidden="true" data-flow="" className="pointer-events-none absolute top-0 left-0 overflow-visible" width={width} height={height}>
+      <g ref={root}>
+        {flow.pulses.map((p) => {
+          const fill = accent(p);
+          const hidden = { visibility: 'hidden' } as const;
+          return (
+            <g key={p.id} data-pulse={p.id} style={hidden}>
+              {p.glow ? (
+                <rect data-part="glow" style={{ ...hidden, fill: `var(--sm-${p.glow.tint}-accent)` }} />
+              ) : (
+                <circle data-part="ripple" cx={p.path.at(-1)!.x} cy={p.path.at(-1)!.y} style={{ ...hidden, fill: 'none', stroke: fill, strokeWidth: 1.5 }} />
+              )}
+              {/* Async and reply pulses keep the trail faint: their heads carry the look. */}
+              {PULSE.trail.map(([, width, opacity], j) => (
+                <path
+                  key={j}
+                  data-part="trail"
+                  d={polyline(p)}
+                  style={{ ...hidden, fill: 'none', stroke: fill, strokeWidth: width, strokeOpacity: p.kind === 'sync' ? opacity : opacity * 0.4, strokeLinejoin: 'round' }}
+                />
+              ))}
+              <circle data-part="flash" cx={p.path[0]!.x} cy={p.path[0]!.y} style={{ ...hidden, fill: 'none', stroke: fill, strokeWidth: 1.5 }} />
+              {(p.kind === 'async' ? PACKETS : [0]).map((j) => (
+                <g key={j} data-part="head" style={hidden}>
+                  {p.kind === 'return' ? (
+                    <circle r={PULSE.core + 0.5} style={{ fill: 'var(--sm-stage)', stroke: fill, strokeWidth: 1.75 }} />
+                  ) : p.kind === 'async' ? (
+                    <circle r={PULSE.packet} style={{ fill, opacity: 1 - j * 0.3 }} />
+                  ) : (
+                    <>
+                      <circle r={PULSE.halo} style={{ fill, fillOpacity: PULSE.haloOpacity }} />
+                      <circle r={PULSE.core} style={{ fill }} />
+                    </>
+                  )}
+                </g>
+              ))}
+            </g>
+          );
+        })}
+      </g>
+    </svg>
+  );
+}

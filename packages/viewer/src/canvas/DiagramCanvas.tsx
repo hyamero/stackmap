@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { LaidOutDiagram, Rect } from '@stackmap/core';
 import { ZoomBar } from '../chrome/ZoomBar';
+import { motionAllowed } from '../motion/motion';
+import { useFlow } from '../motion/useFlow';
 import { useSceneReveal } from '../motion/useSceneReveal';
 import { useExplore } from '../explore/ExploreContext';
 import { routeBetween } from '../explore/graph';
@@ -122,17 +124,24 @@ export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: L
   // M toggles the radar from anywhere but a text field or menu; not while presenting (it's hidden then).
   const chromeRef = useRef(chrome);
   chromeRef.current = chrome;
+  // P plays or stops the flow, presenting too; with reduced motion there is nothing to play.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if ((e.key !== 'm' && e.key !== 'M') || !chromeRef.current) return;
+      const key = e.key.toLowerCase();
+      if (key !== 'm' && key !== 'p') return;
       const t = e.target as HTMLElement | null;
       if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      if (key === 'm' && !chromeRef.current) return;
+      if (key === 'p' && !motionAllowed()) return;
       e.preventDefault();
-      setMinimap((v) => !v);
+      if (key === 'm') setMinimap((v) => !v);
+      else dispatch({ type: 'togglePlay' });
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, []);
+  }, [dispatch]);
+  const flow = useFlow(scene);
+  const playing = state.playing && motionAllowed();
   useSceneReveal(sceneRef, scene, viewport.restored);
 
   // Keys when the stage itself has focus (cards handle their own and stop propagation).
@@ -177,7 +186,7 @@ export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: L
             className="sm-viewport absolute top-0 left-0 origin-top-left"
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
           >
-            <SceneLayers scene={scene} emphasis={emphasis} selected={state.selected} />
+            <SceneLayers scene={scene} emphasis={emphasis} selected={state.selected} flow={playing ? flow : null} />
           </div>
         </div>
         {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}
