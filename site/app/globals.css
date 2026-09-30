@@ -73,3 +73,10 @@ body {
 [data-theme='light'] .lockup-dark {
   display: none;
 }
+
+/* An async edge's dashes running toward its head: one dash-and-gap per loop. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -9;
+  }
+}
