@@ -14,7 +14,7 @@ How to model a system as a stackmap diagram. The [schema reference](schema.md) s
 - `kind: "async"` for queues, events, fire-and-forget and callbacks — it renders dashed. Don't use it for "happens at build time" or "optional"; say that in a label or in the node's subtitle.
 - `kind: "return"` for a reply, a roll back or a retry that loops back to an earlier step — it renders dotted, and layout never lets it push its target to a later column.
 - **`tone`** marks the few edges the reader must tell apart: `main` for the happy path (drawn in ink), `security` for a trust crossing or a policy check, `error` for a failure path. Leave the rest untoned; a diagram where everything has a tone has none.
-- **Edge labels** (≤ 24 chars) only where the relationship isn't obvious from the two ends: a protocol (`gRPC`), a verb (`enqueue`), a topic. Most edges need none — except in sequences, where every message is labelled.
+- **Edge labels** (≤ 24 chars) only where the relationship isn't obvious from the two ends: a protocol (`gRPC`), a verb (`enqueue`), a topic. Most edges need none — except in sequences, where every message is labelled. In an architecture or dataflow, keep **one edge per direction** between two nodes: a second `a → b` edge draws on the first, so fold both relationships into one label (`reads, writes`).
 - **Direction.** `RIGHT` (default) reads as a request path and suits 2–4 stages. Prefer `DOWN` for tiered or grouped systems (edge → app → data) and for anything with more than ~5 stages; it avoids long wrap-around edges.
 - **Groups** are boundaries a reader should see: tiers, trust zones, VPCs, clusters, teams. Nest with `parent`. A group with one node is usually noise.
 - **Stages** (`phases` with `nodes`) in `architecture` and `dataflow` are an ordered pipeline (sources → ingest → process → store → consume): each stage is drawn as a band, in flow order. Stage members must be ungrouped; use stages *or* groups for a node, not both.
@@ -23,7 +23,7 @@ How to model a system as a stackmap diagram. The [schema reference](schema.md) s
 
 ## Size
 
-A diagram is read on one screen. Aim for **~10–40 nodes**; past that, cards get too small at fit and the picture stops answering a question. For a larger system, deliver an **overview** diagram (subsystems as single nodes) plus **one diagram per subsystem** in sibling folders (`.stackmap/<system>-overview/`, `.stackmap/<system>-payments/`, …). Views don't reduce size — every node is still drawn. The schema's hard caps (500 nodes, 2000 edges) are a safety limit, not a target; if you hit one, split rather than delete.
+A diagram is read on one screen. Aim for **~10–40 nodes**; past that, cards get too small at fit and the picture stops answering a question. For a larger system, deliver an **overview** diagram (subsystems as single nodes) plus **one diagram per subsystem** in sibling folders (`.stackmap/<system>-overview/`, `.stackmap/<system>-payments/`, …). Views don't reduce size — every node is still drawn. `validate` warns past 60 nodes. The schema's hard caps (500 nodes, 2000 edges) are a safety limit, not a target; if you hit one, split rather than delete.
 
 ## From Mermaid
 

@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 
-// M3 measured ~600 KB (fonts ~52 KB, 146 brand paths ~157 KB, React + d3); ~15% headroom.
+// M3 measured ~600 KB (fonts ~52 KB, 146 brand paths ~157 KB, React + d3); ~15% headroom. deliver drops unused brands.
 const BUDGET_KB = 700;
 const dist = new URL('../dist/', import.meta.url);
 const fail = (msg: string): never => {
@@ -26,6 +26,10 @@ if (/elkjs|org\.eclipse\.elk/.test(html)) fail('elkjs leaked into the viewer bun
 if (/@xyflow|react-flow__/.test(html)) fail('React Flow leaked into the viewer bundle');
 // The headless metrics table (~120 KB) is for the CLI's card-fit rule; the viewer measures with the browser.
 if (/sans500tnum/.test(html)) fail('Geist metrics table leaked into the viewer bundle');
+// Brand marks travel as one data block for deliver to trim; a path left in the code would ship to every file.
+const brands = html.match(/<script type="application\/json" id="stackmap-brands">([\s\S]*?)<\/script>/g) ?? [];
+if (brands.length !== 1) fail(`expected one stackmap-brands block, found ${brands.length}`);
+if (html.split('M12 0C5.445 0 .103').length !== 2) fail('brand paths leaked into the viewer code');
 // Samples and gallery fixtures are dev-server pages; the template renders only embedded data.
 if (/commerce-api-1|Boundary-text|Grouped tiers/.test(html)) fail('dev samples or gallery fixtures leaked into the template');
 if (!html.includes('<script type="application/json" id="stackmap-data"></script>')) fail('template lacks the empty stackmap-data block');

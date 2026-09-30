@@ -121,6 +121,13 @@ describe('deliver', () => {
     expect(r.stderr).toMatch(/^stackmap: internal error: viewer template must contain/);
   });
 
+  it('creates the folders -o names', async () => {
+    const out = join(dir, 'new', 'deeper', 'd.html');
+    const r = await deliverCommand(file('d.json', commerceApi), { template: TEMPLATE, out });
+    expect(r.code).toBe(0);
+    expect(readFileSync(out, 'utf8')).toContain('stackmap-data');
+  });
+
   it('keeps the previous file intact and leaves no temp file when the write fails', async () => {
     const input = file('d.json', commerceApi);
     const outDir = join(dir, 'out');

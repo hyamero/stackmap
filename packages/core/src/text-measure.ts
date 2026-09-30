@@ -9,6 +9,8 @@ export type { FontFace };
 const FALLBACK_EM = 1.1;
 const EMOJI_EM = 1.3;
 const EMOJI = /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u;
+// Joiners, variation selectors and combining marks draw nothing themselves (ZWJ emoji, ❤️, é).
+const ZERO_WIDTH = /[\p{Mn}\p{Me}\p{Cf}]/u;
 
 const decoded = new Map<FontFace, KerningPairs>();
 /** A face's pair adjustments in 1/1000 em, decoded from the shipped table on first use. */
@@ -38,7 +40,7 @@ export function textWidths(text: string, face: FontFace, sizePx: number): { exac
   let prev = -1;
   for (const ch of text) {
     const cp = ch.codePointAt(0)!;
-    const advance = ((advances[cp] ?? (EMOJI.test(ch) ? EMOJI_EM : FALLBACK_EM) * em) * sizePx) / em;
+    const advance = ((advances[cp] ?? (EMOJI.test(ch) ? EMOJI_EM : ZERO_WIDTH.test(ch) ? 0 : FALLBACK_EM) * em) * sizePx) / em;
     // Kerning pairs are ASCII-only, so the packed key never collides.
     const kern = prev < 0 || prev > 0x7e ? 0 : ((kerning[prev * 0x10000 + cp] ?? 0) * sizePx) / em;
     exact += advance + kern;

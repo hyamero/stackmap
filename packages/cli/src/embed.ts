@@ -2,6 +2,9 @@ import type { LaidOutDiagram } from '@stackmap/core';
 
 /** The block the viewer template ships empty; the viewer reads it back by id. */
 export const EMPTY_DATA_BLOCK = '<script type="application/json" id="stackmap-data"></script>';
+/** The template carries every brand mark as data (~170 KB); a delivered file keeps the ones it draws. */
+export const BRANDS_BLOCK_ID = 'stackmap-brands';
+const BRANDS_OPEN = `<script type="application/json" id="${BRANDS_BLOCK_ID}">`;
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -23,5 +26,16 @@ export function embedDiagram(template: string, diagram: LaidOutDiagram): string 
   if (titleAt < 0) throw new Error('viewer template must have a <title> in its <head>');
   const titleEnd = head.indexOf('</title>', titleAt) + '</title>'.length;
   const title = `<title>${escapeHtml(diagram.draft.title)} · stackmap</title>`;
-  return parts[0]!.slice(0, titleAt) + title + parts[0]!.slice(titleEnd) + block + parts[1]!;
+  return keepBrands(parts[0]!.slice(0, titleAt) + title + parts[0]!.slice(titleEnd) + block + parts[1]!, diagram);
+}
+
+function keepBrands(html: string, diagram: LaidOutDiagram): string {
+  const start = html.indexOf(BRANDS_OPEN);
+  if (start < 0) return html;
+  const from = start + BRANDS_OPEN.length;
+  const end = html.indexOf('</script>', from);
+  const all = JSON.parse(html.slice(from, end)) as Record<string, unknown>;
+  const used = new Set(diagram.draft.nodes.flatMap((n) => (n.card.brand ? [n.card.brand] : [])));
+  const kept = Object.fromEntries(Object.entries(all).filter(([slug]) => used.has(slug)));
+  return html.slice(0, from) + toScriptJson(kept) + html.slice(end);
 }

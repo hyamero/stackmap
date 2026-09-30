@@ -62,7 +62,9 @@ function cycles(nodes: string[], edges: [string, string][]): string[][] {
   return out;
 }
 
-/** Duplicate ids, orphans, self-loops, dataflow cycles, empty views and groups. */
+const LARGE_DIAGRAM = 60;
+
+/** Size, duplicate ids, orphans, self-loops, parallel edges, dataflow cycles, empty views and groups. */
 export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
   const out: Diagnostic[] = [
     ...duplicates(d.nodes, 'nodes'),
@@ -84,6 +86,18 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
         allowedFixes: ['add "stats"', 'remove "statsNote"', 'move the note into a card row'],
       });
   });
+
+  // The authoring contract aims for ~10–40 nodes; well past that cards are unreadable at fit, and a grouped
+  // layout of a few hundred nodes takes ELK tens of seconds.
+  if (d.nodes.length > LARGE_DIAGRAM)
+    out.push({
+      code: 'semantics/large-diagram',
+      severity: 'warning',
+      subject: '/nodes',
+      message: `The diagram has ${d.nodes.length} nodes; past ~${LARGE_DIAGRAM} its cards are too small to read on one screen`,
+      evidence: { nodes: d.nodes.length, limit: LARGE_DIAGRAM },
+      allowedFixes: ['split it into an overview (subsystems as single nodes) plus one diagram per subsystem', 'merge nodes the reader need not tell apart'],
+    });
 
   const linked = new Set(d.edges.flatMap((e) => [e.from, e.to]));
   if (d.nodes.length > 1) {
@@ -112,6 +126,25 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
         allowedFixes: ['remove the edge', 'describe the loop in a card row instead'],
       });
   });
+
+  // ELK gives each card one in and one out port, so two edges a → b share one route and one label spot.
+  if (d.kind === 'architecture' || d.kind === 'dataflow') {
+    const first = new Map<string, string>();
+    d.edges.forEach((e, i) => {
+      if (e.from === e.to) return;
+      const key = `${e.from}\u0000${e.to}`;
+      const seen = first.get(key);
+      if (seen === undefined) return void first.set(key, e.id);
+      out.push({
+        code: 'semantics/parallel-edge',
+        severity: 'warning',
+        subject: `/edges/${i}`,
+        message: `Edges "${seen}" and "${e.id}" both run from "${e.from}" to "${e.to}"; they draw as one line, labels on top of each other`,
+        evidence: { id: e.id, first: seen, from: e.from, to: e.to },
+        allowedFixes: [`merge "${e.id}" into "${seen}" (one label for both)`, 'remove the edge'],
+      });
+    });
+  }
 
   if (d.kind === 'dataflow') {
     // An async or return edge is an explicit feedback path (retry, event back-channel), so it doesn't close a cycle.

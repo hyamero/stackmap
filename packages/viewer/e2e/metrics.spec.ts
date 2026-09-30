@@ -108,7 +108,7 @@ test('a card slot never truncates text the measure said fits, and the measure st
 test('text outside the Latin subset is never measured narrower than it renders', async ({ page }) => {
   await page.goto('/?page=gallery');
   await page.evaluate(() => document.fonts.ready);
-  const corpus = ['🚀🚀🚀 deploy', '✅ healthy', '🇩🇪 Frankfurt', '支付服务', '注文サービス', '결제 서비스', 'naïve café', 'Zürich — Ørsted'];
+  const corpus = ['🚀🚀🚀 deploy', '✅ healthy', '🇩🇪 Frankfurt', '支付服务', '注文サービス', '결제 서비스', 'naïve café', 'Zürich — Ørsted', '👩‍👩‍👧‍👦 family', '❤️ loved', '👍🏽 ok', 'cafe\u0301', 'zero\u200bwidth'];
   const real = await page.evaluate((corpus) => {
     const span = document.createElement('span');
     span.style.cssText = "font:500 13.5px 'Geist';white-space:pre;position:absolute";

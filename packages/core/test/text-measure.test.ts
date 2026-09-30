@@ -39,6 +39,14 @@ describe('measureText', () => {
     expect(exact('a🚀', 'sans400', 10)).toBeCloseTo(13 + (faces.sans400[97]! * 10) / 1000, 6);
   });
 
+  it('gives joiners, variation selectors and combining marks no width of their own', () => {
+    // Worst case, a sequence the system font can't join renders as its parts side by side.
+    expect(exact('👩‍👩‍👧', 'sans400', 10)).toBeCloseTo(3 * 13, 6);
+    expect(exact('❤️', 'sans400', 10)).toBeCloseTo(13, 6);
+    expect(exact('a​b', 'sans400', 10)).toBeCloseTo(exact('a', 'sans400', 10) + exact('b', 'sans400', 10), 6);
+    expect(exact('é', 'sans400', 10)).toBeCloseTo(exact('e', 'sans400', 10), 6);
+  });
+
   // Linux Chromium snaps every glyph advance to whole pixels and skips kerning; these are the widths it
   // rendered in CI (Playwright v1.63 image). The measure must never come in under either platform.
   it.each([

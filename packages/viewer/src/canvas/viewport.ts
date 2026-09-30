@@ -15,6 +15,7 @@ export const MIN_ZOOM = 0.2;
 export const MAX_ZOOM = 2;
 export const ZOOM_STEP = 1.2;
 export const FIT_PADDING = 0.15;
+const OVERFLOW_GUTTER = 24;
 
 export const clampZoom = (k: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k));
 
@@ -51,11 +52,10 @@ export function fitTransform(
   );
   const top = Math.max(inset.top, half * h * k);
   const bottom = Math.max(inset.bottom, half * h * k);
-  return {
-    x: (W - w * k) / 2 - content.x * k,
-    y: top + (H - top - bottom - h * k) / 2 - content.y * k,
-    k,
-  };
+  // Still too big at the zoom floor: centring would open mid-way, so start where the diagram is read from.
+  const x = w * k > W ? OVERFLOW_GUTTER : (W - w * k) / 2;
+  const y = h * k > H - inset.top - inset.bottom ? inset.top : top + (H - top - bottom - h * k) / 2;
+  return { x: x - content.x * k, y: y - content.y * k, k };
 }
 
 /** The part of the diagram currently visible on stage, in diagram coordinates. */

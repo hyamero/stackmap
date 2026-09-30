@@ -252,6 +252,31 @@ describe('validateDiagram', () => {
       ]);
     });
 
+    it('a second edge between the same two nodes, same way, warns where the layout draws them as one line', () => {
+      const edges = [
+        { id: 'ab', from: 'a', to: 'b', label: 'reads' },
+        { id: 'ba', from: 'b', to: 'a', kind: 'return' as const },
+        { id: 'ab2', from: 'a', to: 'b', label: 'writes' },
+      ];
+      expect(only(base({ edges }), 'semantics/parallel-edge')).toMatchObject([
+        { subject: '/edges/2', severity: 'warning', evidence: { id: 'ab2', first: 'ab', from: 'a', to: 'b' } },
+      ]);
+      expect(only(base({ kind: 'dataflow', edges }), 'semantics/parallel-edge')).toHaveLength(1);
+      // Swimlanes route parallel edges apart; a sequence repeats messages over time.
+      const lane = { lane: 'l' };
+      expect(only(base({ kind: 'workflow', lanes: [{ id: 'l', label: 'L' }], nodes: [node('a', lane), node('b', lane)], edges }), 'semantics/parallel-edge')).toEqual([]);
+      expect(only(base({ kind: 'sequence', edges }), 'semantics/parallel-edge')).toEqual([]);
+    });
+
+    it('past 60 nodes the diagram warns once to split', () => {
+      const nodes = (n: number) => Array.from({ length: n }, (_, i) => node(`n${i}`));
+      const chain = (n: number) => Array.from({ length: n - 1 }, (_, i) => ({ id: `e${i}`, from: `n${i}`, to: `n${i + 1}` }));
+      expect(only(base({ nodes: nodes(60), edges: chain(60) }), 'semantics/large-diagram')).toEqual([]);
+      expect(only(base({ nodes: nodes(61), edges: chain(61) }), 'semantics/large-diagram')).toMatchObject([
+        { subject: '/nodes', severity: 'warning', evidence: { nodes: 61, limit: 60 } },
+      ]);
+    });
+
     it('cycles warn in dataflow diagrams only', () => {
       const edges = [
         { id: 'ab', from: 'a', to: 'b' },

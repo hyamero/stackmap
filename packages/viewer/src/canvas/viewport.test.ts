@@ -37,6 +37,17 @@ describe('viewport math', () => {
     expect(t).toEqual({ x: 20, y: 20, k: 2 });
   });
 
+  it('a diagram too big for the smallest zoom starts where it is read from, not mid-way', () => {
+    const inset = { top: 80, bottom: 76 };
+    const tall = fitTransform({ x: 10, y: 20, width: 600, height: 20000 }, { width: 800, height: 600 }, { inset });
+    expect(tall.k).toBe(MIN_ZOOM);
+    expect(tall.y + 20 * MIN_ZOOM).toBeCloseTo(80, 6);
+    expect(tall.x).toBeCloseTo((800 - 600 * MIN_ZOOM) / 2 - 10 * MIN_ZOOM, 6);
+    const wide = fitTransform({ x: 0, y: 0, width: 30000, height: 400 }, { width: 800, height: 600 }, { inset });
+    expect(wide.x).toBeCloseTo(24, 6);
+    expect(wide.y + (400 * MIN_ZOOM) / 2).toBeCloseTo((80 + 600 - 76) / 2, 6);
+  });
+
   it('returns identity for a zero-size stage or empty content', () => {
     expect(fitTransform({ x: 0, y: 0, width: 500, height: 300 }, { width: 0, height: 0 })).toEqual({ x: 0, y: 0, k: 1 });
     expect(fitTransform({ x: 0, y: 0, width: 0, height: 0 }, { width: 800, height: 600 })).toEqual({ x: 0, y: 0, k: 1 });
