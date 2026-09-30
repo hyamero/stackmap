@@ -6,7 +6,7 @@ import { GALLERY } from '@stackmap/core/gallery';
 import { layoutDiagram } from '@stackmap/layout';
 import { validateDiagram } from '@stackmap/schema';
 import { formatJson } from './json-format';
-import { DEMO, EXAMPLES_DIR, QUICK_START, SKILL_EXAMPLES_DIR } from './paths';
+import { CHECKOUT_DIR, DEMO, EXAMPLES_DIR, QUICK_START, SKILL_EXAMPLES_DIR } from './paths';
 
 export interface SiteDiagrams {
   demo: LaidOutDiagram;
@@ -15,6 +15,8 @@ export interface SiteDiagrams {
   /** the skill's own example per kind, keyed by file name without `.json` */
   skill: Record<string, LaidOutDiagram>;
   quickStart: LaidOutDiagram;
+  /** the landing's one checkout, drawn as each kind, keyed by kind */
+  checkout: Record<string, LaidOutDiagram>;
 }
 
 const jsonFiles = (dir: URL) => readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
@@ -45,6 +47,7 @@ export async function layoutSite({ examplesDir = EXAMPLES_DIR, demo = DEMO }: { 
     examples: await layoutDir(examplesDir),
     skill: await layoutDir(SKILL_EXAMPLES_DIR),
     quickStart: await layoutFile(QUICK_START),
+    checkout: await layoutDir(CHECKOUT_DIR),
   };
 }
 

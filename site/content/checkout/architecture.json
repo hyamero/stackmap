@@ -1,0 +1,21 @@
+{
+  "kind": "architecture",
+  "title": "Checkout",
+  "subtitle": "One checkout, as components",
+  "density": "compact",
+  "nodes": [
+    { "id": "storefront", "type": "client", "card": { "title": "Storefront", "subtitle": "Next.js" } },
+    { "id": "edge", "type": "gateway", "card": { "title": "Edge gateway", "subtitle": "Public routing" } },
+    { "id": "api", "type": "service", "card": { "title": "shop-api", "subtitle": "REST API" } },
+    { "id": "stripe", "type": "external", "card": { "title": "Stripe", "subtitle": "Payments" } },
+    { "id": "orders", "type": "database", "card": { "title": "Orders DB", "subtitle": "PostgreSQL" } },
+    { "id": "events", "type": "queue", "card": { "title": "Order events", "subtitle": "Async queue" } }
+  ],
+  "edges": [
+    { "id": "a1", "from": "storefront", "to": "edge" },
+    { "id": "a2", "from": "edge", "to": "api" },
+    { "id": "a3", "from": "api", "to": "stripe" },
+    { "id": "a4", "from": "api", "to": "orders" },
+    { "id": "a5", "from": "api", "to": "events", "kind": "async" }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "kind": "workflow",
+  "title": "Checkout",
+  "subtitle": "One checkout, as steps by owner",
+  "lanes": [
+    { "id": "customer", "label": "Customer" },
+    { "id": "shop", "label": "shop-api" },
+    { "id": "payments", "label": "Payments" },
+    { "id": "failures", "label": "Failures", "tone": "exception" }
+  ],
+  "phases": [
+    { "id": "cart", "label": "Cart", "nodes": ["add", "validate"] },
+    { "id": "payment", "label": "Payment", "nodes": ["pay", "charge"] },
+    { "id": "order", "label": "Order", "nodes": ["create"] }
+  ],
+  "nodes": [
+    { "id": "add", "type": "client", "lane": "customer", "card": { "title": "Add to cart", "subtitle": "Storefront" } },
+    { "id": "validate", "type": "service", "lane": "shop", "card": { "title": "Validate cart", "subtitle": "Stock and price" } },
+    { "id": "charge", "type": "external", "lane": "payments", "card": { "title": "Charge card", "subtitle": "Stripe" } },
+    { "id": "create", "type": "service", "lane": "shop", "card": { "title": "Create order", "subtitle": "Orders DB" } },
+    { "id": "pay", "type": "client", "lane": "customer", "card": { "title": "Pay", "subtitle": "Card details" } },
+    { "id": "declined", "type": "security", "lane": "failures", "card": { "title": "Declined", "subtitle": "Ask again" } }
+  ],
+  "edges": [
+    { "id": "w1", "from": "add", "to": "validate" },
+    { "id": "w2", "from": "validate", "to": "pay" },
+    { "id": "w3", "from": "pay", "to": "charge" },
+    { "id": "w4", "from": "charge", "to": "create", "tone": "main" },
+    { "id": "w5", "from": "charge", "to": "declined", "tone": "error" },
+    { "id": "w6", "from": "declined", "to": "pay", "kind": "return", "label": "retry" }
+  ]
+}

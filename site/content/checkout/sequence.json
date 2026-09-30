@@ -1,0 +1,80 @@
+{
+  "kind": "sequence",
+  "title": "Checkout",
+  "subtitle": "One checkout, as messages over time",
+  "nodes": [
+    {
+      "id": "storefront",
+      "type": "client",
+      "card": {
+        "title": "Storefront",
+        "subtitle": "Next.js"
+      }
+    },
+    {
+      "id": "api",
+      "type": "service",
+      "card": {
+        "title": "shop-api",
+        "subtitle": "REST API"
+      }
+    },
+    {
+      "id": "stripe",
+      "type": "external",
+      "card": {
+        "title": "Stripe",
+        "subtitle": "Payments"
+      }
+    },
+    {
+      "id": "orders",
+      "type": "database",
+      "card": {
+        "title": "Orders DB",
+        "subtitle": "PostgreSQL"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "s1",
+      "from": "storefront",
+      "to": "api",
+      "label": "POST /checkout"
+    },
+    {
+      "id": "s2",
+      "from": "api",
+      "to": "stripe",
+      "label": "charge"
+    },
+    {
+      "id": "s3",
+      "from": "stripe",
+      "to": "api",
+      "kind": "return",
+      "label": "charged"
+    },
+    {
+      "id": "s4",
+      "from": "api",
+      "to": "orders",
+      "label": "insert order"
+    },
+    {
+      "id": "s5",
+      "from": "orders",
+      "to": "api",
+      "kind": "return",
+      "label": "order id"
+    },
+    {
+      "id": "s6",
+      "from": "api",
+      "to": "storefront",
+      "kind": "return",
+      "label": "201 Created"
+    }
+  ]
+}

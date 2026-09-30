@@ -34,8 +34,10 @@ describe('layoutSite', () => {
     expect(Object.keys(d.examples).sort()).toEqual(['bookshop', 'food-delivery', 'ml-feature-platform', 'production-vpc', 'repo-architecture']);
     expect(Object.keys(d.skill).sort()).toEqual(['checkout.sequence', 'clickstream.dataflow', 'job.lifecycle', 'release.workflow', 'web-app.architecture']);
     expect(d.quickStart.draft.nodes.map((n) => n.id)).toEqual(['api', 'db']);
+    expect(Object.keys(d.checkout).sort()).toEqual(['architecture', 'dataflow', 'lifecycle', 'sequence', 'workflow']);
+    for (const [kind, c] of Object.entries(d.checkout)) expect(c.draft.kind).toBe(kind);
     expect(Object.keys(d.demo.nodes)).toHaveLength(11);
-    for (const diagram of [d.demo, d.quickStart, ...Object.values(d.gallery), ...Object.values(d.examples), ...Object.values(d.skill)]) {
+    for (const diagram of [d.demo, d.quickStart, ...Object.values(d.gallery), ...Object.values(d.examples), ...Object.values(d.skill), ...Object.values(d.checkout)]) {
       expect(diagram.bounds.width).toBeGreaterThan(0);
     }
   }, 60_000);

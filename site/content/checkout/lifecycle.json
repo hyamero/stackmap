@@ -1,0 +1,31 @@
+{
+  "kind": "lifecycle",
+  "title": "Checkout",
+  "subtitle": "One checkout, as the states of an order",
+  "lanes": [
+    { "id": "order", "label": "Order" },
+    { "id": "waiting", "label": "Waiting" },
+    { "id": "exits", "label": "Exits" }
+  ],
+  "phases": [
+    { "id": "open", "label": "Open", "nodes": ["created", "awaiting"] },
+    { "id": "settled", "label": "Settled", "nodes": ["paid", "failed"] },
+    { "id": "done", "label": "Done", "nodes": ["fulfilled", "cancelled"] }
+  ],
+  "nodes": [
+    { "id": "created", "type": "start", "lane": "order", "card": { "title": "Created", "subtitle": "Cart submitted" } },
+    { "id": "awaiting", "type": "waiting", "lane": "waiting", "card": { "title": "Awaiting payment", "subtitle": "Card pending" } },
+    { "id": "failed", "type": "failure", "lane": "exits", "card": { "title": "Payment failed", "subtitle": "Declined" } },
+    { "id": "fulfilled", "type": "success", "lane": "order", "card": { "title": "Fulfilled", "subtitle": "Shipped" } },
+    { "id": "paid", "type": "active", "lane": "order", "card": { "title": "Paid", "subtitle": "Charge captured" } },
+    { "id": "cancelled", "type": "failure", "lane": "exits", "card": { "title": "Cancelled", "subtitle": "Timed out" } }
+  ],
+  "edges": [
+    { "id": "l1", "from": "created", "to": "awaiting" },
+    { "id": "l2", "from": "awaiting", "to": "paid", "label": "charged" },
+    { "id": "l3", "from": "awaiting", "to": "failed", "label": "declined" },
+    { "id": "l4", "from": "paid", "to": "fulfilled" },
+    { "id": "l5", "from": "failed", "to": "awaiting", "kind": "return", "label": "retry" },
+    { "id": "l6", "from": "awaiting", "to": "cancelled", "label": "timeout" }
+  ]
+}
