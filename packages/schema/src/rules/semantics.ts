@@ -62,7 +62,7 @@ function cycles(nodes: string[], edges: [string, string][]): string[][] {
   return out;
 }
 
-/** Duplicate ids, orphans, self-loops, dataflow cycles, empty views and groups. */
+/** Duplicate ids, orphans, self-loops, parallel edges, dataflow cycles, empty views and groups. */
 export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
   const out: Diagnostic[] = [
     ...duplicates(d.nodes, 'nodes'),
@@ -112,6 +112,25 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
         allowedFixes: ['remove the edge', 'describe the loop in a card row instead'],
       });
   });
+
+  // ELK gives each card one in and one out port, so two edges a → b share one route and one label spot.
+  if (d.kind === 'architecture' || d.kind === 'dataflow') {
+    const first = new Map<string, string>();
+    d.edges.forEach((e, i) => {
+      if (e.from === e.to) return;
+      const key = `${e.from}\u0000${e.to}`;
+      const seen = first.get(key);
+      if (seen === undefined) return void first.set(key, e.id);
+      out.push({
+        code: 'semantics/parallel-edge',
+        severity: 'warning',
+        subject: `/edges/${i}`,
+        message: `Edges "${seen}" and "${e.id}" both run from "${e.from}" to "${e.to}"; they draw as one line, labels on top of each other`,
+        evidence: { id: e.id, first: seen, from: e.from, to: e.to },
+        allowedFixes: [`merge "${e.id}" into "${seen}" (one label for both)`, 'remove the edge'],
+      });
+    });
+  }
 
   if (d.kind === 'dataflow') {
     // An async or return edge is an explicit feedback path (retry, event back-channel), so it doesn't close a cycle.
