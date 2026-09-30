@@ -1,0 +1,348 @@
+{
+  "kind": "dataflow",
+  "title": "stackmap: JSON to HTML",
+  "subtitle": "How an agent-written diagram.json becomes the delivered viewer",
+  "direction": "DOWN",
+  "source": {
+    "url": "https://github.com/hyamero/stackmap/blob/a2111f0590892de04f16c2d2f11ad877a502d89b"
+  },
+  "groups": [
+    {
+      "id": "author",
+      "label": "Author"
+    },
+    {
+      "id": "pipeline",
+      "label": "stackmap CLI · one Node process"
+    },
+    {
+      "id": "buildtime",
+      "label": "Build time (separate, earlier)"
+    },
+    {
+      "id": "delivered",
+      "label": "Delivered"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "agent",
+      "type": "client",
+      "group": "author",
+      "card": {
+        "title": "AI agent",
+        "subtitle": "Author of diagram.json"
+      }
+    },
+    {
+      "id": "diagram-json",
+      "type": "storage",
+      "group": "author",
+      "card": {
+        "title": "diagram.json",
+        "subtitle": "DiagramDraft (JSON)",
+        "rows": [
+          {
+            "label": "Shape",
+            "value": "nodes, edges, groups"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/schema/src/schema.ts",
+          "line": 88,
+          "note": "DiagramDraftSchema (Zod) defines the JSON shape"
+        }
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "service",
+      "group": "pipeline",
+      "card": {
+        "title": "@hyamero/stackmap",
+        "subtitle": "CLI: validate/deliver/serve",
+        "rows": [
+          {
+            "label": "Entry",
+            "value": "cli.ts",
+            "mono": true
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/cli/src/cli.ts",
+          "line": 63,
+          "note": "dispatches 'deliver' to deliverCommand"
+        },
+        {
+          "file": "packages/cli/src/commands.ts",
+          "line": 65,
+          "note": "buildHtml: validate, layout, embed"
+        },
+        {
+          "file": "packages/cli/src/io.ts",
+          "line": 9,
+          "note": "readText/writeAtomic for the diagram file"
+        }
+      ]
+    },
+    {
+      "id": "schema",
+      "type": "service",
+      "group": "pipeline",
+      "card": {
+        "title": "@stackmap/schema",
+        "subtitle": "Validation rules + Zod schema",
+        "rows": [
+          {
+            "label": "Rules",
+            "value": "refs, semantics, fit"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/schema/src/validate.ts",
+          "line": 13,
+          "note": "validateDiagram: schema, refs, semantics, card-fit"
+        },
+        {
+          "file": "packages/schema/src/rules/card-fit.ts",
+          "line": 1,
+          "note": "measures card text with core's font metrics"
+        }
+      ]
+    },
+    {
+      "id": "layout",
+      "type": "service",
+      "group": "pipeline",
+      "card": {
+        "title": "@stackmap/layout",
+        "subtitle": "elkjs layout engine",
+        "rows": [
+          {
+            "label": "Engine",
+            "value": "elkjs (ELK)"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/layout/src/index.ts",
+          "line": 79,
+          "note": "layoutDiagram: draft -> node/edge rects"
+        },
+        {
+          "file": "packages/layout/src/index.ts",
+          "line": 109,
+          "note": "cardSize(n.card) sizes each node from core"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "type": "service",
+      "group": "pipeline",
+      "card": {
+        "title": "@stackmap/core",
+        "subtitle": "Types, tokens, text metrics",
+        "rows": [
+          {
+            "label": "Used by",
+            "value": "schema/layout/viewer"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/core/src/types.ts",
+          "note": "DiagramDraft/LaidOutDiagram shared types"
+        },
+        {
+          "file": "packages/core/src/card-metrics.ts",
+          "line": 17,
+          "note": "cardSize() card dimensions"
+        },
+        {
+          "file": "packages/core/src/tokens.ts",
+          "line": 87,
+          "note": "design tokens consumed by the viewer"
+        }
+      ]
+    },
+    {
+      "id": "viewer",
+      "type": "service",
+      "group": "buildtime",
+      "card": {
+        "title": "@stackmap/viewer",
+        "subtitle": "React viewer, Vite single-file",
+        "brand": "react",
+        "rows": [
+          {
+            "label": "Build",
+            "value": "single-file build"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/viewer/src/main.tsx",
+          "line": 3,
+          "note": "mounts App with core tokens as CSS"
+        },
+        {
+          "file": "packages/viewer/scripts/check-single-file.ts",
+          "note": "verifies the Vite build has no external script/link"
+        },
+        {
+          "file": "packages/cli/scripts/copy-template.mjs",
+          "note": "copies viewer/dist/index.html into cli/dist/viewer.html"
+        }
+      ]
+    },
+    {
+      "id": "diagram-html",
+      "type": "storage",
+      "group": "delivered",
+      "card": {
+        "title": "diagram.html",
+        "subtitle": "Self-contained HTML viewer",
+        "rows": [
+          {
+            "label": "Embeds",
+            "value": "LaidOutDiagram JSON"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/cli/src/embed.ts",
+          "line": 14,
+          "note": "embedDiagram splices JSON into the #stackmap-data script"
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "type": "client",
+      "group": "delivered",
+      "card": {
+        "title": "Browser",
+        "subtitle": "User opens the delivered file",
+        "rows": [
+          {
+            "label": "Reads",
+            "value": "#stackmap-data script"
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "file": "packages/viewer/src/data.ts",
+          "line": 6,
+          "note": "readEmbeddedDiagram parses the script tag"
+        },
+        {
+          "file": "packages/viewer/src/App.tsx",
+          "line": 14,
+          "note": "load() calls readEmbeddedDiagram(document) on boot"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "agent-json",
+      "from": "agent",
+      "to": "diagram-json",
+      "label": "writes"
+    },
+    {
+      "id": "json-cli",
+      "from": "diagram-json",
+      "to": "cli",
+      "label": "reads"
+    },
+    {
+      "id": "cli-schema",
+      "from": "cli",
+      "to": "schema",
+      "label": "validateDiagram()"
+    },
+    {
+      "id": "schema-core",
+      "from": "schema",
+      "to": "core",
+      "label": "measures text"
+    },
+    {
+      "id": "cli-layout",
+      "from": "cli",
+      "to": "layout",
+      "label": "layoutDiagram()"
+    },
+    {
+      "id": "layout-core",
+      "from": "layout",
+      "to": "core",
+      "label": "cardSize()"
+    },
+    {
+      "id": "viewer-core",
+      "from": "viewer",
+      "to": "core",
+      "label": "tokens, metrics"
+    },
+    {
+      "id": "viewer-cli",
+      "from": "viewer",
+      "to": "cli",
+      "label": "prebuilt template",
+      "kind": "async"
+    },
+    {
+      "id": "cli-html",
+      "from": "cli",
+      "to": "diagram-html",
+      "label": "embed + write"
+    },
+    {
+      "id": "html-browser",
+      "from": "diagram-html",
+      "to": "browser",
+      "label": "opens in browser"
+    }
+  ],
+  "views": [
+    {
+      "id": "runtime",
+      "label": "JSON → HTML",
+      "caption": "What happens on `stackmap deliver`",
+      "nodes": [
+        "agent",
+        "diagram-json",
+        "cli",
+        "schema",
+        "layout",
+        "core",
+        "diagram-html",
+        "browser"
+      ]
+    },
+    {
+      "id": "build",
+      "label": "Build time",
+      "caption": "How the viewer template is produced before any deliver runs",
+      "nodes": [
+        "viewer",
+        "core",
+        "cli"
+      ]
+    }
+  ]
+}
