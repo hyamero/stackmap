@@ -60,6 +60,7 @@ test('a sequence replays its messages one at a time, landing on activation bars'
 
 test('presenting keeps the play button and the P key', async ({ page }) => {
   await page.goto('/?page=release-delivery');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
   await page.keyboard.press('f');
   const bar = page.getByRole('group', { name: 'Presentation' });
   await bar.getByRole('button', { name: 'Play the flow (P)' }).click();

@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('R picks a route between two cards, lights it, lists it and deep-links it', async ({ page }) => {
   await page.goto('/?page=release-delivery');
+  // The shortcuts are bound in an effect after the first render; a key pressed before it lands nowhere.
+  await expect(page.locator('.sm-card').first()).toBeVisible();
   await page.keyboard.press('r');
   await expect(page.getByRole('status').filter({ hasText: 'Pick where the route starts' })).toBeVisible();
   await page.locator('.sm-card[data-card-id="commit"]').click();
@@ -29,6 +31,7 @@ test('a route runs the other way when only that direction exists, and says when 
 
 test('M toggles the radar, which mirrors what the explorer dims', async ({ page }) => {
   await page.goto('/?page=release-delivery');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
   await page.keyboard.press('m');
   const radar = page.getByRole('img', { name: 'Minimap' });
   await expect(radar).toBeVisible();
@@ -41,6 +44,7 @@ test('M toggles the radar, which mirrors what the explorer dims', async ({ page 
 
 test('F presents: chrome hidden, one step per view, arrows step, Esc ends', async ({ page }) => {
   await page.goto('/?page=release-delivery');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
   await page.keyboard.press('f');
   const bar = page.getByRole('group', { name: 'Presentation' });
   await expect(bar).toContainText('Overview');
@@ -76,6 +80,7 @@ test('a route in a sequence lights only the messages on its way, in time', async
 
 test('in a presentation, Space presses the focused button and M leaves the radar alone', async ({ page }) => {
   await page.goto('/?page=release-delivery');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
   await page.keyboard.press('f');
   const bar = page.getByRole('group', { name: 'Presentation' });
   await expect(page.getByRole('button', { name: 'Previous step' })).toBeDisabled();
