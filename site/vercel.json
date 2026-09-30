@@ -3,5 +3,5 @@
   "framework": "nextjs",
   "installCommand": "cd .. && bun install --frozen-lockfile",
   "buildCommand": "cd .. && bun run --filter @stackmap/viewer build && cd site && bun run build",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../packages ../bun.lock"
+  "ignoreCommand": "[ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] && git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ../packages ../package.json ../tsconfig.base.json ../bun.lock"
 }
