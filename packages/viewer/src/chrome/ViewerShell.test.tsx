@@ -17,6 +17,12 @@ describe('ViewerShell', () => {
     expect(screen.getByText('6 nodes · 9 connections')).toBeInTheDocument();
   });
 
+  it('titles the diagram one level down when embedded in a page with its own h1', () => {
+    const { container } = render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} titleAs="h2" />);
+    expect(within(container.querySelector('header')!).getByRole('heading', { level: 2, name: 'Commerce API' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
   it('lists Overview first, then agent views, as tabs', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
     const tabs = within(screen.getByRole('tablist')).getAllByRole('tab');
