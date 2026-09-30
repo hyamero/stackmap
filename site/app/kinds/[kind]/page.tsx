@@ -36,7 +36,7 @@ export default async function KindPage({ params }: PageProps<'/kinds/[kind]'>) {
   const { kind } = await params;
   if (!isKind(kind)) notFound();
   const page = KIND_PAGES[kind];
-  const { items, thumbs } = galleryProps(kindEntries(kind));
+  const { items, thumbs, rest } = galleryProps(kindEntries(kind));
   const file = `${SKILL_EXAMPLE[kind]}.json`;
   const next = DIAGRAM_KINDS[(DIAGRAM_KINDS.indexOf(kind) + 1) % DIAGRAM_KINDS.length]!;
   return (
@@ -53,7 +53,7 @@ export default async function KindPage({ params }: PageProps<'/kinds/[kind]'>) {
           <p className="text-lede">{page.lede}</p>
           <p className="text-base leading-[1.65] text-fg-muted">{page.use}</p>
         </div>
-        <Gallery items={items} thumbs={thumbs} />
+        <Gallery items={items} rest={rest} thumbs={thumbs} />
         <Parts kind={kind} page={page} />
         <div className="mt-28 grid items-start gap-8 lg:grid-cols-[400px_minmax(0,1fr)] lg:gap-12">
           <div>

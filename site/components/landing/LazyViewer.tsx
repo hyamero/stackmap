@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import type { LaidOutDiagram } from '@stackmap/core';
+import type { StaticDiagram } from '@/lib/data/static-html';
 import { FitDiagram } from '@/components/diagram/FitDiagram';
 
 const LiveViewer = dynamic(() => import('@/components/examples/LiveViewer'), { ssr: false });
@@ -11,7 +12,7 @@ const LiveViewer = dynamic(() => import('@/components/examples/LiveViewer'), { s
  * The real viewer, mounted once its box is on screen (and visible: the other composition's copy never mounts).
  * Until then, and without script, the same diagram at rest.
  */
-export function LazyViewer({ diagram, width, height }: { diagram: LaidOutDiagram; width: number; height: number }) {
+export function LazyViewer({ diagram, still, width, height }: { diagram: LaidOutDiagram; still: StaticDiagram; width: number; height: number }) {
   const box = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -31,7 +32,7 @@ export function LazyViewer({ diagram, width, height }: { diagram: LaidOutDiagram
   }, []);
   return (
     <div ref={box} className="size-full">
-      {mounted ? <LiveViewer diagram={diagram} /> : <FitDiagram diagram={diagram} width={width} height={height} pad={48} fill />}
+      {mounted ? <LiveViewer diagram={diagram} /> : <FitDiagram still={still} width={width} height={height} pad={48} fill />}
     </div>
   );
 }

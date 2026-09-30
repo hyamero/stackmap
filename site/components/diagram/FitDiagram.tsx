@@ -1,25 +1,24 @@
 'use client';
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { LaidOutDiagram } from '@stackmap/core';
-import { toScene } from '@stackmap/viewer/src/canvas/scene';
-import { StaticScene } from '@stackmap/viewer/src/canvas/StaticScene';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import type { StaticDiagram } from '@/lib/data/static-html';
 
 const GRID = 20;
 
 /**
  * A diagram at rest, scaled to fit its box and never past 100%. `width` is the box's width at the design
- * size, so the server's markup is already fitted; once hydrated it follows the box's real size.
+ * size, so the server's markup is already fitted; once hydrated it follows the box's real size. The
+ * diagram itself is HTML rendered at build time, so this ships none of the viewer's code.
  */
 export function FitDiagram({
-  diagram,
+  still,
   width,
   height,
   pad = 24,
   fill = false,
   className = '',
 }: {
-  diagram: LaidOutDiagram;
+  still: StaticDiagram;
   width: number;
   height: number;
   pad?: number;
@@ -27,7 +26,7 @@ export function FitDiagram({
   fill?: boolean;
   className?: string;
 }) {
-  const { content } = useMemo(() => toScene(diagram), [diagram]);
+  const { box: content } = still;
   const fit = useCallback((w: number, h: number) => Math.min(1, (w - 2 * pad) / content.width, (h - 2 * pad) / content.height), [content, pad]);
   const box = useRef<HTMLDivElement>(null);
   const [k, setK] = useState(() => fit(width, height));
@@ -44,7 +43,7 @@ export function FitDiagram({
     <div
       ref={box}
       role="img"
-      aria-label={`${diagram.draft.title}: ${diagram.draft.nodes.length} nodes, ${diagram.draft.edges.length} connections`}
+      aria-label={`${still.title}: ${still.nodes} nodes, ${still.edges} connections`}
       className={`relative overflow-hidden bg-stage ${className}`}
       style={{
         height: fill ? '100%' : height,
@@ -53,9 +52,7 @@ export function FitDiagram({
         backgroundPosition: 'center',
       }}
     >
-      <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) scale(${k})` }}>
-        <StaticScene diagram={diagram} />
-      </div>
+      <div className="absolute top-1/2 left-1/2" style={{ transform: `translate(-50%, -50%) scale(${k})` }} dangerouslySetInnerHTML={{ __html: still.html }} />
     </div>
   );
 }

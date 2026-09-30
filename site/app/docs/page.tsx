@@ -6,7 +6,7 @@ import { Ask, Code, docs } from '@/components/docs/prose';
 import { CodeBlock, Command } from '@/components/ui/CodeBlock';
 import { TypeChip } from '@/components/ui/TypeChip';
 import { spell } from '@/lib/words';
-import { QUICK_START, SOURCES } from '@/lib/diagrams';
+import { SOURCES, stillOf } from '@/lib/diagrams';
 import { OPEN_GRAPH } from '@/lib/seo';
 import { SITE } from '@/lib/site-data';
 
@@ -46,7 +46,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   return (
     <li className="relative pl-14">
       <span className="absolute top-0 left-0 grid size-7 place-items-center rounded-full bg-page font-mono text-[12.5px] shadow-[inset_0_0_0_1.5px_var(--sm-text)]">{n}</span>
-      <h3 className="mt-0.5 text-[19px] leading-[1.35] font-semibold tracking-[-0.015em]">{title}</h3>
+      <h2 className="mt-0.5 text-[19px] leading-[1.35] font-semibold tracking-[-0.015em]">{title}</h2>
       {children}
     </li>
   );
@@ -129,7 +129,7 @@ export default function DocsPage() {
           ))}
           <code className="ml-1.5 truncate font-mono">file:///…/.stackmap/bookshop/diagram.html</code>
         </div>
-        <FitDiagram diagram={QUICK_START} width={680} height={400} />
+        <FitDiagram still={stillOf('quickStart')} width={680} height={400} />
         <figcaption className="sr-only">The same JSON, laid out by stackmap.</figcaption>
       </figure>
       <div className="mt-7 flex flex-col gap-[18px]">

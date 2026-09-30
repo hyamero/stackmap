@@ -1,6 +1,7 @@
 import type { LaidOutDiagram } from '@stackmap/core';
 import { toScene } from '@stackmap/viewer/src/canvas/scene';
-import { StaticScene } from '@/components/diagram/StaticScene';
+import { Still } from '@/components/diagram/Still';
+import { stillOf } from '@/lib/diagrams';
 import { viewerTweens } from '../drops';
 import { LazyViewer } from '../LazyViewer';
 import { s } from '../style';
@@ -51,7 +52,7 @@ export function Viewer({ demo }: { demo: LaidOutDiagram }) {
                       <div className="plane a-plane">
                         <div className="plane-grid grid-bg a-pgrid" />
                         <div className="plane-dg" style={s({ transform: `translate(-50%, 0) scale(${k})` })}>
-                          <StaticScene diagram={demo} />
+                          <Still still={stillOf('demo')} />
                         </div>
                       </div>
                     </div>
@@ -59,7 +60,7 @@ export function Viewer({ demo }: { demo: LaidOutDiagram }) {
                 </div>
               </div>
               <div className="vreal" style={s({ left: `${VIEWER.left}px`, top: `${VIEWER.top}px`, width: `${VIEWER.width}px`, height: `${VIEWER.height}px`, right: 'auto', bottom: 'auto' })}>
-                <LazyViewer diagram={demo} width={VIEWER.width} height={VIEWER.height} />
+                <LazyViewer diagram={demo} still={stillOf('demo')} width={VIEWER.width} height={VIEWER.height} />
               </div>
             </div>
           </div>

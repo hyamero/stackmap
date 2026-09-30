@@ -1,6 +1,7 @@
 import { DIAGRAM_KINDS, KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { toScene } from '@stackmap/viewer/src/canvas/scene';
-import { StaticScene } from '@/components/diagram/StaticScene';
+import { Still } from '@/components/diagram/Still';
+import { stillOf } from '@/lib/diagrams';
 import { KindCount } from '../KindCount';
 import { crossfadeTweens } from '../kinds-geometry';
 import { s } from '../style';
@@ -71,7 +72,7 @@ export function Kinds({ checkout }: { checkout: Record<string, LaidOutDiagram> }
           <div aria-hidden="true">
             {layers.map((l, k) => (
               <div key={l.kind} className={`klayer kl${k}`} style={s({ left: px(l.left), top: px(l.top), transform: `scale(${l.k})` })}>
-                <StaticScene diagram={l.diagram} />
+                <Still still={stillOf(`checkout/${l.kind}`)} />
               </div>
             ))}
           </div>

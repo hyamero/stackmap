@@ -45,7 +45,7 @@ export function Footer() {
         <div className="flex flex-col gap-2 pt-5 text-[13px] text-fg-muted shadow-[inset_0_1px_0_var(--sm-divider)] md:flex-row md:justify-between md:gap-6">
           <p className="m-0">
             A successor to{' '}
-            <a href={LINKS.archify.href} target="_blank" rel="noreferrer" className="text-fg no-underline">
+            <a href={LINKS.archify.href} target="_blank" rel="noreferrer" className="text-fg underline decoration-fg-muted underline-offset-2 hover:decoration-fg">
               archify
             </a>{' '}
             by tt-a1i. Layout by Eclipse ELK, type in Geist, logos from Simple Icons.

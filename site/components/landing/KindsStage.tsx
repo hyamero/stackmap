@@ -1,7 +1,8 @@
 import { DIAGRAM_KINDS, type DiagramKind, type LaidOutDiagram } from '@stackmap/core';
 import { NodeCard } from '@stackmap/viewer/src/card/NodeCard';
 import { StepCard } from '@stackmap/viewer/src/card/StepCard';
-import { StaticScene } from '@/components/diagram/StaticScene';
+import { Still } from '@/components/diagram/Still';
+import { stillOf } from '@/lib/diagrams';
 import { kindsGeometry, kindsTweens, type Area } from './kinds-geometry';
 import { s } from './style';
 
@@ -33,7 +34,7 @@ export function KindsStage({ checkout, area, root }: { checkout: Record<string, 
       <div className="kcam" style={s({ transformOrigin: `${area.cx}px ${area.cy}px` })}>
         {g.layers.map((l, k) => (
           <div key={l.kind} className={`klayer kl${k}`} style={s({ left: px(l.left), top: px(l.top), transform: `scale(${g.scale})` })}>
-            <StaticScene diagram={l.diagram} />
+            <Still still={stillOf(`checkout/${l.kind}`)} />
           </div>
         ))}
         {g.slots.map((faces, i) => (

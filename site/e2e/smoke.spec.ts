@@ -49,7 +49,7 @@ test('the phone composition takes over below 768px', async ({ browser }) => {
 
 test('the example viewer selects a card and shows it in the inspector', async ({ page }) => {
   await page.goto('/examples');
-  await page.getByRole('button', { name: /Open .* in the viewer/ }).click();
+  await page.getByRole('button', { name: /Open in the viewer/ }).click();
   const card = page.locator('.sm-card').first();
   await expect(card).toBeVisible();
   const title = (await card.getAttribute('aria-label'))!.split(',')[0]!;
