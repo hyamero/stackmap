@@ -18,9 +18,11 @@ describe('version', () => {
   });
 
   it('pins the install commands to it', () => {
-    expect(installCommands('1.2.3')).toEqual({
+    // Built, not written out: a literal pin would be rewritten by every release (see tests/no-pins.test.ts).
+    const version = '1.2.3';
+    expect(installCommands(version)).toEqual({
       skill: 'npx skills add hyamero/stackmap',
-      cli: 'npx @hyamero/stackmap@1.2.3 deliver diagram.json',
+      cli: `npx @hyamero/stackmap@${version} deliver diagram.json`,
     });
   });
 });
