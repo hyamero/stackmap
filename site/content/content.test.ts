@@ -13,7 +13,7 @@ describe('site content', () => {
     expect(files('examples')).toEqual(EXAMPLES);
   });
 
-  for (const [sub, file] of [...EXAMPLES.map((f) => ['examples', f]), ['demo', 'commerce-api.json']] as const) {
+  for (const [sub, file] of [...EXAMPLES.map((f) => ['examples', f]), ['demo', 'commerce-api.json'], ['docs', 'quick-start.json']] as const) {
     it(`${sub}/${file} validates with no diagnostics`, () => {
       const result = validateDiagram(read(sub, file));
       expect(result.diagnostics).toEqual([]);

@@ -1,0 +1,26 @@
+{
+  "kind": "architecture",
+  "title": "Bookshop",
+  "direction": "DOWN",
+  "groups": [{ "id": "data", "label": "Data tier" }],
+  "nodes": [
+    {
+      "id": "api",
+      "type": "service",
+      "card": { "title": "shop-api", "subtitle": "REST API" },
+      "evidence": [{ "file": "services/api/src/server.ts", "line": 12 }]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "group": "data",
+      "card": {
+        "title": "Orders DB",
+        "subtitle": "PostgreSQL",
+        "brand": "postgresql"
+      }
+    }
+  ],
+  "edges": [{ "id": "api-db", "from": "api", "to": "db" }],
+  "views": [{ "id": "state", "label": "State", "nodes": ["db"] }]
+}

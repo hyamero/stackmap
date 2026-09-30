@@ -1,4 +1,4 @@
 import site from '@/generated/site.json';
-import type { Receipt } from './data/receipt';
+import type { Receipt, RepairRound } from './data/receipt';
 
-export const SITE: { version: string; install: { skill: string; cli: string }; receipt: Receipt } = site;
+export const SITE: { version: string; install: { skill: string; cli: string }; receipt: Receipt; repair: RepairRound } = site;

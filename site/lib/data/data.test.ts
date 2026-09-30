@@ -5,9 +5,9 @@ import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { GALLERY } from '@stackmap/core/gallery';
 import { deliverCommand } from '../../../packages/cli/src/commands';
-import { layoutSite } from './diagrams';
+import { layoutSite, readSources } from './diagrams';
 import { CLI_PACKAGE, DEMO, VIEWER_TEMPLATE } from './paths';
-import { deliverReceipt, readTemplate } from './receipt';
+import { deliverReceipt, readTemplate, repairRound } from './receipt';
 import { schemaReference } from './schema-ref';
 import { installCommands, readCliVersion } from './version';
 
@@ -32,8 +32,10 @@ describe('layoutSite', () => {
     const d = await layoutSite();
     expect(Object.keys(d.gallery).sort()).toEqual(Object.keys(GALLERY).sort());
     expect(Object.keys(d.examples).sort()).toEqual(['bookshop', 'food-delivery', 'ml-feature-platform', 'production-vpc', 'repo-architecture']);
+    expect(Object.keys(d.skill).sort()).toEqual(['checkout.sequence', 'clickstream.dataflow', 'job.lifecycle', 'release.workflow', 'web-app.architecture']);
+    expect(d.quickStart.draft.nodes.map((n) => n.id)).toEqual(['api', 'db']);
     expect(Object.keys(d.demo.nodes)).toHaveLength(11);
-    for (const diagram of [d.demo, ...Object.values(d.gallery), ...Object.values(d.examples)]) {
+    for (const diagram of [d.demo, d.quickStart, ...Object.values(d.gallery), ...Object.values(d.examples), ...Object.values(d.skill)]) {
       expect(diagram.bounds.width).toBeGreaterThan(0);
     }
   }, 60_000);
@@ -45,6 +47,32 @@ describe('layoutSite', () => {
       JSON.stringify({ kind: 'architecture', title: 'x', nodes: [{ id: 'a', type: 'service', card: { title: 'a' } }], edges: [{ id: 'e', from: 'a', to: 'b' }] }),
     );
     await expect(layoutSite({ examplesDir: pathToFileURL(`${dir}/`) })).rejects.toThrow(/broken\.json.*refs\//s);
+  });
+});
+
+describe('sources', () => {
+  it('prints each skill example and the quick start as the agent writes them, without the $schema pin', () => {
+    const src = readSources();
+    expect(Object.keys(src.skill).sort()).toEqual(['checkout.sequence', 'clickstream.dataflow', 'job.lifecycle', 'release.workflow', 'web-app.architecture']);
+    for (const text of [...Object.values(src.skill), src.quickStart]) {
+      expect(text).not.toContain('$schema');
+      expect(() => JSON.parse(text)).not.toThrow();
+    }
+    expect(JSON.parse(src.skill['web-app.architecture']!)).toMatchObject({ kind: 'architecture', title: 'Bookshop' });
+  });
+});
+
+describe('repairRound', () => {
+  it('is what `stackmap validate` prints for the demo with a mistyped node, then for the demo', async () => {
+    const round = await repairRound();
+    expect(round.broken).toEqual([
+      'error  refs/unknown-node  /edges/6/to',
+      '  Unknown node "orders-db"',
+      '  fix: use "orders"',
+      '  fix: add node "orders-db" or remove the edge',
+      '✗ 1 error',
+    ]);
+    expect(round.clean).toEqual(['✓ valid: no diagnostics']);
   });
 });
 
