@@ -15,3 +15,5 @@ export function diagramOf(e: Pick<Entry, 'source' | 'key'>): LaidOutDiagram {
 }
 
 export const QUICK_START: LaidOutDiagram = DIAGRAMS.quickStart;
+export const DEMO: LaidOutDiagram = DIAGRAMS.demo;
+export const CHECKOUT: Record<string, LaidOutDiagram> = DIAGRAMS.checkout;
