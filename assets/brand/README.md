@@ -35,5 +35,5 @@ Every file carries explicit colours, so pick the light file or its `-dark` twin 
 ## Voice
 
 - **Tagline:** Every layer of your stack, on one map.
-- **Descriptor:** Architecture diagrams your coding agent writes, as one offline HTML file.
+- **Descriptor:** Interactive system diagrams your coding agent writes, as one offline HTML file.
 - Plain, exact and calm. Say what it does, in the viewer's words: diagram, node, connection, view, your coding agent. No emoji, no exclamation marks, no "seamless", "supercharge" or "AI-powered".
