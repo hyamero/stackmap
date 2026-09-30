@@ -1,0 +1,90 @@
+/* The viewer's component styles, shared by the single-file build and the website. Page-level rules stay in styles.css. */
+
+@theme inline {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  --color-page: var(--sm-page);
+  --color-stage: var(--sm-stage);
+  --color-panel: var(--sm-panel);
+  --color-panel-border: var(--sm-panel-border);
+  --color-fg: var(--sm-text);
+  --color-fg-muted: var(--sm-text-muted);
+  --color-divider: var(--sm-divider);
+  --color-primary: var(--sm-primary);
+  --color-primary-fg: var(--sm-primary-text);
+}
+
+.sm-handle {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--sm-stage);
+  border: 1.5px solid var(--sm-handle);
+}
+
+/* The canvas is a drag surface: no text selection on drag, no page scroll/zoom on touch (d3-zoom owns it). */
+.sm-stage {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Explorer emphasis (M3). Opacity only: layout never changes in the viewer. */
+.sm-card,
+.sm-edge-label {
+  transition: opacity 150ms ease;
+}
+.sm-edge-path {
+  transition:
+    opacity 150ms ease,
+    stroke 150ms ease,
+    stroke-width 150ms ease;
+}
+/* While a connection draws in (intro), its arrowhead waits at the far end; hide it until the line arrives. */
+.sm-edge-path[data-drawing] {
+  marker-end: none;
+}
+.sm-route-handle {
+  transition: opacity 150ms ease;
+}
+.sm-card[data-emphasis='dim'],
+.sm-edge-path[data-dim],
+.sm-edge-label[data-dim],
+.sm-route-handle[data-dim] {
+  opacity: 0.22;
+}
+/* Pressables answer the press: a 4% dip, released quickly. */
+.sm-press {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.sm-press:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.sm-card {
+  border-radius: 14px;
+  outline: none;
+}
+.sm-card[data-emphasis='focus'] {
+  outline: 2px solid var(--sm-handle);
+  outline-offset: 3px;
+}
+.sm-card:focus-visible {
+  outline: 2px solid var(--sm-text);
+  outline-offset: 3px;
+}
+.sm-stage:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--sm-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
