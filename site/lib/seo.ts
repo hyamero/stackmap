@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { DIAGRAM_KINDS } from '@stackmap/core';
 
 type Env = Record<string, string | undefined>;
 
@@ -24,7 +25,7 @@ export function robotsFor(env: Env = process.env): MetadataRoute.Robots {
 }
 
 export function sitemapFor(base: URL = siteUrl()): MetadataRoute.Sitemap {
-  return ROUTES.map((route) => ({ url: new URL(route, base).href }));
+  return [...ROUTES, ...DIAGRAM_KINDS.map((k) => `/kinds/${k}`)].map((route) => ({ url: new URL(route, base).href }));
 }
 
 export function softwareApplication(base: URL, version: string) {
