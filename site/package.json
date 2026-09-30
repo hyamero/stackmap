@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "data": "bun scripts/build-data.ts",
+    "dev": "bun run data && next dev",
+    "build": "bun run data && next build",
     "start": "next start",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "next typegen && tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "bun run data && next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@stackmap/core": "workspace:*",
