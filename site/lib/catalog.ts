@@ -1,4 +1,4 @@
-import { DIAGRAM_KINDS, type DiagramKind } from '@stackmap/core';
+import type { DiagramKind } from '@stackmap/core';
 
 /** Where a diagram comes from: the viewer's gallery samples, the agent-written examples, or the skill's own examples. */
 export type Source = 'gallery' | 'examples' | 'skill';
@@ -12,6 +12,9 @@ export interface Entry {
 }
 
 export const id = (e: Pick<Entry, 'source' | 'key'>) => `${e.source}-${e.key}`;
+
+/** An example's own page; its key alone, since the sixteen keys are unique across both sources. */
+export const exampleHref = (e: Pick<Entry, 'key'>) => `/examples/${e.key}`;
 
 const gallery = (key: string, kind: DiagramKind): Entry => ({ source: 'gallery', key, kind });
 const agent = (key: string, kind: DiagramKind, prompt: string): Entry => ({ source: 'examples', key, kind, prompt });
@@ -60,11 +63,3 @@ export const SKILL_EXAMPLE: Record<DiagramKind, string> = {
   lifecycle: 'job.lifecycle',
   sequence: 'checkout.sequence',
 };
-
-/** A kind's page: its gallery samples, then the skill's example, then what agents wrote. */
-export function kindEntries(kind: DiagramKind): Entry[] {
-  const of = EXAMPLES.filter((e) => e.kind === kind);
-  return [...of.filter((e) => e.source === 'gallery'), { source: 'skill', key: SKILL_EXAMPLE[kind], kind }, ...of.filter((e) => e.source === 'examples')];
-}
-
-export const KINDS = DIAGRAM_KINDS;

@@ -1,23 +1,121 @@
 import type { ReactNode } from 'react';
+import { CopyButton } from '@/components/ui/CopyButton';
+import '@/components/ui/code.css';
 
-// The docs' type ramp from the canvas, shared by the quick start and the schema reference.
-export const docs = {
-  crumb: 'text-sm text-fg-muted',
-  h1: 'mt-3.5 scroll-mt-24 text-[44px] leading-[1.02] font-semibold tracking-[-0.04em] md:text-[64px]',
-  lede: 'mt-[18px] text-lg leading-normal text-fg-muted md:text-xl',
-  h2: 'mt-24 scroll-mt-24 text-[30px] leading-[1.15] font-semibold tracking-[-0.03em] md:text-4xl',
-  h3: 'mt-10 scroll-mt-24 text-[19px] leading-[1.35] font-semibold tracking-[-0.015em]',
-  p: 'mt-3.5 text-base leading-[1.7] text-fg',
-  muted: 'mt-3.5 text-base leading-[1.7] text-fg-muted',
-};
+// The docs boards' prose parts. Their styles live in docs.css under the boards' class names.
 
-export function Code({ children }: { children: ReactNode }) {
+export function C({ children }: { children: ReactNode }) {
+  return <code className="c">{children}</code>;
+}
+
+export function Kbd({ children }: { children: ReactNode }) {
+  return <span className="kbd">{children}</span>;
+}
+
+/** Copy with `code` spans, as the docs' data writes it. */
+export function Inline({ text }: { text: string }) {
+  return text.split(/(`[^`]+`)/).map((part, i) => (part.startsWith('`') ? <C key={i}>{part.slice(1, -1)}</C> : part));
+}
+
+/** A section heading with its `#` link; its id is what the sidebar follows. `sub` is a section within one. */
+export function H2({ id, children, sub = false }: { id: string; children: ReactNode; sub?: boolean }) {
+  const H = sub ? 'h3' : 'h2';
   return (
-    <code className="rounded-md bg-panel px-1.5 py-px font-mono text-[0.88em] [overflow-wrap:anywhere] box-decoration-clone shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">{children}</code>
+    <H className={`d-h2 ${sub ? 'sub' : ''}`} id={id} data-sec="">
+      <a className="d-anchor" href={`#${id}`} tabIndex={-1} aria-hidden="true">
+        #
+      </a>
+      {children}
+    </H>
   );
 }
 
-/** A request the reader can give their agent, as the canvas sets one apart. */
-export function Ask({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <p className={`mt-4 rounded-[14px] bg-panel px-5 py-4 text-base leading-[1.6] text-fg shadow-[inset_0_0_0_1px_var(--sm-panel-border)] ${className}`}>{children}</p>;
+export function H3({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <h3 className="d-h3" id={id}>
+      {children}
+    </h3>
+  );
+}
+
+export function P({ children, muted = false }: { children: ReactNode; muted?: boolean }) {
+  return <p className={`d-p ${muted ? 'm' : ''}`}>{children}</p>;
+}
+
+export function Ul({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="d-ul">
+      {items.map((item, i) => (
+        <li key={i} className="d-li">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A table that scrolls sideways on its own on a phone. */
+export function Table({ head, rows, className = '' }: { head: string[]; rows: ReactNode[][]; className?: string }) {
+  return (
+    <div className="d-tw" tabIndex={0} role="region" aria-label={head.join(', ')}>
+      <table className={`d-tbl ${className}`}>
+        <thead>
+          <tr>
+            {head.map((h) => (
+              <th key={h} scope="col">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((cell, j) => (
+                <td key={j}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** A request the reader can give their agent, with a copy button. */
+export function Ask({ text, className = '' }: { text: string; className?: string }) {
+  return (
+    <div className={`ask pnl ${className}`}>
+      <p>{text}</p>
+      <CopyButton text={text} label="Copy the request" />
+    </div>
+  );
+}
+
+export function Note({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <p className="note">
+      <span className="ic" aria-hidden="true">
+        {icon}
+      </span>
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** The page's title block. */
+export function DocHead({ crumb, title, lede }: { crumb: string; title: string; lede: ReactNode }) {
+  return (
+    <header className="d-head">
+      <p className="d-crumb">
+        Docs
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+        {crumb}
+      </p>
+      <h1 className="d-h1">{title}</h1>
+      <p className="d-lede">{lede}</p>
+    </header>
+  );
 }

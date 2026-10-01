@@ -522,3 +522,54 @@ body {
     transition: none;
   }
 }
+
+/* The docs' one-row footer. */
+.dfoot {
+  margin-top: 96px;
+}
+.df-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+.df-id {
+  display: inline-flex;
+}
+.df-l {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+}
+.df-l a,
+.df-c {
+  font-size: 14px;
+  color: var(--sm-text-muted);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.df-l a:hover {
+  color: var(--sm-text);
+}
+.df-c a {
+  color: var(--sm-text);
+  text-decoration: none;
+}
+.df-c {
+  margin: 0 0 0 auto;
+}
+.df-v {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sm-text-muted);
+}
+@media (max-width: 767px) {
+  .dfoot {
+    margin-top: 72px;
+  }
+  .df-c {
+    margin-left: 0;
+  }
+}

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { LINKS } from '../components/site/links';
+import { ROUTES } from '../lib/seo';
 
 describe('site links', () => {
-  it('points the in-site links at routes the spec defines', () => {
-    const routes = ['/', '/docs', '/docs/schema', '/examples'];
+  it('points the in-site links at pages the site has', () => {
     for (const l of Object.values(LINKS).filter((l) => l.href.startsWith('/'))) {
-      expect(routes.some((r) => l.href === r || l.href.startsWith(`${r}#`))).toBe(true);
+      expect(ROUTES.some((r) => l.href === r || l.href.startsWith(`${r}#`)), l.href).toBe(true);
     }
   });
 

@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import { tokens } from '@stackmap/core';
-import { Footer } from '@/components/site/Footer';
+import { DocsFooter, Footer } from '@/components/site/Footer';
+import { FooterFor } from '@/components/site/FooterFor';
 import { Nav } from '@/components/site/Nav';
 import { DESCRIPTION, OPEN_GRAPH, REPO, SITE_NAME, siteUrl } from '@/lib/seo';
 import { THEME_SCRIPT, themeCss } from '@/lib/theme';
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Nav />
         {children}
-        <Footer />
+        <FooterFor full={<Footer />} docs={<DocsFooter />} />
       </body>
     </html>
   );

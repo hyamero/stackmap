@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { GALLERY } from '@stackmap/core/gallery';
 import { DIAGRAM_KINDS } from '@stackmap/core';
-import { EXAMPLES, id, kindEntries, SKILL_EXAMPLE } from '../lib/catalog';
+import { EXAMPLES, id, SKILL_EXAMPLE } from '../lib/catalog';
 
 const kindOf = (dir: string, file: string) => (JSON.parse(readFileSync(new URL(`${dir}${file}`, import.meta.url), 'utf8')) as { kind: string }).kind;
 const jsonStems = (dir: string) =>
@@ -32,11 +32,5 @@ describe('example catalog', () => {
   it('names a skill example of the right kind for every kind', () => {
     expect(Object.keys(SKILL_EXAMPLE).sort()).toEqual([...DIAGRAM_KINDS].sort());
     for (const [kind, file] of Object.entries(SKILL_EXAMPLE)) expect(kindOf('../../skill/examples/', `${file}.json`)).toBe(kind);
-  });
-
-  it('puts the skill example on its kind page between the samples and the agent-written ones', () => {
-    const arch = kindEntries('architecture');
-    expect(arch.map((e) => e.source)).toEqual(['gallery', 'gallery', 'skill', 'examples', 'examples', 'examples']);
-    for (const kind of DIAGRAM_KINDS) expect(kindEntries(kind).every((e) => e.kind === kind)).toBe(true);
   });
 });

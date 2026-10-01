@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
-import { Pause, Play } from 'lucide-react';
 import { KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '@stackmap/viewer/src/canvas/CanvasPanel';
 import { DiagramCanvas } from '@stackmap/viewer/src/canvas/DiagramCanvas';
@@ -76,22 +75,24 @@ function Stage({ id, diagram, still, live, children }: { id: string; diagram: La
   );
 }
 
-function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; still?: StaticDiagram; crumb: string; live: boolean }) {
+function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; still?: StaticDiagram; crumb?: string; live: boolean }) {
   const { draft } = diagram;
   const theme = useTheme() ?? 'light';
   const stage = useId();
   return (
     <>
-      <div className="ev-head">
-        <p className="crumb">{crumb}</p>
-        <div className="vt">
-          <h2>{draft.title}</h2>
-          <span className="badge">{KIND_LABELS[draft.kind]}</span>
-          <span className="cnt tnum">
-            {draft.nodes.length} nodes · {draft.edges.length} connections
-          </span>
+      {crumb !== undefined && (
+        <div className="ev-head">
+          <p className="crumb">{crumb}</p>
+          <div className="vt">
+            <h2>{draft.title}</h2>
+            <span className="badge">{KIND_LABELS[draft.kind]}</span>
+            <span className="cnt tnum">
+              {draft.nodes.length} nodes · {draft.edges.length} connections
+            </span>
+          </div>
         </div>
-      </div>
+      )}
       <ViewTabs controls={stage} className="ev-tabs h-9" />
       <div className="ev-body">
         <Stage id={stage} diagram={diagram} still={still} live={live}>
@@ -102,72 +103,31 @@ function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; s
             <Toolbar theme={theme} onToggleTheme={toggleTheme} exports={false} trace={false} />
           </CanvasPanel>
         </Stage>
-        <Inspector placement="static" headingLevel={3} />
+        <Inspector placement="static" headingLevel={crumb === undefined ? 2 : 3} />
       </div>
     </>
   );
 }
 
-function GalleryFrame({ diagram, still, extra, live }: { diagram: LaidOutDiagram; still?: StaticDiagram; extra?: ReactNode; live: boolean }) {
-  const { state, dispatch } = useExplore();
-  const allowed = live && motionAllowed();
-  const on = state.playing && allowed;
-  return (
-    <div className="ev-body ev-gallery">
-      <section aria-label="Diagram" className="ev-stage">
-        {live ? (
-          <DiagramCanvas diagram={diagram} chrome={false} wheel="modifier" />
-        ) : (
-          still && (
-            <div className="ev-still">
-              <FitDiagram still={still} width={932} height={620} pad={48} fill className="bg-transparent" />
-            </div>
-          )
-        )}
-        <div className="pnl ev-tools">
-          <button type="button" className="ib" aria-label="Play the flow" aria-pressed={on} disabled={!allowed} onClick={() => dispatch({ type: 'togglePlay' })}>
-            {on ? <Pause size={17} strokeWidth={1.75} aria-hidden="true" /> : <Play size={17} strokeWidth={1.75} aria-hidden="true" />}
-          </button>
-          <span className="ev-hint">{state.selected ? 'Esc clears the selection' : 'Select a card'}</span>
-        </div>
-      </section>
-      <Inspector placement="static" headingLevel={3} extra={extra} />
-    </div>
-  );
-}
-
-function Frame(props: {
-  diagram: LaidOutDiagram;
-  still?: StaticDiagram;
-  variant: 'hero' | 'gallery';
-  crumb?: string;
-  extra?: ReactNode;
-  label: string;
-  children?: ReactNode;
-}) {
-  const { diagram, still, variant, crumb, extra, label, children } = props;
+function Frame({ diagram, still, crumb, label, children }: { diagram: LaidOutDiagram; still?: StaticDiagram; crumb?: string; label: string; children?: ReactNode }) {
   const { state, dispatch } = useExplore();
   const root = useRef<HTMLDivElement>(null);
   // The viewer reads the window (its size, pointer and motion settings), so it takes over from the still once mounted.
   const [live, setLive] = useState(false);
   useEffect(() => setLive(true), []);
-  useAutoplay(root, live, variant === 'hero' ? 1100 : 900);
+  useAutoplay(root, live, 1100);
   return (
     <>
       <ViewerScope value={root}>
         <div
           ref={root}
-          className={`ev ev-${variant} @container`}
+          className="ev ev-hero @container"
           data-live={live || undefined}
           role="group"
           aria-label={label}
           onKeyDown={(e) => onTraceKey(e, state.selected, () => dispatch({ type: 'toggleTrace' }))}
         >
-          {variant === 'hero' ? (
-            <HeroFrame diagram={diagram} still={still} crumb={crumb ?? ''} live={live} />
-          ) : (
-            <GalleryFrame diagram={diagram} still={still} extra={extra} live={live} />
-          )}
+          <HeroFrame diagram={diagram} still={still} crumb={crumb} live={live} />
         </div>
       </ViewerScope>
       {children}
@@ -177,29 +137,16 @@ function Frame(props: {
 
 /**
  * The real viewer, framed for a page: its own explorer that never touches the URL, keys that act only while focus
- * is inside it, and a wheel left to the page. `hero` is the landing's (header, view tabs, toolbar, zoom bar,
- * inspector); `gallery` is the examples' (flow toggle and inspector). `children` render inside its explorer, so
- * controls beside the frame can drive it. Before it mounts, and without script, the frame shows `still`.
+ * is inside it, and a wheel left to the page. It has view tabs, toolbar, zoom bar and inspector, and under `crumb`
+ * a header with the diagram's title (a page that titles the diagram itself leaves `crumb` out). `children` render
+ * inside its explorer, so controls beside the frame can drive it. Before it mounts, and without script, the frame
+ * shows `still`.
  */
-export function EmbeddedViewer({
-  diagram,
-  still,
-  variant,
-  crumb,
-  extra,
-  children,
-}: {
-  diagram: LaidOutDiagram;
-  still?: StaticDiagram;
-  variant: 'hero' | 'gallery';
-  crumb?: string;
-  extra?: ReactNode;
-  children?: ReactNode;
-}) {
+export function EmbeddedViewer({ diagram, still, crumb, children }: { diagram: LaidOutDiagram; still?: StaticDiagram; crumb?: string; children?: ReactNode }) {
   const label = `The stackmap viewer, showing ${diagram.draft.title}. Keys while it has focus: T trace, R route, slash to search, P play, Escape clears.`;
   return (
     <ExploreProvider draft={diagram.draft} syncHash={false}>
-      <Frame diagram={diagram} still={still} variant={variant} crumb={crumb} extra={extra} label={label}>
+      <Frame diagram={diagram} still={still} crumb={crumb} label={label}>
         {children}
       </Frame>
     </ExploreProvider>

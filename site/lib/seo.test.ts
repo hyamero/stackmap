@@ -54,9 +54,11 @@ describe('sitemap', () => {
     for (const u of urls) expect(u).toMatch(/^https:\/\/stackmap\.dev\//);
   });
 
-  it('lists a page for each kind of diagram', () => {
+  it('lists a docs page for each kind of diagram and a page for each example', () => {
     const urls = sitemapFor(new URL('https://stackmap.dev')).map((e) => e.url);
-    for (const kind of DIAGRAM_KINDS) expect(urls).toContain(`https://stackmap.dev/kinds/${kind}`);
+    for (const kind of DIAGRAM_KINDS) expect(urls).toContain(`https://stackmap.dev/docs/${kind}`);
+    expect(urls).toContain('https://stackmap.dev/examples/food-delivery');
+    expect(urls).toContain('https://stackmap.dev/examples/web-app');
   });
 });
 

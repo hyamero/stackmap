@@ -5,7 +5,7 @@ import { Lockup } from './Lockup';
 
 const COLUMNS: { title: string; links: SiteLink[] }[] = [
   { title: 'Product', links: [LINKS.how, LINKS.kinds, LINKS.examples, LINKS.docs] },
-  { title: 'Reference', links: [LINKS.quickStart, LINKS.schema, LINKS.cli, LINKS.authoring] },
+  { title: 'Docs', links: [LINKS.quickStart, LINKS.viewer, LINKS.cli, LINKS.schema, LINKS.authoring] },
   { title: 'Project', links: [LINKS.github, LINKS.npm, LINKS.film, LINKS.contributing, LINKS.security] },
 ];
 
@@ -15,6 +15,36 @@ function Item({ link }: { link: SiteLink }) {
     <a href={link.href} target="_blank" rel="noreferrer">
       {link.label}
     </a>
+  );
+}
+
+/** The docs' footer: one row, under pages that already carry their own navigation. */
+export function DocsFooter() {
+  const ext = [LINKS.github, LINKS.npm, LINKS.film, LINKS.contributing];
+  return (
+    <footer className="foot dfoot">
+      <div className="foot-in df-in">
+        <Link className="df-id" href="/" aria-label="stackmap home">
+          <Lockup height={24} />
+        </Link>
+        <nav className="df-l" aria-label="More">
+          <Link href={LINKS.examples.href}>{LINKS.examples.label}</Link>
+          {ext.map((l) => (
+            <a key={l.href} href={l.href} target="_blank" rel="noreferrer">
+              {l.label}
+            </a>
+          ))}
+        </nav>
+        <p className="df-c">
+          A successor to{' '}
+          <a href={LINKS.archify.href} target="_blank" rel="noreferrer">
+            archify
+          </a>{' '}
+          by tt-a1i.
+        </p>
+        <p className="df-v mono tnum">MIT · {SITE.version}</p>
+      </div>
+    </footer>
   );
 }
 

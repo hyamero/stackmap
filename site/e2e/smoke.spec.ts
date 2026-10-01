@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const ROUTES = ['/', '/docs', '/docs/schema', '/examples', '/kinds/architecture', '/kinds/dataflow', '/kinds/workflow', '/kinds/lifecycle', '/kinds/sequence'];
+const KINDS = ['architecture', 'dataflow', 'workflow', 'lifecycle', 'sequence'];
+const ROUTES = ['/', '/docs', '/docs/viewer', '/docs/cli', '/docs/schema', '/docs/brands', ...KINDS.map((k) => `/docs/${k}`), '/examples', '/examples/food-delivery', '/examples/cache-miss'];
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -125,7 +126,7 @@ test('the kind tabs swap the stage, by click and by arrow key', async ({ page })
   const tabs = page.getByRole('tablist', { name: 'Diagram kinds' });
   await tabs.getByRole('tab', { name: 'Sequence' }).click();
   await expect(tabs.getByRole('tab', { name: 'Sequence' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('link', { name: /Sequence diagrams/ })).toHaveAttribute('href', '/kinds/sequence');
+  await expect(page.getByRole('link', { name: /Sequence diagrams/ })).toHaveAttribute('href', '/docs/sequence');
   await page.keyboard.press('ArrowRight');
   await expect(tabs.getByRole('tab', { name: 'Architecture' })).toHaveAttribute('aria-selected', 'true');
   await expect(tabs.getByRole('tab', { name: 'Architecture' })).toBeFocused();
@@ -150,22 +151,79 @@ test('the theme toggle flips the page and is remembered', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(theme);
 });
 
-test('the example viewer selects a card and shows it in the inspector', async ({ page }) => {
+test('the gallery filters by kind and by agent, and a kind can be linked to', async ({ page }) => {
   await page.goto('/examples');
-  const card = page.locator('#viewer-x .sm-card').first();
+  const cards = page.locator('.ex-li:visible');
+  await expect(cards).toHaveCount(16);
+  const kinds = page.getByRole('group', { name: 'Filter by kind' });
+  await kinds.getByRole('button', { name: /Sequence/ }).click();
+  await expect(cards).toHaveCount(2);
+  await expect(page).toHaveURL(/\?kind=sequence$/);
+  await kinds.getByRole('button', { name: /^All/ }).click();
+  await page.getByRole('button', { name: /Written by an agent/ }).click();
+  await expect(cards).toHaveCount(5);
+  await page.goto('/examples?kind=lifecycle');
+  await expect(kinds.getByRole('button', { name: /Lifecycle/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(cards).toHaveCount(2);
+});
+
+test('an example opens in the viewer, which selects a card, and its pager moves on', async ({ page }) => {
+  await page.goto('/examples');
+  await page.getByRole('link', { name: /Food Delivery Platform/ }).click();
+  await expect(page).toHaveURL(/\/examples\/food-delivery$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Food Delivery Platform' })).toBeVisible();
+  await expect(page.getByText('What the agent was asked')).toBeVisible();
+  const card = page.locator('.ev .sm-card').first();
   await expect(card).toBeVisible();
   const title = (await card.getAttribute('aria-label'))!.split(',')[0]!;
   await card.click();
   await expect(page.getByRole('complementary', { name: 'Inspector' }).getByRole('heading', { name: title })).toBeVisible();
+  await expect(page.locator('.exp-url b')).toContainText('node=');
+  await page.getByRole('link', { name: /^Next example/ }).click();
+  await expect(page).toHaveURL(/\/examples\/incident-response$/);
 });
 
-test('the examples pager and thumbnails switch the diagram, and agent-written ones say what was asked', async ({ page }) => {
-  await page.goto('/examples');
-  await page.getByRole('group', { name: 'Filter examples' }).getByRole('button', { name: /Written by an agent/ }).click();
-  await expect(page.locator('#viewer-x').getByText('What the agent was asked')).toBeVisible();
-  const first = await page.locator('.gv-t').textContent();
-  await page.getByRole('button', { name: 'Next example' }).click();
-  await expect(page.locator('.gv-t')).not.toHaveText(first!);
+test('the old kind pages redirect into the docs', async ({ page }) => {
+  await page.goto('/kinds/workflow');
+  await expect(page).toHaveURL(/\/docs\/workflow$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Workflow' })).toBeVisible();
+});
+
+test('the docs search opens with ⌘K, finds a field and goes to it', async ({ page }) => {
+  await page.goto('/docs');
+  await page.keyboard.press('ControlOrMeta+k');
+  const box = page.getByRole('combobox', { name: 'Search the docs' });
+  await expect(box).toBeFocused();
+  await box.fill('statsNote');
+  await expect(page.getByRole('option').first()).toContainText('statsNote');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/docs\/schema#cards$/);
+  await expect(box).toHaveCount(0);
+});
+
+test('the docs sidebar follows the section in view', async ({ page }) => {
+  await page.goto('/docs/cli');
+  const nav = page.getByRole('navigation', { name: 'Documentation' }).first();
+  await expect(nav.getByRole('link', { name: 'Run it' })).toHaveAttribute('aria-current', 'true');
+  await page.locator('#exit').scrollIntoViewIfNeeded();
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await expect(nav.getByRole('link', { name: 'Exit codes' })).toHaveAttribute('aria-current', 'true');
+});
+
+test('the viewer docs drive the real viewer and show the link it makes', async ({ page }) => {
+  await page.goto('/docs/viewer');
+  const bar = page.getByRole('group', { name: 'Show a feature' });
+  await bar.getByRole('button', { name: 'Route' }).click();
+  await expect(bar.getByRole('button', { name: 'Route' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { name: 'Route between two nodes' })).toBeVisible();
+  await expect(page.locator('.vf-url b')).toHaveText('#route=storefront~orders');
+});
+
+test('the CLI docs switch diagnostic families', async ({ page }) => {
+  await page.goto('/docs/cli');
+  const tabs = page.getByRole('tablist', { name: 'Diagnostic families' });
+  await tabs.getByRole('tab', { name: 'card-fit' }).click();
+  await expect(page.getByRole('tabpanel').filter({ hasText: 'card-fit/overflow' })).toBeVisible();
 });
 
 test('the docs copy button confirms', async ({ page, context }) => {
