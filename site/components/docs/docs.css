@@ -1712,3 +1712,16 @@
 .lf:not(.split) .lf-stage {
   min-height: 460px;
 }
+
+/* On a narrow phone a synopsis wraps inside its box, and the brand filter's count drops under the field. */
+.syn {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+}
+.br-bar {
+  flex-wrap: wrap;
+}
+.br-n {
+  white-space: nowrap;
+}
