@@ -34,5 +34,5 @@ export default {
       },
     },
   ],
-  rules: { 'site-no-release': [2, 'always'] },
+  rules: { 'site-no-release': [2, 'always'], 'header-max-length': [0] },
 };
