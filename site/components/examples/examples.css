@@ -569,26 +569,21 @@
   min-width: 0;
 }
 
-/* The pager sits on the crumbs' row, then floats under the nav once the page scrolls, so the next example
-   stays a click away while you look at the diagram. A zero-height dock keeps it out of the flow. */
-.pager-dock {
-  position: sticky;
-  top: 72px;
-  z-index: 30;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  height: 0;
-  pointer-events: none;
+/* The pager sits at the end of the view tabs' row, centred on it. */
+.exp-v {
+  position: relative;
 }
-.pager-dock .pager {
-  pointer-events: auto;
+.exp-v > .pager {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  z-index: 2;
 }
-.exp-top {
-  min-height: 48px;
-}
+/* On a phone the tabs fill the row, so the pager takes its own line above them. */
 @media (max-width: 767px) {
-  .pager-dock {
-    top: 68px;
+  .exp-v > .pager {
+    position: static;
+    width: max-content;
+    margin: 0 0 12px auto;
   }
 }

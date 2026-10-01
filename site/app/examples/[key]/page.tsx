@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ArrowRight, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import { KIND_LABELS } from '@stackmap/core';
 import { AgentMark, ExampleCard } from '@/components/examples/ExampleCard';
 import { ExampleViewer } from '@/components/examples/ExampleViewer';
@@ -60,19 +60,6 @@ export default async function ExamplePage({ params }: PageProps<'/examples/[key]
   return (
     <main className="exp" id="top">
       <div className="wrap">
-        <div className="pager-dock">
-          <nav className="pager pnl" aria-label="Previous and next example">
-            <Link className="ib" href={exampleHref(prev)} aria-label={`Previous example: ${diagramOf(prev).draft.title}`}>
-              <ArrowLeft size={17} strokeWidth={1.75} aria-hidden="true" />
-            </Link>
-            <span className="pos mono tnum">
-              {at + 1} / {EXAMPLES.length}
-            </span>
-            <Link className="ib" href={exampleHref(next)} aria-label={`Next example: ${diagramOf(next).draft.title}`}>
-              <ArrowRight size={17} strokeWidth={1.75} aria-hidden="true" />
-            </Link>
-          </nav>
-        </div>
         <nav className="exp-top" aria-label="Examples">
           <p className="crumbs">
             <Link href="/examples">Examples</Link>
@@ -91,7 +78,15 @@ export default async function ExamplePage({ params }: PageProps<'/examples/[key]
             {e.prompt && <AgentMark />}
           </p>
         </header>
-        <ExampleViewer diagram={diagram} still={stillOf(`${e.source}/${e.key}`)} />
+        <ExampleViewer
+          diagram={diagram}
+          still={stillOf(`${e.source}/${e.key}`)}
+          pager={{
+            at: `${at + 1} / ${EXAMPLES.length}`,
+            prev: { href: exampleHref(prev), title: diagramOf(prev).draft.title },
+            next: { href: exampleHref(next), title: diagramOf(next).draft.title },
+          }}
+        />
         <div className="exp-cols">
           <section className="exp-ask">
             {e.prompt ? (
