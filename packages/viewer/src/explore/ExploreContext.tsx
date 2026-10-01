@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type
 import type { DiagramDraft } from '@stackmap/core';
 import { emphasis, type Emphasis } from './emphasis';
 import { buildGraph, type Graph } from './graph';
-import { explore, formatHash, parseHash, type ExploreAction, type ExploreState, type Known } from './state';
+import { explore, formatHash, INITIAL, parseHash, type ExploreAction, type ExploreState, type Known } from './state';
 
 export interface Explore {
   draft: DiagramDraft;
@@ -36,9 +36,18 @@ const knownOf = (d: DiagramDraft): Known => ({
   types: new Set(d.nodes.map((n) => n.type)),
 });
 
-export function ExploreProvider({ draft, children }: { draft: DiagramDraft; children: ReactNode }) {
+export function ExploreProvider({
+  draft,
+  syncHash = true,
+  children,
+}: {
+  draft: DiagramDraft;
+  /** false when the viewer is one part of someone else's page: the URL is that page's, not a deep link */
+  syncHash?: boolean;
+  children: ReactNode;
+}) {
   const known = useMemo(() => knownOf(draft), [draft]);
-  const [state, dispatch] = useReducer(explore, undefined, () => parseHash(location.hash, known));
+  const [state, dispatch] = useReducer(explore, undefined, () => (syncHash ? parseHash(location.hash, known) : INITIAL));
   const graph = useMemo(() => buildGraph(draft.nodes.map((n) => n.id), draft.edges, { timed: draft.kind === 'sequence' }), [draft]);
   const em = useMemo(() => emphasis(draft, graph, state), [draft, graph, state]);
   const stateRef = useRef(state);
@@ -47,10 +56,11 @@ export function ExploreProvider({ draft, children }: { draft: DiagramDraft; chil
   // Deep links: the hash mirrors view/node/lens without adding history entries.
   const hash = formatHash(state);
   useEffect(() => {
-    if (hash === location.hash || (!hash && !location.hash)) return;
+    if (!syncHash || hash === location.hash || (!hash && !location.hash)) return;
     history.replaceState(history.state, '', hash || location.pathname + location.search);
-  }, [hash]);
+  }, [hash, syncHash]);
   useEffect(() => {
+    if (!syncHash) return;
     // A new node in the hash is a new reveal, so the camera follows every deep link, not just the first.
     const onHash = () =>
       dispatch({
@@ -59,7 +69,7 @@ export function ExploreProvider({ draft, children }: { draft: DiagramDraft; chil
       });
     addEventListener('hashchange', onHash);
     return () => removeEventListener('hashchange', onHash);
-  }, [known]);
+  }, [known, syncHash]);
 
   const value = useMemo(() => ({ draft, state, dispatch, graph, emphasis: em }), [draft, state, graph, em]);
   return (

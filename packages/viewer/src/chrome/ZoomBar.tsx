@@ -2,7 +2,8 @@ import { Map as MapIcon, Maximize, Minus, Plus } from 'lucide-react';
 import { useViewport } from '../canvas/ViewportContext';
 import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
-export function ZoomBar({ minimapOn, onToggleMinimap }: { minimapOn: boolean; onToggleMinimap: () => void }) {
+/** Without `onToggleMinimap` the bar has no minimap button. */
+export function ZoomBar({ minimapOn = false, onToggleMinimap }: { minimapOn?: boolean; onToggleMinimap?: () => void }) {
   const { transform, zoomIn, zoomOut, fit } = useViewport();
   return (
     <div className={`${PANEL_CLASS} flex items-center p-1.5`} style={PANEL_STYLE}>
@@ -17,9 +18,11 @@ export function ZoomBar({ minimapOn, onToggleMinimap }: { minimapOn: boolean; on
       <IconButton label="Fit to screen" onClick={fit}>
         <Maximize size={16} strokeWidth={1.75} />
       </IconButton>
-      <IconButton label="Toggle minimap (M)" pressed={minimapOn} onClick={onToggleMinimap}>
-        <MapIcon size={16} strokeWidth={1.75} />
-      </IconButton>
+      {onToggleMinimap && (
+        <IconButton label="Toggle minimap (M)" pressed={minimapOn} onClick={onToggleMinimap}>
+          <MapIcon size={16} strokeWidth={1.75} />
+        </IconButton>
+      )}
     </div>
   );
 }

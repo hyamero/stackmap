@@ -1,5 +1,5 @@
 import { ArrowDownLeft, ArrowUpRight, Copy, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { countByType, TYPE_LABELS, type DiagramDraft, type DiagramEdge, type DiagramNode, type Evidence } from '@stackmap/core';
 import { focusCard } from '../canvas/SceneLayers';
 import { routeBetween } from '../explore/graph';
@@ -10,10 +10,19 @@ import { IconButton, PANEL_STYLE } from './ui';
 
 const eyebrow = 'text-[12.5px] font-medium text-fg-muted';
 
+// The panel's title level; its sections sit one below and their notes two below. A page that embeds the viewer
+// under its own headings moves the whole set down.
+const Level = createContext<2 | 3>(2);
+type Tag = 'h2' | 'h3' | 'h4' | 'h5';
+function useHeading(below: 0 | 1 | 2): Tag {
+  return `h${useContext(Level) + below}` as Tag;
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const H = useHeading(1);
   return (
     <section className="mt-7">
-      <h3 className="text-[13px] font-semibold text-fg">{title}</h3>
+      <H className="text-[13px] font-semibold text-fg">{title}</H>
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -60,11 +69,12 @@ function Legend({ draft }: { draft: DiagramDraft }) {
 }
 
 function Notes({ draft }: { draft: DiagramDraft }) {
+  const H = useHeading(2);
   return (
     <div className="space-y-5">
       {draft.notes!.map((n, i) => (
         <section key={i} aria-label={n.title}>
-          <h4 className="text-[13px] font-medium text-fg">{n.title}</h4>
+          <H className="text-[13px] font-medium text-fg">{n.title}</H>
           <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[12.5px] leading-5 text-fg-muted marker:text-divider">
             {n.items.map((item, j) => (
               <li key={j}>{item}</li>
@@ -147,6 +157,7 @@ function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) 
   const { draft, dispatch } = useExplore();
   const { card } = node;
   const lane = node.lane ? draft.lanes?.find((l) => l.id === node.lane)?.label : undefined;
+  const H = useHeading(0);
   return (
     <>
       <div className="flex items-center justify-between">
@@ -167,7 +178,7 @@ function NodeDetail({ node, toggle }: { node: DiagramNode; toggle: ReactNode }) 
           {toggle}
         </div>
       </div>
-      <h2 className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">{card.title}</h2>
+      <H className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">{card.title}</H>
       {card.subtitle && <p className="mt-1 text-[13px] break-words text-fg-muted">{card.subtitle}</p>}
       {(card.tag || lane) && (
         <p className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-fg-muted">
@@ -229,6 +240,7 @@ function RouteDetail({ toggle }: { toggle: ReactNode }) {
   const byId = new Map(draft.nodes.map((n) => [n.id, n]));
   const edgeById = new Map(draft.edges.map((e) => [e.id, e]));
   const title = (id: string) => byId.get(id)?.card.title ?? id;
+  const H = useHeading(0);
   const header = (
     <div className="flex items-center justify-between">
       <div className={eyebrow}>Route</div>
@@ -254,9 +266,9 @@ function RouteDetail({ toggle }: { toggle: ReactNode }) {
   return (
     <>
       {header}
-      <h2 className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">
+      <H className="mt-1 text-[18px] font-semibold tracking-tight break-words text-fg">
         {title(state.route.from)} → {title(state.route.to)}
-      </h2>
+      </H>
       {!route ? (
         <p className="mt-2 text-[13px] text-fg-muted">No directed connections lead from one to the other.</p>
       ) : (
@@ -313,7 +325,24 @@ function Toggle({ collapsed, onToggle, ref }: { collapsed: boolean; onToggle: ()
   );
 }
 
-export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+/**
+ * `onToggle` adds the collapse toggle; without it the panel is always open. `placement="static"` leaves the panel
+ * where its parent puts it at every width, instead of floating it over a narrow stage. `extra` follows the diagram's
+ * title while nothing is selected.
+ */
+export function Inspector({
+  collapsed = false,
+  onToggle,
+  placement = 'auto',
+  headingLevel = 2,
+  extra,
+}: {
+  collapsed?: boolean;
+  onToggle?: () => void;
+  placement?: 'auto' | 'static';
+  headingLevel?: 2 | 3;
+  extra?: ReactNode;
+}) {
   const { draft, state } = useExplore();
   const selected = state.selected ? draft.nodes.find((n) => n.id === state.selected) : undefined;
   // The toggle re-renders as its counterpart; keep keyboard focus on it across the switch.
@@ -332,7 +361,7 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
     const motion = swapIn([...(body.current?.children ?? [])] as HTMLElement[]);
     return () => motion.cancel();
   }, [state.selected]);
-  const toggle = (
+  const toggle = onToggle && (
     <Toggle
       ref={toggleRef}
       collapsed={collapsed}
@@ -342,15 +371,18 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
       }}
     />
   );
-  if (collapsed) {
+  const Title = `h${headingLevel}` as const;
+  const narrow = placement === 'auto';
+  if (collapsed && toggle) {
     return (
-      <aside aria-label="Inspector" className={`shrink-0 rounded-[20px] bg-panel p-1.5 ${NARROW_COLLAPSED}`} style={PANEL_STYLE}>
+      <aside aria-label="Inspector" className={`shrink-0 rounded-[20px] bg-panel p-1.5 ${narrow ? NARROW_COLLAPSED : ''}`} style={PANEL_STYLE}>
         {toggle}
       </aside>
     );
   }
   return (
-    <aside aria-label="Inspector" className={`relative w-[300px] shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5 ${NARROW_OPEN}`} style={PANEL_STYLE}>
+    <Level.Provider value={headingLevel}>
+    <aside aria-label="Inspector" className={`relative shrink-0 overflow-y-auto rounded-[20px] bg-panel p-5 ${narrow ? `w-[300px] ${NARROW_OPEN}` : ''}`} style={PANEL_STYLE}>
       <div ref={body}>
       {state.route || state.routing ? (
         <RouteDetail toggle={toggle} />
@@ -362,8 +394,9 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
             <div className={eyebrow}>Diagram</div>
             {toggle}
           </div>
-          <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-fg">{draft.title}</h2>
+          <Title className="mt-1 text-[18px] font-semibold tracking-tight text-fg">{draft.title}</Title>
           {draft.subtitle && <p className="mt-1 text-[13px] text-fg-muted">{draft.subtitle}</p>}
+          {extra}
           {!!draft.notes?.length && (
             <Section title="Notes">
               <Notes draft={draft} />
@@ -379,5 +412,6 @@ export function Inspector({ collapsed, onToggle }: { collapsed: boolean; onToggl
       )}
       </div>
     </aside>
+    </Level.Provider>
   );
 }
