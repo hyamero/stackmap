@@ -6,12 +6,23 @@
 </p>
 
 <p align="center">
+  <a href="https://stackmap-site.vercel.app">Website</a> · <a href="https://stackmap-site.vercel.app/docs">Docs</a> · <a href="https://stackmap-site.vercel.app/examples">Examples</a>
+</p>
+
+<p align="center">
   <img src="assets/readme/tour.webp" alt="A 25-second tour of the viewer on an agent tool call workflow: zoom in and select the planner, open the Approval gate guided view, pick a route from User to Final reply, play the flow hop by hop, then switch to the dark theme" width="100%" />
 </p>
 
 Ask your coding agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and delivers one self-contained HTML viewer. No server, no account, nothing to install to open it.
 
 Five kinds of diagram: **architecture** (components and what they call), **dataflow** (data moving through stages), **workflow** (steps across owner lanes), **lifecycle** (the states of one thing) and **sequence** (messages over time).
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/kinds-dark.png">
+    <img alt="One diagram of each kind, drawn by stackmap: architecture, dataflow, workflow, lifecycle and sequence" src="assets/readme/kinds-light.png" width="100%">
+  </picture>
+</p>
 
 https://github.com/user-attachments/assets/4dd05dfc-fa5a-42e7-ad1a-6150aeb9ad9f
 
@@ -26,6 +37,13 @@ npx skills add hyamero/stackmap
 Then ask:
 
 > Make an architecture diagram of this repository, backed by evidence from the code.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/agent-loop-dark.svg">
+    <img alt="The loop: you ask your coding agent, it writes diagram.json, stackmap checks it and names the fix, the agent repairs it, and you open one HTML file" src="assets/readme/agent-loop-light.svg" width="100%">
+  </picture>
+</p>
 
 The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and delivers `.stackmap/<name>/diagram.html`. Open that file in any browser. To change the diagram, ask again: the agent edits the JSON and delivers it again. The viewer itself is read-only.
 
@@ -63,11 +81,18 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
 }
 ```
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/card-dark.png">
+    <img alt="A card's parts: the icon tile, up to three stats with a note, a footer with two items and a link; beside it, the six connection styles: a call, async, reply, main path, security crossing and failure path" src="assets/readme/card-light.png" width="100%">
+  </picture>
+</p>
+
 - **Nodes:** nine types set the colour (`client`, `gateway`, `service`, `database`, `cache`, `queue`, `storage`, `external`, `security`), and lifecycles have seven state types. Cards can add rows, stats, a footer, a link and one of 146 [Simple Icons](https://simpleicons.org) logos.
 - **Edges** can be `async` or a `return`, with a `tone` for the main path, security crossings and failure paths.
 - **No coordinates:** stackmap lays everything out, with [ELK](https://eclipse.dev/elk/) for architecture and dataflow and its own layout for lanes and sequences.
 
-Full reference: [skill/references/schema.md](skill/references/schema.md). Modelling guidance: [authoring contract](skill/references/authoring-contract.md).
+Full reference: [skill/references/schema.md](skill/references/schema.md), or the [schema reference](https://stackmap-site.vercel.app/docs/schema) on the website. Modelling guidance: [authoring contract](skill/references/authoring-contract.md).
 
 ## The CLI
 
@@ -78,6 +103,13 @@ npx @hyamero/stackmap validate diagram.json [--json]    # diagnostics with fixes
 npx @hyamero/stackmap deliver  diagram.json [-o out.html]  # validate → layout → one offline HTML file
 npx @hyamero/stackmap serve    diagram.json [--port 4400]  # live viewer that reloads on every save
 ```
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/cli-dark.png">
+    <img alt="A terminal session: validate finds an edge to an unknown node and lists two fixes, the next run is clean, and deliver writes diagram.html with its sha256 and size" src="assets/readme/cli-light.png" width="100%">
+  </picture>
+</p>
 
 - **validate** lists every problem with a code, its evidence and the allowed fixes, including card text that won't fit. It exits `1` when the diagram has errors and `2` on usage, IO or internal errors.
 - **deliver** is deterministic: the same JSON always gives the same file, byte for byte.
