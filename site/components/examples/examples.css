@@ -568,3 +568,27 @@
   flex-wrap: wrap;
   min-width: 0;
 }
+
+/* The pager sits on the crumbs' row, then floats under the nav once the page scrolls, so the next example
+   stays a click away while you look at the diagram. A zero-height dock keeps it out of the flow. */
+.pager-dock {
+  position: sticky;
+  top: 72px;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  height: 0;
+  pointer-events: none;
+}
+.pager-dock .pager {
+  pointer-events: auto;
+}
+.exp-top {
+  min-height: 48px;
+}
+@media (max-width: 767px) {
+  .pager-dock {
+    top: 68px;
+  }
+}

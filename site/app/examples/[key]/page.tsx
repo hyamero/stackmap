@@ -60,13 +60,8 @@ export default async function ExamplePage({ params }: PageProps<'/examples/[key]
   return (
     <main className="exp" id="top">
       <div className="wrap">
-        <nav className="exp-top" aria-label="Examples">
-          <p className="crumbs">
-            <Link href="/examples">Examples</Link>
-            <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
-            <Link href={`/examples?kind=${e.kind}`}>{label}</Link>
-          </p>
-          <div className="pager pnl">
+        <div className="pager-dock">
+          <nav className="pager pnl" aria-label="Previous and next example">
             <Link className="ib" href={exampleHref(prev)} aria-label={`Previous example: ${diagramOf(prev).draft.title}`}>
               <ArrowLeft size={17} strokeWidth={1.75} aria-hidden="true" />
             </Link>
@@ -76,7 +71,14 @@ export default async function ExamplePage({ params }: PageProps<'/examples/[key]
             <Link className="ib" href={exampleHref(next)} aria-label={`Next example: ${diagramOf(next).draft.title}`}>
               <ArrowRight size={17} strokeWidth={1.75} aria-hidden="true" />
             </Link>
-          </div>
+          </nav>
+        </div>
+        <nav className="exp-top" aria-label="Examples">
+          <p className="crumbs">
+            <Link href="/examples">Examples</Link>
+            <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" />
+            <Link href={`/examples?kind=${e.kind}`}>{label}</Link>
+          </p>
         </nav>
         <header className="exp-h">
           <h1 className="exp-title">{draft.title}</h1>
