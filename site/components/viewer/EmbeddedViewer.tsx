@@ -58,7 +58,7 @@ function onTraceKey(e: KeyboardEvent, selected: string | null, trace: () => void
   trace();
 }
 
-function Stage({ id, diagram, still, live, children }: { id: string; diagram: LaidOutDiagram; still: StaticDiagram; live: boolean; children?: ReactNode }) {
+function Stage({ id, diagram, still, live, children }: { id: string; diagram: LaidOutDiagram; still?: StaticDiagram; live: boolean; children?: ReactNode }) {
   return (
     <section id={id} role="tabpanel" aria-label="Diagram" className="ev-stage @container/stage">
       {live ? (
@@ -66,15 +66,17 @@ function Stage({ id, diagram, still, live, children }: { id: string; diagram: La
           {children}
         </DiagramCanvas>
       ) : (
-        <div className="ev-still">
-          <FitDiagram still={still} width={932} height={686} pad={48} fill className="bg-transparent" />
-        </div>
+        still && (
+          <div className="ev-still">
+            <FitDiagram still={still} width={932} height={686} pad={48} fill className="bg-transparent" />
+          </div>
+        )
       )}
     </section>
   );
 }
 
-function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; still: StaticDiagram; crumb: string; live: boolean }) {
+function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; still?: StaticDiagram; crumb: string; live: boolean }) {
   const { draft } = diagram;
   const theme = useTheme() ?? 'light';
   const stage = useId();
@@ -106,7 +108,7 @@ function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; s
   );
 }
 
-function GalleryFrame({ diagram, still, extra, live }: { diagram: LaidOutDiagram; still: StaticDiagram; extra?: ReactNode; live: boolean }) {
+function GalleryFrame({ diagram, still, extra, live }: { diagram: LaidOutDiagram; still?: StaticDiagram; extra?: ReactNode; live: boolean }) {
   const { state, dispatch } = useExplore();
   const allowed = live && motionAllowed();
   const on = state.playing && allowed;
@@ -116,9 +118,11 @@ function GalleryFrame({ diagram, still, extra, live }: { diagram: LaidOutDiagram
         {live ? (
           <DiagramCanvas diagram={diagram} chrome={false} wheel="modifier" />
         ) : (
-          <div className="ev-still">
-            <FitDiagram still={still} width={932} height={620} pad={48} fill className="bg-transparent" />
-          </div>
+          still && (
+            <div className="ev-still">
+              <FitDiagram still={still} width={932} height={620} pad={48} fill className="bg-transparent" />
+            </div>
+          )
         )}
         <div className="pnl ev-tools">
           <button type="button" className="ib" aria-label="Play the flow" aria-pressed={on} disabled={!allowed} onClick={() => dispatch({ type: 'togglePlay' })}>
@@ -134,7 +138,7 @@ function GalleryFrame({ diagram, still, extra, live }: { diagram: LaidOutDiagram
 
 function Frame(props: {
   diagram: LaidOutDiagram;
-  still: StaticDiagram;
+  still?: StaticDiagram;
   variant: 'hero' | 'gallery';
   crumb?: string;
   extra?: ReactNode;
@@ -186,7 +190,7 @@ export function EmbeddedViewer({
   children,
 }: {
   diagram: LaidOutDiagram;
-  still: StaticDiagram;
+  still?: StaticDiagram;
   variant: 'hero' | 'gallery';
   crumb?: string;
   extra?: ReactNode;

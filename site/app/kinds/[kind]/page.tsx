@@ -40,7 +40,7 @@ export default async function KindPage({ params }: PageProps<'/kinds/[kind]'>) {
   const file = `${SKILL_EXAMPLE[kind]}.json`;
   const next = DIAGRAM_KINDS[(DIAGRAM_KINDS.indexOf(kind) + 1) % DIAGRAM_KINDS.length]!;
   return (
-    <main data-theme="light" className="bg-page text-fg">
+    <main className="bg-page text-fg">
       <div className="mx-auto max-w-[1440px] px-5 pt-28 pb-28 md:px-10 xl:px-24">
         <p className="text-sm text-fg-muted">
           <Link href="/examples" className="text-fg-muted no-underline hover:text-fg">

@@ -45,8 +45,8 @@ export function ThemeButton({ className = 'ib' }: { className?: string }) {
   const theme = useTheme();
   return (
     <button type="button" className={className} onClick={toggleTheme} aria-label={theme ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme` : 'Switch theme'}>
-      <Sun size={17} strokeWidth={1.75} aria-hidden="true" className="ic on-dark" />
-      <Moon size={17} strokeWidth={1.75} aria-hidden="true" className="ic on-light" />
+      <Sun size={17} strokeWidth={1.75} aria-hidden="true" className="on-dark" />
+      <Moon size={17} strokeWidth={1.75} aria-hidden="true" className="on-light" />
     </button>
   );
 }

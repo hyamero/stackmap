@@ -8,7 +8,7 @@ import type { GalleryItem } from './Gallery';
 export function galleryProps(entries: Entry[]) {
   const items: GalleryItem[] = entries.map((e) => {
     const diagram = diagramOf(e);
-    return { id: id(e), title: diagram.draft.title, kind: KIND_LABELS[e.kind], nodes: diagram.draft.nodes.length, prompt: e.prompt, diagram };
+    return { id: id(e), title: diagram.draft.title, kind: KIND_LABELS[e.kind], nodes: diagram.draft.nodes.length, edges: diagram.draft.edges.length, prompt: e.prompt, diagram };
   });
   const thumbs = Object.fromEntries(items.map((i) => [i.id, <Thumbnail key={i.id} diagram={i.diagram} />]));
   return { items, thumbs, rest: stillOf(`${entries[0]!.source}/${entries[0]!.key}`) };
