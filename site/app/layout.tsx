@@ -6,8 +6,9 @@ import { tokens } from '@stackmap/core';
 import { Footer } from '@/components/site/Footer';
 import { Nav } from '@/components/site/Nav';
 import { DESCRIPTION, OPEN_GRAPH, REPO, SITE_NAME, siteUrl } from '@/lib/seo';
-import { themeCss } from '@/lib/theme';
+import { THEME_SCRIPT, themeCss } from '@/lib/theme';
 import './globals.css';
+import './site.css';
 
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
@@ -28,8 +29,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    // The head script sets data-theme from the reader's stored choice before React hydrates.
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <style dangerouslySetInnerHTML={{ __html: themeCss() }} />
       </head>
       <body>

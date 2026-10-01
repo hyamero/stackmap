@@ -69,12 +69,6 @@ body {
     0 8px 24px -12px rgb(0 0 0 / 0.12);
 }
 
-/* Both lockups are in the markup; the nearest forced theme picks one, so the nav can follow each scene. */
-[data-theme='dark'] .lockup-light,
-[data-theme='light'] .lockup-dark {
-  display: none;
-}
-
 /* An async edge's dashes running toward its head: one dash-and-gap per loop. */
 @keyframes dash-flow {
   to {

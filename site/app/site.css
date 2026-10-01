@@ -1,0 +1,524 @@
+/* The v2 canvas's shared pieces (every board repeats them): panels, buttons, the type scale, the nav and the footer.
+   Colours are the viewer's --sm-* tokens; --brand-accent and --shadow-panel come from lib/theme.ts. */
+
+[id] {
+  scroll-margin-top: 96px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+body {
+  overflow-x: clip;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Lockups: the dark-ground file on a dark page. Same three cases as the tokens: forced dark, forced light, system. */
+.lk-d {
+  display: none;
+}
+:root[data-theme='dark'] .lk-d {
+  display: block;
+}
+:root[data-theme='dark'] .lk-l {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .lk-d {
+    display: block;
+  }
+  :root:not([data-theme='light']) .lk-l {
+    display: none;
+  }
+}
+/* The theme button shows where it goes: a sun on a dark page, a moon on a light one. */
+.on-dark {
+  display: none;
+}
+:root[data-theme='dark'] .on-dark {
+  display: block;
+}
+:root[data-theme='dark'] .on-light {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .on-dark {
+    display: block;
+  }
+  :root:not([data-theme='light']) .on-light {
+    display: none;
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+.acc {
+  color: var(--brand-accent);
+}
+.muted {
+  color: var(--sm-text-muted);
+}
+.ic {
+  display: block;
+  flex-shrink: 0;
+}
+
+.pnl {
+  background: var(--sm-panel);
+  box-shadow: var(--shadow-panel);
+  border-radius: 16px;
+}
+.ib {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--sm-text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.ib:hover,
+.ib[aria-pressed='true'] {
+  background: var(--sm-page);
+  color: var(--sm-text);
+}
+.ib:active {
+  transform: scale(0.96);
+}
+.ib:focus-visible,
+.pbtn:focus-visible,
+.lnk:focus-visible,
+.pill-l:focus-visible {
+  outline: 2px solid var(--sm-text);
+  outline-offset: 2px;
+}
+.pbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--sm-primary);
+  color: var(--sm-primary-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 150ms ease;
+}
+.pbtn:active {
+  transform: scale(0.96);
+}
+.lnk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  color: var(--sm-text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.lnk:hover {
+  background: var(--sm-page);
+  color: var(--sm-text);
+}
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--sm-text-muted);
+  background: var(--sm-panel);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+  font-size: 13px;
+  color: var(--sm-text);
+  white-space: nowrap;
+}
+.grid-bg {
+  background-image: radial-gradient(circle, var(--sm-grid) 1.5px, transparent 1.75px);
+  background-size: 24px 24px;
+}
+.pill-l {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 18px 0 20px;
+  border-radius: 9999px;
+  background: var(--sm-panel);
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+  color: var(--sm-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    box-shadow 150ms ease,
+    transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.pill-l:hover {
+  box-shadow: inset 0 0 0 1.5px var(--sm-text);
+}
+.pill-l:active {
+  transform: scale(0.96);
+}
+
+/* A command with its copy button. */
+.cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 8px 0 18px;
+  border-radius: 14px;
+}
+.cmd.big {
+  height: 60px;
+  padding: 0 10px 0 22px;
+}
+.cmd-p {
+  font-size: 15px;
+  color: var(--sm-text-muted);
+}
+.cmd-t {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 15px;
+  color: var(--sm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmd.big .cmd-t,
+.cmd.big .cmd-p {
+  font-size: 16px;
+}
+
+.wrap {
+  max-width: 1344px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+/* The Type board's scale. */
+.t-hero {
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.04;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.t-h2 {
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.t-h3 {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.t-lede {
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.5;
+  color: var(--sm-text-muted);
+  text-wrap: pretty;
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--sm-text-muted);
+}
+.eyebrow::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--brand-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 22%, transparent);
+}
+@media (min-width: 768px) {
+  .t-h2 .ln {
+    display: block;
+  }
+}
+
+/* Reveals: [data-reveal] is hidden only once GSAP has taken it (lib/reveal.ts); the server markup is the resting frame. */
+
+/* Nav */
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 16px;
+  z-index: 60;
+  pointer-events: none;
+}
+.nav-in {
+  max-width: 1344px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-in > * {
+  pointer-events: auto;
+}
+.nav-id {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+.nav-links {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 48px;
+  padding: 0 6px;
+}
+.nav-links .lnk {
+  position: relative;
+  z-index: 1;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+}
+.nav-links .lnk:hover {
+  background: transparent;
+  color: var(--sm-text);
+}
+.nav-links .lnk[aria-current] {
+  color: var(--sm-text);
+}
+.nav-links .lnk[aria-current='page'] {
+  background: var(--sm-page);
+}
+.nav-ind {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--sm-page);
+  transition:
+    translate 180ms cubic-bezier(0.77, 0, 0.175, 1),
+    width 180ms cubic-bezier(0.77, 0, 0.175, 1),
+    opacity 150ms ease;
+}
+.nav-div {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--sm-divider);
+}
+.nav-m {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  height: 48px;
+  padding: 0 6px;
+}
+.nav-cta {
+  margin-left: auto;
+  height: 44px;
+  padding: 0 20px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 8px 24px -12px rgb(0 0 0 / 0.2);
+}
+.nav-sheet {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 60px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  pointer-events: auto;
+  transform-origin: top right;
+  transition:
+    opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    scale 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 0ms linear 160ms;
+}
+.nav-sheet:not([data-open]) {
+  opacity: 0;
+  scale: 0.97;
+  visibility: hidden;
+  pointer-events: none;
+}
+.nav-sheet[data-open] {
+  transition-delay: 0ms;
+}
+@media (min-width: 768px) {
+  .nav-sheet {
+    display: none;
+  }
+}
+.nav-sheet .lnk {
+  height: 44px;
+  color: var(--sm-text);
+}
+
+/* Footer */
+.foot {
+  position: relative;
+  background: var(--sm-page);
+  color: var(--sm-text);
+  box-shadow: inset 0 1px 0 var(--sm-divider);
+}
+.foot-in {
+  max-width: 1344px;
+  margin: 0 auto;
+  padding: 72px 48px 32px;
+}
+.f-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+.f-id {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.f-id p {
+  font-size: 14px;
+  color: var(--sm-text-muted);
+}
+.f-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 64px;
+}
+.f-col h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.f-col ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.f-col a {
+  font-size: 14px;
+  color: var(--sm-text-muted);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+.f-col a:hover {
+  color: var(--sm-text);
+}
+.f-base {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 64px;
+  padding-top: 20px;
+  box-shadow: inset 0 1px 0 var(--sm-divider);
+  font-size: 13px;
+  color: var(--sm-text-muted);
+}
+.f-base a {
+  color: var(--sm-text);
+  text-decoration: none;
+}
+.f-base a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1023px) {
+  .wrap,
+  .nav-in,
+  .foot-in {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+@media (max-width: 767px) {
+  .wrap,
+  .nav-in,
+  .foot-in {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .nav {
+    top: 12px;
+  }
+  .nav-links {
+    display: none;
+  }
+  .nav-m {
+    display: flex;
+    margin-left: auto;
+  }
+  .nav-cta {
+    margin-left: 0;
+    height: 48px;
+    padding: 0 18px;
+  }
+  .f-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+  }
+  .f-base {
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-ind,
+  .nav-sheet {
+    transition: none;
+  }
+}
