@@ -9,6 +9,8 @@ const config: NextConfig = {
   transpilePackages: ['@stackmap/core', '@stackmap/viewer'],
   turbopack: { root: repoRoot },
   outputFileTracingRoot: repoRoot,
+  // The kind pages moved into the docs; old links keep working.
+  redirects: async () => [{ source: '/kinds/:kind', destination: '/docs/:kind', permanent: true }],
 };
 
 export default config;

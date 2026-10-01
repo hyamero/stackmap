@@ -1,0 +1,155 @@
+/* Code: inline code, JSON blocks with line numbers, and terminals, as the docs boards draw them. */
+.j-k {
+  color: var(--sm-text);
+}
+.j-s {
+  color: var(--sm-database-accent);
+}
+
+.c {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--sm-panel);
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+  color: var(--sm-text);
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* code */
+.cb {
+  position: relative;
+  border-radius: 16px;
+  background: var(--sm-panel);
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+  overflow: hidden;
+  min-width: 0;
+}
+.cb-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 6px 0 16px;
+  box-shadow: inset 0 -1px 0 var(--sm-panel-border);
+  font-size: 13px;
+  color: var(--sm-text-muted);
+}
+.cb-f {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--sm-text);
+}
+.cb-f .mono {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cb-l {
+  margin-left: auto;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.cb-h .cp {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.cb-b {
+  margin: 0;
+  padding: 12px 0 14px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 20px;
+  color: var(--sm-text-muted);
+  scrollbar-width: thin;
+}
+.cb-b:focus-visible,
+.term-b:focus-visible {
+  outline: 2px solid var(--sm-text);
+  outline-offset: -2px;
+}
+.cl {
+  display: flex;
+  min-width: max-content;
+  padding-right: 20px;
+  transition: background-color 120ms ease;
+}
+.cn {
+  flex-shrink: 0;
+  width: 46px;
+  padding-right: 16px;
+  text-align: right;
+  color: var(--sm-group-border);
+  user-select: none;
+}
+.cc {
+  white-space: pre;
+}
+.j-n {
+  color: var(--sm-queue-accent);
+}
+.j-b {
+  color: var(--sm-gateway-accent);
+}
+.cl.hl {
+  background: color-mix(in srgb, var(--sm-text) 8%, transparent);
+}
+.cl.hl .cn {
+  color: var(--sm-text-muted);
+}
+.term {
+  border-radius: 16px;
+  background: var(--sm-panel);
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+  overflow: hidden;
+  min-width: 0;
+}
+.term-b {
+  margin: 0;
+  padding: 14px 18px 16px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 21px;
+  color: var(--sm-text-muted);
+  scrollbar-width: thin;
+}
+.term-b .tl {
+  display: block;
+  white-space: pre;
+}
+.t-cmd {
+  color: var(--sm-text);
+  margin-top: 10px;
+}
+.t-cmd:first-child {
+  margin-top: 0;
+}
+.t-ps {
+  color: var(--sm-text-muted);
+}
+.t-err {
+  color: var(--sm-failure-accent);
+}
+.t-warn {
+  color: var(--sm-waiting-accent);
+}
+.t-ok {
+  color: var(--sm-success-accent);
+}
+.t-ink {
+  color: var(--sm-text);
+}
+.t-code {
+  color: var(--sm-text);
+}
+.t-fixl {
+  color: var(--sm-text);
+}

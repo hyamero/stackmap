@@ -1,5 +1,7 @@
 // Runs before `next build`: every diagram, number and command the site shows comes from here.
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { cliSamples } from '../lib/data/cli-samples';
+import { diagnosticCodes } from '../lib/data/codes';
 import { layoutSite, readSources } from '../lib/data/diagrams';
 import { GENERATED_DIR } from '../lib/data/paths';
 import { deliverReceipt, readTemplate, repairRound } from '../lib/data/receipt';
@@ -8,11 +10,11 @@ import { staticDiagram } from '../lib/data/static-html';
 import { installCommands, readCliVersion } from '../lib/data/version';
 
 const version = readCliVersion();
-const [diagrams, receipt, repair] = await Promise.all([layoutSite(), deliverReceipt(readTemplate()), repairRound()]);
+const [diagrams, receipt, repair, cli] = await Promise.all([layoutSite(), deliverReceipt(readTemplate()), repairRound(), cliSamples()]);
 
 mkdirSync(GENERATED_DIR, { recursive: true });
 const write = (name: string, value: unknown) => writeFileSync(new URL(name, GENERATED_DIR), `${JSON.stringify(value)}\n`);
-write('site.json', { version, install: installCommands(version), receipt, repair });
+write('site.json', { version, install: installCommands(version), receipt, repair, cli, codes: diagnosticCodes() });
 write('diagrams.json', diagrams);
 write('schema.json', schemaReference());
 write('sources.json', readSources());

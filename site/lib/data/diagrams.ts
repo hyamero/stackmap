@@ -54,6 +54,8 @@ export async function layoutSite({ examplesDir = EXAMPLES_DIR, demo = DEMO }: { 
 export interface SiteSources {
   skill: Record<string, string>;
   quickStart: string;
+  /** the examples pages' JSON: the gallery samples and the agent-written examples, by key */
+  examples: Record<string, string>;
 }
 
 // The pages print these as the agent writes them. The skill's files pin a schema version, which the page
@@ -65,5 +67,7 @@ function source(file: URL): string {
 
 export function readSources(): SiteSources {
   const skill = Object.fromEntries(jsonFiles(SKILL_EXAMPLES_DIR).map((f) => [stem(f), source(new URL(f, SKILL_EXAMPLES_DIR))]));
-  return { skill, quickStart: source(QUICK_START) };
+  const written = Object.fromEntries(jsonFiles(EXAMPLES_DIR).map((f) => [stem(f), source(new URL(f, EXAMPLES_DIR))]));
+  const samples = Object.fromEntries(Object.entries(GALLERY).map(([k, d]) => [k, formatJson(d)]));
+  return { skill, quickStart: source(QUICK_START), examples: { ...samples, ...written } };
 }

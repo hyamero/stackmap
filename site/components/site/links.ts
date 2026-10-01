@@ -6,9 +6,10 @@ export const LINKS = {
   install: { label: 'Install', href: '/#install' },
   examples: { label: 'Examples', href: '/examples' },
   docs: { label: 'Docs', href: '/docs' },
-  quickStart: { label: 'Quick start', href: '/docs#quick-start' },
+  quickStart: { label: 'Quick start', href: '/docs' },
+  viewer: { label: 'The viewer', href: '/docs/viewer' },
+  cli: { label: 'The CLI', href: '/docs/cli' },
   schema: { label: 'Schema', href: '/docs/schema' },
-  cli: { label: 'CLI', href: '/docs#cli' },
   authoring: { label: 'Authoring contract', href: `${repo}/blob/main/skill/references/authoring-contract.md` },
   // The film is the video in the README, hosted by GitHub.
   film: { label: 'Launch film', href: `${repo}#readme` },

@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { INFRA_TYPES, KIND_LABELS, STATE_TYPES, type DiagramKind, type DiagramNode, type NodeType } from '@stackmap/core';
+import { INFRA_TYPES, STATE_TYPES, type DiagramKind, type DiagramNode, type NodeType } from '@stackmap/core';
 import { NodeCard } from '@stackmap/viewer/src/card/NodeCard';
 import { StepCard } from '@stackmap/viewer/src/card/StepCard';
 import { TypeChip } from '@/components/ui/TypeChip';
@@ -104,7 +104,7 @@ const VISUALS: Record<DiagramKind, ReactNode[]> = {
       </>,
     ),
     <Lines key="l" lines={[arrow(40), arrow(76, { dash: '5 4' }), arrow(112, { stroke: 'var(--sm-text)', width: 1.75 })]} />,
-    <div key="v" className="absolute inset-0 flex gap-[22px] px-5 pt-[22px] text-[13.5px]">
+    <div key="v" className="absolute inset-0 flex items-start gap-[22px] px-5 pt-[22px] text-[13.5px]">
       <span className="pb-2 text-fg shadow-[inset_0_-2px_0_var(--sm-text)]">Overview</span>
       <span className="text-fg-muted">Checkout path</span>
       <span className="text-fg-muted">Data tier</span>
@@ -187,22 +187,20 @@ const LABELS: Partial<Record<DiagramKind, ReactNode[]>> = {
   sequence: [null, <Pill key="label-g" x={150} y={48} text>GET /dashboard</Pill>, <Pill key="label-j" x={150} y={72} text>200 + JSON</Pill>, null],
 };
 
+/** The kind's four parts, each a small legend drawn with the viewer's own cards. */
 export function Parts({ kind, page }: { kind: DiagramKind; page: KindPage }) {
   return (
-    <section className="mt-28">
-      <h2 className="sr-only">{KIND_LABELS[kind]}, part by part</h2>
-      <ul className="m-0 grid list-none grid-cols-1 gap-6 p-0 sm:grid-cols-2 lg:grid-cols-4">
-        {page.parts.map((p, i) => (
-          <li key={p.title}>
-            <div aria-hidden="true" className="relative h-[150px] overflow-hidden rounded-2xl bg-stage shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
-              {VISUALS[kind][i]}
-              {LABELS[kind]?.[i]}
-            </div>
-            <h3 className="mt-4 text-[17px] font-semibold tracking-[-0.015em]">{p.title}</h3>
-            <p className="mt-1.5 text-sm leading-[1.55] text-fg-muted">{p.text}</p>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <ul className="parts">
+      {page.parts.map((p, i) => (
+        <li key={p.title}>
+          <div aria-hidden="true" className="pt-box">
+            {VISUALS[kind][i]}
+            {LABELS[kind]?.[i]}
+          </div>
+          <h3>{p.title}</h3>
+          <p>{p.text}</p>
+        </li>
+      ))}
+    </ul>
   );
 }

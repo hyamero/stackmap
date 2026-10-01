@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
-import { Fragment } from 'react';
+import Link from 'next/link';
+import { Fragment, type ReactNode } from 'react';
+import { FileJson, Hash } from 'lucide-react';
 import { BRAND_SLUGS } from '@stackmap/core';
+import { NodeCard } from '@stackmap/viewer/src/card/NodeCard';
 import schema from '@/generated/schema.json';
-import { DocsShell, NextLink } from '@/components/docs/DocsShell';
-import { Code, docs } from '@/components/docs/prose';
+import { DocsShell } from '@/components/docs/DocsShell';
+import { C, DocHead, H2, Inline } from '@/components/docs/prose';
+import { JsonCode } from '@/components/ui/Code';
+import { formatJson } from '@/lib/data/json-format';
 import type { SchemaField, SchemaSection } from '@/lib/data/schema-ref';
+import { diagramOf } from '@/lib/diagrams';
+import { INTROS, SAMPLE_CARD, SAMPLES, diagramOutline } from '@/lib/schema-docs';
 import { blocks, notePieces, type Placement } from '@/lib/schema-page';
 import { OPEN_GRAPH } from '@/lib/seo';
+import { SITE } from '@/lib/site-data';
 
 export const metadata: Metadata = {
   title: 'Schema reference',
@@ -15,111 +23,181 @@ export const metadata: Metadata = {
   openGraph: { ...OPEN_GRAPH, url: '/docs/schema' },
 };
 
-const BLOCKS = blocks(schema as SchemaSection[]);
-
-const TOC = [
-  ...BLOCKS.flatMap((b) => (b.kind === 'table' && b.section.name !== 'source' ? [{ id: b.placement.anchor, label: b.placement.title }] : [])),
-  { id: 'brands', label: 'Brand slugs' },
-];
+const SECTIONS = schema as SchemaSection[];
+const section = (name: string) => SECTIONS.find((s) => s.name === name)!;
 
 function Notes({ field }: { field: SchemaField }) {
   return notePieces(field).map((p, i) =>
-    'code' in p ? (
-      <Code key={i}>{p.code}</Code>
-    ) : 'href' in p ? (
-      <a key={i} href={p.href} className="text-fg underline decoration-fg-muted decoration-1 underline-offset-[3px] hover:decoration-fg">
-        {p.link}
-      </a>
-    ) : (
-      <Fragment key={i}>{p.text}</Fragment>
-    ),
+    'code' in p ? <C key={i}>{p.code}</C> : 'href' in p ? <a key={i} href={p.href}>{p.link}</a> : <Fragment key={i}>{p.text}</Fragment>,
   );
 }
 
-function Table({ section, placement }: { section: SchemaSection; placement: Placement }) {
-  const H = placement.level === 2 ? 'h2' : 'h3';
+function Head({ field, link }: { field: SchemaField; link?: string }) {
   return (
-    <>
-      <H id={placement.anchor} className={placement.level === 2 ? docs.h2 : docs.h3}>
-        {placement.title}
-      </H>
-      {placement.anchor === 'source' && (
-        <p className={docs.muted}>
-          Set <Code>source.url</Code> on the diagram and every evidence entry links to <Code>&lt;url&gt;/&lt;file&gt;#L&lt;line&gt;</Code>.
-        </p>
+    <div className="fl-h">
+      {link ? (
+        <a className="fl-k" href={link}>
+          {field.key}
+        </a>
+      ) : (
+        <code className="fl-k">{field.key}</code>
       )}
-      <div tabIndex={0} className="-mx-5 overflow-x-auto px-5 focus-visible:-outline-offset-2 md:mx-0 md:px-0">
-        <table className="mt-[18px] w-full min-w-[560px] border-collapse text-sm">
-          <thead>
-            <tr>
-              {['Field', 'Type', 'Req.', 'Notes'].map((h) => (
-                <th key={h} scope="col" className="pr-3 pb-2.5 text-left text-[12.5px] font-medium text-fg-muted shadow-[inset_0_-1px_0_var(--sm-panel-border)]">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="[&_td]:py-[11px] [&_td]:pr-3 [&_td]:align-top [&_td]:leading-[1.55] [&_td]:shadow-[inset_0_-1px_0_var(--sm-divider)]">
-            {section.fields.map((f) => (
-              <tr key={f.key}>
-                <td className="w-[150px] font-mono text-code text-fg">{f.key}</td>
-                <td className="w-[84px] text-fg-muted">{f.type}</td>
-                <td className={`w-12 ${f.required ? 'text-fg' : 'text-fg-muted'}`}>{f.required ? 'yes' : 'no'}</td>
-                <td className="text-fg-muted">
-                  <Notes field={f} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+      <span className="fl-t">{field.type}</span>
+      {field.required && <span className="fl-q">required</span>}
+    </div>
   );
 }
+
+function Fields({ fields }: { fields: SchemaField[] }) {
+  return (
+    <ul className="fl">
+      {fields.map((f) => (
+        <li key={f.key} className="fl-r">
+          <Head field={f} />
+          <p className="fl-n">
+            <Notes field={f} />
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Sample({ anchor }: { anchor: string }) {
+  const s = SAMPLES[anchor]!;
+  return <JsonCode file={s.file} code={formatJson(s.value)} />;
+}
+
+/** One section: its prose and fields on the left, a sample that stays in view on the right. */
+function Section({ placement, intro, children, aside }: { placement: Placement; intro: ReactNode; children: ReactNode; aside: ReactNode }) {
+  return (
+    <section className="sx">
+      <H2 id={placement.anchor} sub={placement.level === 3}>
+        {placement.title}
+      </H2>
+      <div className="sx-g">
+        <div className="sx-l">
+          <p className="d-p m">{intro}</p>
+          {children}
+        </div>
+        <div className="sx-r">
+          <div className="sx-st">{aside}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const PARTS = [
+  { title: 'rows[]', names: ['nodes[].card.rows[]'] },
+  { title: 'stats[]', names: ['nodes[].card.stats[]'] },
+  { title: 'footer.left and footer.right', names: ['nodes[].card.footer.left'] },
+  { title: 'cta', names: ['nodes[].card.cta'] },
+];
+
+const bookshop = diagramOf({ source: 'examples', key: 'bookshop' }).draft;
 
 export default function SchemaPage() {
   return (
-    <DocsShell current="/docs/schema#schema" toc={TOC} source="packages/schema/src/schema.ts">
-      <p className={docs.crumb}>Docs › Reference</p>
-      <h1 id="schema" className={docs.h1}>
-        Schema reference.
-      </h1>
-      <p className={docs.lede}>The diagram your agent writes. Layout is computed by stackmap, so there are never coordinates. Objects are strict: unknown keys are errors.</p>
-      <p className={docs.muted}>
-        Ids, and references to them, use <Code>a-z</Code>, <Code>0-9</Code>, <Code>-</Code> and <Code>_</Code>, starting with a letter or digit. Machine-readable:{' '}
-        <Code>stackmap.schema.json</Code>.
-      </p>
-      {BLOCKS.map((b) =>
-        b.kind === 'table' ? (
-          <Table key={b.section.name} section={b.section} placement={b.placement} />
-        ) : (
-          <Fragment key="card-parts">
-            <h3 id="card-parts" className={docs.h3}>
-              Card parts
-            </h3>
-            <p className={docs.muted}>
-              Rows are key and value pairs, <Code>mono</Code> for ports and paths. Stats are a value and a label, at most three. The footer takes a left and a right
-              item, each a text and an optional icon (<Code>region</Code>, <Code>secure</Code>, <Code>members</Code>). A call to action takes a label and an http(s)
-              link.
-            </p>
-          </Fragment>
-        ),
-      )}
-      <h2 id="brands" className={docs.h2}>
-        Brand slugs
-      </h2>
-      <p className={docs.muted}>
-        Values allowed in <Code>nodes[].card.brand</Code>, all Simple Icons (CC0). Anything else is a warning and the card shows its type icon. The logo only sits in
-        the icon tile; the type still sets the colour.
-      </p>
-      <ul className="m-0 mt-[18px] flex list-none flex-wrap gap-1.5 p-0">
-        {BRAND_SLUGS.map((s) => (
-          <li key={s}>
-            <code className="inline-flex h-[26px] items-center rounded-lg bg-panel px-[9px] font-mono text-xs text-fg-muted shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">{s}</code>
-          </li>
-        ))}
-      </ul>
-      <NextLink href="/examples" label="Examples" />
+    <DocsShell href="/docs/schema">
+      <DocHead
+        crumb="Reference"
+        title="Schema reference"
+        lede="The diagram your agent writes. stackmap computes the layout, so there are never coordinates, and objects are strict: an unknown key is an error."
+      />
+      <div className="sx-meta">
+        <p>
+          <Hash size={16} strokeWidth={1.75} className="ic" aria-hidden="true" />
+          <span>
+            Ids, and references to them, use <C>a-z</C>, <C>0-9</C>, <C>-</C> and <C>_</C>, starting with a letter or digit.
+          </span>
+        </p>
+        <p>
+          <FileJson size={16} strokeWidth={1.75} className="ic" aria-hidden="true" />
+          <span>
+            Machine-readable: <a href={`https://unpkg.com/@hyamero/stackmap@${SITE.version}/dist/stackmap.schema.json`}>stackmap.schema.json</a>. Set it as{' '}
+            <C>$schema</C> for completion in your editor.
+          </span>
+        </p>
+      </div>
+      {blocks(SECTIONS).map((b) => {
+        if (b.kind === 'card-parts') {
+          return (
+            <Section
+              key="card-parts"
+              placement={{ anchor: 'card-parts', title: 'Card parts', level: 3 }}
+              intro={
+                <>
+                  Rows are key and value pairs, <C>mono</C> for ports and paths. Stats are a value and a label, at most three. The footer takes a left and a right item,
+                  each a text and an optional icon (<C>region</C>, <C>secure</C>, <C>members</C>). A call to action takes a label and an http(s) link.
+                </>
+              }
+              aside={<Sample anchor="card-parts" />}
+            >
+              <div className="cpt-g">
+                {PARTS.map((p) => (
+                  <div key={p.title} className="cpt">
+                    <h4 className="fl-g mono">{p.title}</h4>
+                    <Fields fields={p.names.flatMap((n) => section(n).fields)} />
+                  </div>
+                ))}
+              </div>
+            </Section>
+          );
+        }
+        const { section: s, placement } = b;
+        const anchor = placement.anchor;
+        if (anchor === 'diagram') {
+          const arrays = s.fields.filter((f) => f.type === 'array');
+          return (
+            <Section key={anchor} placement={placement} intro={<Inline text={INTROS.diagram!} />} aside={<JsonCode file="diagram.json" code={diagramOutline(SITE.version, bookshop)} />}>
+              <Fields fields={s.fields.filter((f) => f.type !== 'array')} />
+              <h3 className="fl-g arr-h">What it holds</h3>
+              <div className="arr-g">
+                {arrays.map((f) => (
+                  <div key={f.key} className="arr">
+                    <Head field={f} link={`#${f.key}`} />
+                    <p className="fl-n">
+                      {/* The link is the field name itself here. */}
+                      <Notes field={{ ...f, notes: f.notes.replace(/\s*see \[.+?\]\(#[^)]+\)\.?$/i, '').trim() }} />
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          );
+        }
+        if (anchor === 'cards') {
+          return (
+            <Section
+              key={anchor}
+              placement={placement}
+              intro={
+                <>
+                  What a node’s card shows. Only <C>title</C> is required; add parts when they carry what a reader needs at a glance. Text never wraps: anything too long is
+                  an error, <C>card-fit/overflow</C>. A <C>brand</C> is one of the <Link href="/docs/brands">{BRAND_SLUGS.length} brand slugs</Link>. The viewer’s sample card,
+                  with every part:
+                </>
+              }
+              aside={
+                <>
+                  <div className="sx-card">
+                    <NodeCard node={{ id: 'orders', type: 'database', card: SAMPLE_CARD as never }} />
+                  </div>
+                  <Sample anchor="cards" />
+                </>
+              }
+            >
+              <Fields fields={s.fields} />
+            </Section>
+          );
+        }
+        return (
+          <Section key={anchor} placement={placement} intro={<Inline text={INTROS[anchor] ?? ''} />} aside={SAMPLES[anchor] && <Sample anchor={anchor} />}>
+            <Fields fields={s.fields} />
+          </Section>
+        );
+      })}
     </DocsShell>
   );
 }

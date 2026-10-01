@@ -1,4 +1,4 @@
-/* The embedded viewer's frame, after the v2 canvas: the landing's (.ev-hero) and the examples' (.ev-gallery). */
+/* The embedded viewer's frame, after the v2 canvas: the landing's hero, the viewer docs and each example's page. */
 
 .ev {
   position: relative;
@@ -41,10 +41,6 @@
   height: 686px;
   margin-top: 12px;
 }
-.ev-gallery {
-  height: 620px;
-  margin-top: 0;
-}
 .ev-stage {
   position: relative;
   min-width: 0;
@@ -67,34 +63,9 @@
     visibility: hidden;
   }
 }
-.ev-tools {
-  position: absolute;
-  left: 15px;
-  bottom: 15px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 48px;
-  padding: 0 14px 0 6px;
-  border-radius: 9999px;
-}
-.ev-tools .ib {
-  border-radius: 9999px;
-}
-.ev-tools .ib:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.ev-hint {
-  font-size: 13px;
-  color: var(--sm-text-muted);
-  white-space: nowrap;
-}
 
 @media (max-width: 1023px) {
-  .ev-body,
-  .ev-gallery {
+  .ev-body {
     grid-template-columns: minmax(0, 1fr);
     height: auto;
   }

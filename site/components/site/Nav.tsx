@@ -16,7 +16,7 @@ type Spy = (typeof SPY)[number];
 const ITEMS = [
   { ...LINKS.how, spy: 'how' as Spy },
   { ...LINKS.kinds, label: 'Kinds', spy: 'kinds' as Spy },
-  { ...LINKS.examples, page: (p: string) => p.startsWith('/examples') || p.startsWith('/kinds') },
+  { ...LINKS.examples, page: (p: string) => p.startsWith('/examples') },
   { ...LINKS.docs, page: (p: string) => p.startsWith('/docs') },
 ];
 

@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from
 import { ArrowRight } from 'lucide-react';
 import { DIAGRAM_KINDS, KIND_LABELS, type DiagramKind, type LaidOutDiagram } from '@stackmap/core';
 import { LiveScene } from '@/components/diagram/LiveScene';
+import { kindHref } from '@/lib/docs-nav';
 
 const ABOUT: Record<DiagramKind, { def: string; layout: string }> = {
   architecture: { def: 'Components and what they call.', layout: 'Laid out by ELK, left to right or top down.' },
@@ -108,7 +109,7 @@ export function Kinds({ checkout }: { checkout: Record<string, LaidOutDiagram> }
           <p className="k-def">{ABOUT[kind].def}</p>
           <p className="k-lay">{ABOUT[kind].layout}</p>
         </div>
-        <Link className="lnk k-more" href={`/kinds/${kind}`}>
+        <Link className="lnk k-more" href={kindHref(kind)}>
           <span>{KIND_LABELS[kind]} diagrams</span>
           <ArrowRight size={16} strokeWidth={1.75} aria-hidden="true" />
         </Link>

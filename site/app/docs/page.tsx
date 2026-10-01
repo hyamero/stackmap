@@ -1,14 +1,20 @@
 import type { Metadata } from 'next';
-import { BRAND_SLUGS, INFRA_TYPES, STATE_TYPES } from '@stackmap/core';
-import { FitDiagram } from '@/components/diagram/FitDiagram';
-import { DocsShell, NextLink } from '@/components/docs/DocsShell';
-import { Ask, Code, docs } from '@/components/docs/prose';
-import { CodeBlock, Command } from '@/components/ui/CodeBlock';
+import Link from 'next/link';
+import { BookOpen, Braces, LayoutGrid, Shapes } from 'lucide-react';
+import { BRAND_SLUGS, DIAGRAM_KINDS, INFRA_TYPES, STATE_TYPES } from '@stackmap/core';
+import { DocsShell } from '@/components/docs/DocsShell';
+import { LinkedFigure } from '@/components/docs/LinkedFigure';
+import { Ask, C, DocHead, H2, P } from '@/components/docs/prose';
+import { Cmd } from '@/components/ui/Cmd';
+import { JsonCode, Terminal } from '@/components/ui/Code';
 import { TypeChip } from '@/components/ui/TypeChip';
-import { spell } from '@/lib/words';
+import { EXAMPLES } from '@/lib/catalog';
 import { SOURCES, stillOf } from '@/lib/diagrams';
+import { kindHref } from '@/lib/docs-nav';
+import { jsonOwners } from '@/lib/json-lines';
 import { OPEN_GRAPH } from '@/lib/seo';
 import { SITE } from '@/lib/site-data';
+import { spell } from '@/lib/words';
 
 export const metadata: Metadata = {
   title: 'Quick start',
@@ -17,171 +23,141 @@ export const metadata: Metadata = {
   openGraph: { ...OPEN_GRAPH, url: '/docs' },
 };
 
-const TOC = [
-  { id: 'quick-start', label: 'Quick start' },
-  { id: 'json', label: 'What the agent writes' },
-  { id: 'cli', label: 'The CLI' },
-];
-
-const CLI = [
-  { usage: 'validate diagram.json', flags: '[--json]', does: 'Lists every problem with a code, its evidence and the allowed fixes, including card text that won’t fit.' },
-  { usage: 'deliver diagram.json', flags: '[-o out.html]', does: 'Validates, lays out and writes one offline HTML file. The same JSON always gives the same file, byte for byte.' },
-  {
-    usage: 'serve diagram.json',
-    flags: '[--port 4400]',
-    does: 'A live viewer that reloads on every save. It binds 127.0.0.1 only, keeps the last good version when a save is invalid, and keeps your camera and selection across reloads.',
-  },
-];
-
-const EXIT_CODES = [
-  { code: 0, meaning: 'OK. Warnings are allowed.' },
-  { code: 1, meaning: 'The diagram has errors.' },
-  { code: 2, meaning: 'A usage, file or internal error. Never a stack trace.' },
-];
-
+const ASK = 'Make an architecture diagram of this repository, backed by evidence from the code.';
 // The agent's file pins the schema to the installed CLI, so the example does too.
-const json = SOURCES.quickStart.replace('{\n', `{\n  "$schema": "https://unpkg.com/@hyamero/stackmap@${SITE.version}/dist/stackmap.schema.json",\n`);
+const JSON_TEXT = SOURCES.quickStart.replace('{\n', `{\n  "$schema": "https://unpkg.com/@hyamero/stackmap@${SITE.version}/dist/stackmap.schema.json",\n`);
+const FILE = '.stackmap/commerce-api/diagram.json';
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({ n, id, title, children }: { n: number; id: string; title: string; children: React.ReactNode }) {
   return (
-    <li className="relative pl-14">
-      <span className="absolute top-0 left-0 grid size-7 place-items-center rounded-full bg-page font-mono text-[12.5px] shadow-[inset_0_0_0_1.5px_var(--sm-text)]">{n}</span>
-      <h2 className="mt-0.5 text-[19px] leading-[1.35] font-semibold tracking-[-0.015em]">{title}</h2>
-      {children}
+    <li className="d-step" id={id} data-sec="">
+      <span className="d-sn" aria-hidden="true">
+        {n}
+      </span>
+      <div>
+        <h2 className="d-st">
+          <span className="sr-only">Step {n}: </span>
+          {title}
+        </h2>
+        {children}
+      </div>
     </li>
   );
 }
 
-function Transcript() {
+function Repair() {
   const { broken, clean } = SITE.repair;
   const { file, sha256, bytes } = SITE.receipt;
-  const prompt = (cmd: string) => (
-    <span className="block">
-      <b className="font-semibold text-[#ededec]">stackmap</b> · <span className="text-[#ededec]">{cmd} .stackmap/commerce-api/diagram.json</span>
-    </span>
-  );
-  const line = (l: string, i: number) => {
-    const tone = l.startsWith('error') || l.startsWith('✗') ? 'text-[#f0806e]' : l.startsWith('✓') ? 'text-[#a6d97a]' : '';
-    return (
-      <span key={i} className={`block ${tone}`}>
-        {l}
-      </span>
-    );
-  };
   return (
-    <div data-theme="dark" className="mt-5 overflow-hidden rounded-[14px] bg-page text-fg-muted shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
-      <div className="flex h-[42px] items-center px-[18px] font-mono text-[12.5px] shadow-[inset_0_-1px_0_var(--sm-panel-border)]">A repair round, as the agent sees it</div>
-      <pre tabIndex={0} className="m-0 overflow-x-auto px-5 pt-4 pb-[18px] font-mono text-code leading-[1.75] focus-visible:-outline-offset-2">
-        {prompt('validate')}
-        {broken.map(line)}
-        <span className="block"> </span>
-        {prompt('validate')}
-        {clean.map(line)}
-        <span className="block"> </span>
-        {prompt('deliver')}
-        <span className="block">
-          delivered <span className="text-[#8fa6f2]">{file}</span> · sha256 {sha256.slice(0, 12)}… · {bytes} bytes
-        </span>
-      </pre>
+    <div className="d-fig">
+      <Terminal
+        title="~/commerce-api"
+        lines={[
+          `$ stackmap validate ${FILE}`,
+          ...broken,
+          `$ stackmap validate ${FILE}`,
+          ...clean,
+          `$ stackmap deliver ${FILE}`,
+          `delivered ${file} · sha256 ${sha256.slice(0, 12)}… · ${bytes} bytes`,
+        ]}
+      />
     </div>
   );
 }
 
-export default function DocsPage() {
+const agents = EXAMPLES.filter((e) => e.prompt).length;
+
+const NEXT = [
+  { href: '/docs/viewer', icon: BookOpen, title: 'The viewer', text: 'Select, trace, route, find, present and share what the file shows.' },
+  { href: kindHref('architecture'), icon: Shapes, title: 'Diagram kinds', text: `${spell(DIAGRAM_KINDS.length, true)} kinds, each with its own layout. Pick the one that answers the question.` },
+  { href: '/docs/schema', icon: Braces, title: 'Schema reference', text: 'Every field of diagram.json, with a real example beside each part.' },
+  { href: '/examples', icon: LayoutGrid, title: 'Examples', text: `${spell(EXAMPLES.length, true)} diagrams, ${spell(agents)} of them written by coding agents.` },
+];
+
+export default function QuickStartPage() {
   return (
-    <DocsShell current="/docs#quick-start" toc={TOC} source="site/app/docs/page.tsx">
-      <p className={docs.crumb}>Docs › Get started</p>
-      <h1 id="quick-start" className={docs.h1}>
-        Quick start.
-      </h1>
-      <p className={docs.lede}>Install the skill, ask your coding agent for a diagram, and open the file it delivers.</p>
-      <ol className="relative m-0 mt-10 flex list-none flex-col gap-10 p-0 before:absolute before:top-3.5 before:bottom-5 before:left-[13px] before:w-[1.5px] before:bg-fg">
-        <Step n={1} title="Install the skill into your agent.">
-          <Command command={SITE.install.skill} label="Copy the install command" className="mt-4 w-full" />
-          <p className={docs.muted}>It installs into Claude Code, Cursor, Codex and the other agents that skills supports.</p>
-        </Step>
-        <Step n={2} title="Ask for a diagram.">
-          <Ask>Make an architecture diagram of this repository, backed by evidence from the code.</Ask>
-          <p className={docs.muted}>
-            The agent writes <Code>.stackmap/&lt;name&gt;/diagram.json</Code>, validates it, repairs what the diagnostics name, and delivers{' '}
-            <Code>.stackmap/&lt;name&gt;/diagram.html</Code>.
+    <DocsShell href="/docs">
+      <DocHead crumb="Get started" title="Quick start" lede="Install the skill, ask your coding agent for a diagram, and open the one HTML file it delivers." />
+      <ol className="d-steps">
+        <Step n={1} id="install" title="Install the skill into your agent">
+          <Cmd command={SITE.install.skill} label="Copy the install command" />
+          <p className="d-p m">
+            It installs into Claude Code, Cursor, Codex and the{' '}
+            <a href="https://github.com/vercel-labs/skills" target="_blank" rel="noreferrer">
+              other agents that skills supports
+            </a>
+            .
           </p>
         </Step>
-        <Step n={3} title="Open the file.">
-          <p className={docs.p}>
-            Open <Code>diagram.html</Code> in any browser. There is no server, no account and nothing to install. To change the diagram, ask again: the agent edits
-            the JSON and delivers it again. The viewer itself is read-only.
+        <Step n={2} id="ask" title="Ask for a diagram">
+          <Ask text={ASK} />
+          <p className="d-p m">
+            The agent writes <C>.stackmap/&lt;name&gt;/diagram.json</C>, validates it, repairs what the diagnostics name, and delivers{' '}
+            <C>.stackmap/&lt;name&gt;/diagram.html</C>.
+          </p>
+        </Step>
+        <Step n={3} id="open" title="Open the file">
+          <p className="d-p">
+            Open <C>diagram.html</C> in any browser. There is no server, no account and nothing to install. To change the diagram, ask again: the agent edits the JSON
+            and delivers it again. The viewer itself is read-only.
           </p>
         </Step>
       </ol>
 
-      <h2 id="json" className={docs.h2}>
-        What the agent writes.
-      </h2>
-      <p className={docs.p}>
-        One small typed JSON file. The agent names the nodes, connections, groups and views; stackmap validates it and lays it out. There are no coordinates to write.
-      </p>
-      <CodeBlock file=".stackmap/bookshop/diagram.json" code={json} copy className="mt-5" />
-      <figure className="m-0 mt-5 overflow-hidden rounded-2xl bg-panel shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
-        <div className="flex h-10 items-center gap-2.5 px-3.5 text-[12.5px] text-fg-muted shadow-[inset_0_-1px_0_var(--sm-panel-border)]">
-          {[0, 1, 2].map((i) => (
-            <i key={i} aria-hidden="true" className="size-[9px] rounded-full shadow-[inset_0_0_0_1.5px_var(--sm-panel-border)]" />
-          ))}
-          <code className="ml-1.5 truncate font-mono">file:///…/.stackmap/bookshop/diagram.html</code>
-        </div>
-        <FitDiagram still={stillOf('quickStart')} width={680} height={400} />
-        <figcaption className="sr-only">The same JSON, laid out by stackmap.</figcaption>
-      </figure>
-      <div className="mt-7 flex flex-col gap-[18px]">
-        <div>
-          <h3 className="text-base font-semibold">Nodes</h3>
-          <p className="mt-1.5 text-[15px] leading-[1.65] text-fg-muted">
+      <H2 id="write">What the agent writes</H2>
+      <P>One small typed JSON file. The agent names the nodes, connections, groups and views; stackmap validates it and lays it out. There are no coordinates to write.</P>
+      <LinkedFigure
+        still={stillOf('quickStart')}
+        url="file:///…/.stackmap/bookshop/diagram.html"
+        code={<JsonCode file=".stackmap/bookshop/diagram.json" code={JSON_TEXT} owners={jsonOwners(JSON_TEXT)} />}
+      />
+      <div className="facts">
+        <div className="fact">
+          <h3>Nodes</h3>
+          <p>
             {spell(INFRA_TYPES.length, true)} types set the colour, and lifecycles have {spell(STATE_TYPES.length)} state types of their own. Cards can add rows, stats, a
             footer, a link and one of {BRAND_SLUGS.length} Simple Icons logos.
           </p>
-          <div className="mt-3.5 flex flex-wrap gap-2">
+          <div className="tchips">
             {INFRA_TYPES.map((t) => (
-              <TypeChip key={t} type={t} />
+              <TypeChip key={t} type={t} small />
             ))}
           </div>
         </div>
-        <div>
-          <h3 className="text-base font-semibold">Connections</h3>
-          <p className="mt-1.5 text-[15px] leading-[1.65] text-fg-muted">
-            Plain for a call, <Code>async</Code> for queues and events, <Code>return</Code> for a reply or a roll back, with a <Code>tone</Code> for the main path,
-            security crossings and failure paths.
+        <div className="fact">
+          <h3>Connections</h3>
+          <p>
+            Plain for a call, <C>async</C> for queues and events, <C>return</C> for a reply or a roll back, with a <C>tone</C> for the main path, security crossings and
+            failure paths.
           </p>
         </div>
-        <div>
-          <h3 className="text-base font-semibold">No coordinates</h3>
-          <p className="mt-1.5 text-[15px] leading-[1.65] text-fg-muted">stackmap lays everything out: ELK for architecture and dataflow, and its own layout for lanes and sequences.</p>
+        <div className="fact">
+          <h3>No coordinates</h3>
+          <p>stackmap lays everything out: ELK for architecture and dataflow, and its own layout for lanes and sequences. The same JSON always gives the same file.</p>
         </div>
       </div>
 
-      <h2 id="cli" className={docs.h2}>
-        The CLI.
-      </h2>
-      <p className={docs.p}>The skill runs the CLI for you, and it works on its own too, with Node 22.12 or later.</p>
-      <div className="mt-6 flex flex-col overflow-hidden rounded-[14px] shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
-        {CLI.map((c, i) => (
-          <div key={c.usage} className={`grid gap-2 bg-panel px-5 py-[18px] md:grid-cols-[260px_minmax(0,1fr)] md:gap-6 ${i ? 'shadow-[inset_0_1px_0_var(--sm-panel-border)]' : ''}`}>
-            <code className="font-mono text-code leading-[1.6] text-fg">
-              {c.usage} <span className="text-fg-muted">{c.flags}</span>
-            </code>
-            <p className="m-0 text-[14.5px] leading-[1.6] text-fg-muted">{c.does}</p>
-          </div>
+      <H2 id="repair">When something is wrong</H2>
+      <P>
+        <C>validate</C> names each problem with a code, where it is (a JSON pointer) and the fixes it allows. The agent repairs only what is named and runs it again;{' '}
+        <C>deliver</C> writes the file once nothing is wrong.
+      </P>
+      <Repair />
+      <P muted>
+        Warnings never block delivery. The exit code tells the agent which case it is in: <C>0</C> valid, <C>1</C> the diagram has errors, <C>2</C> a usage, file or
+        internal error. <Link href="/docs/cli#diagnostics">Diagnostics, in full</Link>.
+      </P>
+
+      <H2 id="next">Next steps</H2>
+      <div className="d-cards">
+        {NEXT.map(({ href, icon: Icon, title, text }) => (
+          <Link key={href} className="d-card" href={href}>
+            <Icon size={20} strokeWidth={1.75} className="ic" aria-hidden="true" />
+            <b>{title}</b>
+            <span>{text}</span>
+          </Link>
         ))}
       </div>
-      <Transcript />
-      <dl className="m-0 mt-5 grid gap-3 sm:grid-cols-3">
-        {EXIT_CODES.map((e) => (
-          <div key={e.code} className="rounded-[14px] bg-panel px-[18px] py-4 shadow-[inset_0_0_0_1px_var(--sm-panel-border)]">
-            <dt className="font-mono text-[22px] font-medium">{e.code}</dt>
-            <dd className="m-0 mt-1.5 text-[13.5px] leading-normal text-fg-muted">{e.meaning}</dd>
-          </div>
-        ))}
-      </dl>
-      <NextLink href="/docs/schema" label="Schema reference" />
     </DocsShell>
   );
 }
