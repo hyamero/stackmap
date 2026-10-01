@@ -5,13 +5,14 @@ import { motionAllowed } from '../motion/motion';
 import { useFlow } from '../motion/useFlow';
 import { useSceneReveal } from '../motion/useSceneReveal';
 import { useExplore } from '../explore/ExploreContext';
+import { useInScope } from '../explore/scope';
 import { routeBetween } from '../explore/graph';
 import { inMenu } from '../chrome/Toolbar';
 import { CanvasPanel } from './CanvasPanel';
 import { Minimap } from './Minimap';
 import { toScene, type Scene } from './scene';
 import { SceneLayers } from './SceneLayers';
-import { useZoom } from './useZoom';
+import { useZoom, type WheelMode } from './useZoom';
 import type { Camera } from './useZoom';
 import type { Transform } from './viewport';
 import { CameraProvider, ContentProvider, SceneProvider, ViewportProvider } from './ViewportContext';
@@ -92,11 +93,25 @@ function DotGrid({ x, y, k }: Transform) {
 }
 
 /** `chrome` false (presentation): no toolbar, zoom bar or minimap, and the camera refits the bigger stage. */
-export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: LaidOutDiagram; children?: ReactNode; chrome?: boolean }) {
+export function DiagramCanvas({
+  diagram,
+  children,
+  chrome = true,
+  minimap: withMinimap = true,
+  wheel = 'zoom',
+}: {
+  diagram: LaidOutDiagram;
+  children?: ReactNode;
+  chrome?: boolean;
+  /** false: no minimap and no M key */
+  minimap?: boolean;
+  wheel?: WheelMode;
+}) {
   const scene = useMemo(() => toScene(diagram), [diagram]);
   const stageRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
-  const viewport = useZoom(stageRef, scene.content);
+  const viewport = useZoom(stageRef, scene.content, wheel);
+  const inScope = useInScope();
   // Exports frame everything drawn: edge routes can swing outside the card/frame box (U-turns).
   const exportBox = useMemo(() => {
     const points = scene.edges.flatMap((e) => e.points);
@@ -128,10 +143,10 @@ export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: L
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (key !== 'm' && key !== 'p') return;
+      if ((key !== 'm' && key !== 'p') || !inScope(e)) return;
       const t = e.target as HTMLElement | null;
       if (e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
-      if (key === 'm' && !chromeRef.current) return;
+      if (key === 'm' && (!chromeRef.current || !withMinimap)) return;
       if (key === 'p' && !motionAllowed()) return;
       e.preventDefault();
       if (key === 'm') setMinimap((v) => !v);
@@ -139,7 +154,7 @@ export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: L
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [dispatch]);
+  }, [dispatch, inScope, withMinimap]);
   const flow = useFlow(scene);
   const playing = state.playing && motionAllowed();
   useSceneReveal(sceneRef, scene, viewport.restored);
@@ -192,10 +207,10 @@ export function DiagramCanvas({ diagram, children, chrome = true }: { diagram: L
         {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}
         {chrome && (
           <CanvasPanel position="bottom-left">
-            <ZoomBar minimapOn={minimap} onToggleMinimap={() => setMinimap((v) => !v)} />
+            <ZoomBar minimapOn={minimap} onToggleMinimap={withMinimap ? () => setMinimap((v) => !v) : undefined} />
           </CanvasPanel>
         )}
-        {chrome && minimap && (
+        {chrome && withMinimap && minimap && (
           <CanvasPanel position="bottom-right">
             <Minimap scene={scene} emphasis={emphasis} />
           </CanvasPanel>

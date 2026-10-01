@@ -2,24 +2,57 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import type { ThemeName } from '@stackmap/core';
-import { GitHubIcon, MenuIcon } from '@/components/ui/icons';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Menu, X } from 'lucide-react';
+import { GitHubIcon } from '@/components/ui/icons';
 import { LINKS } from './links';
 import { Lockup } from './Lockup';
+import { ThemeButton } from './theme';
 
-const ITEMS = [LINKS.viewer, { ...LINKS.kinds, label: 'Kinds' }, LINKS.examples, LINKS.docs];
+// The landing's sections the nav follows; `install` has no link, so over it the marker hides.
+const SPY = ['how', 'kinds', 'install'] as const;
+type Spy = (typeof SPY)[number];
 
-const panel = 'pointer-events-auto rounded-2xl bg-panel shadow-panel transition-[background-color,box-shadow] duration-200';
+const ITEMS = [
+  { ...LINKS.how, spy: 'how' as Spy },
+  { ...LINKS.kinds, label: 'Kinds', spy: 'kinds' as Spy },
+  { ...LINKS.examples, page: (p: string) => p.startsWith('/examples') || p.startsWith('/kinds') },
+  { ...LINKS.docs, page: (p: string) => p.startsWith('/docs') },
+];
 
-/** Floating nav: the header itself lets clicks through, only its panels take them. */
+/** The section under the middle of the window, on the landing only. */
+function useSpy(on: boolean): Spy | null {
+  const [at, setAt] = useState<Spy | null>(null);
+  useEffect(() => {
+    if (!on) return setAt(null);
+    const inView = new Map<Spy, boolean>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) inView.set(e.target.id as Spy, e.isIntersecting);
+        setAt(SPY.findLast((id) => inView.get(id)) ?? null);
+      },
+      { rootMargin: '-45% 0px -50% 0px' },
+    );
+    for (const id of SPY) {
+      const el = document.getElementById(id);
+      if (el) io.observe(el);
+    }
+    return () => io.disconnect();
+  }, [on]);
+  return at;
+}
+
+/** Floating nav: the header lets clicks through, only its panels take them. */
 export function Nav() {
   const path = usePathname();
-  // The landing opens on a dark scene; its scroll driver retunes the nav per scene from there.
-  const theme: ThemeName = path === '/' ? 'dark' : 'light';
+  const landing = path === '/';
+  const spy = useSpy(landing);
   const [open, setOpen] = useState(false);
   const header = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
+  const links = useRef<HTMLElement>(null);
+  const marker = useRef<HTMLElement>(null);
+
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
     if (!open) return;
@@ -36,73 +69,74 @@ export function Nav() {
       document.removeEventListener('pointerdown', onDown);
     };
   }, [open]);
+
+  // The marker slides under the section's link; it is placed by measuring, so web fonts and resizes re-place it.
+  useLayoutEffect(() => {
+    const place = () => {
+      const m = marker.current;
+      const a = spy && links.current?.querySelector<HTMLElement>(`[data-spy-link="${spy}"]`);
+      if (!m) return;
+      if (!a) return void (m.style.opacity = '0');
+      m.style.opacity = '1';
+      m.style.width = `${a.offsetWidth}px`;
+      m.style.translate = `${a.offsetLeft}px 0`;
+    };
+    place();
+    void document.fonts?.ready.then(place);
+    addEventListener('resize', place);
+    return () => removeEventListener('resize', place);
+  }, [spy]);
+
+  const current = (i: (typeof ITEMS)[number]) => {
+    if ('page' in i) return i.page(path) ? ('page' as const) : undefined;
+    return landing && spy === i.spy ? ('true' as const) : undefined;
+  };
+
   return (
-    <header ref={header} data-nav="" data-theme={theme} className="pointer-events-none fixed inset-x-0 top-0 z-60 flex items-center gap-2 bg-transparent px-4 pt-4 md:px-[72px]">
-      <Link href="/" aria-label="stackmap home" className={`${panel} flex h-11 items-center px-3 md:h-12 md:px-3.5`}>
-        <Lockup height={24} />
-      </Link>
-      <nav aria-label="Site" className={`${panel} hidden h-12 items-center gap-0.5 px-1.5 md:flex`}>
-        {ITEMS.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            aria-current={path.startsWith(l.href) && !l.href.includes('#') ? 'page' : undefined}
-            className="inline-flex h-9 items-center rounded-xl px-3 text-sm text-fg-muted transition-colors duration-150 hover:bg-page hover:text-fg aria-[current=page]:text-fg"
-          >
-            {l.label}
-          </Link>
-        ))}
-        <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-divider" />
-        <a
-          href={LINKS.github.href}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="stackmap on GitHub"
-          className="sm-press grid size-9 place-items-center rounded-xl text-fg-muted hover:bg-page hover:text-fg"
-        >
-          <GitHubIcon />
-        </a>
-      </nav>
-      <Link
-        href={LINKS.install.href}
-        className="sm-press pointer-events-auto ml-auto inline-flex h-11 items-center rounded-full bg-primary px-5 text-sm font-medium whitespace-nowrap text-primary-fg shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.2)]"
-      >
-        {LINKS.install.label}
-      </Link>
-      <button
-        ref={toggle}
-        type="button"
-        aria-label="Menu"
-        aria-expanded={open}
-        aria-controls="site-menu"
-        onClick={() => setOpen((o) => !o)}
-        className={`${panel} sm-press grid size-11 place-items-center text-fg-muted hover:text-fg md:hidden`}
-      >
-        <MenuIcon open={open} />
-      </button>
-      {/* Links to a section of the page it's on don't change the path, so a click closes the menu too. */}
+    <header ref={header} className="nav">
+      <div className="nav-in">
+        <Link href="/" aria-label="stackmap home" className="nav-id pnl">
+          <Lockup height={24} />
+        </Link>
+        <nav ref={links} aria-label="Site" className="nav-links pnl">
+          <i ref={marker} className="nav-ind" aria-hidden="true" style={{ opacity: 0 }} />
+          {ITEMS.map((i) => (
+            <Link key={i.href} href={i.href} className="lnk" aria-current={current(i)} data-spy-link={'spy' in i ? i.spy : undefined}>
+              {i.label}
+            </Link>
+          ))}
+          <span className="nav-div" aria-hidden="true" />
+          <a className="ib" href={LINKS.github.href} target="_blank" rel="noreferrer" aria-label="stackmap on GitHub">
+            <GitHubIcon />
+          </a>
+          <ThemeButton />
+        </nav>
+        <div className="nav-m pnl">
+          <ThemeButton />
+          <button ref={toggle} type="button" className="ib" aria-label="Menu" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen((o) => !o)}>
+            {open ? <X size={18} strokeWidth={1.75} aria-hidden="true" /> : <Menu size={18} strokeWidth={1.75} aria-hidden="true" />}
+          </button>
+        </div>
+        <Link href={LINKS.install.href} className="pbtn nav-cta">
+          {LINKS.install.label}
+        </Link>
+      </div>
+      {/* A link to a section of the page it's on doesn't change the path, so a click closes the menu too. */}
       <nav
         id="site-menu"
         aria-label="Site menu"
+        className="nav-sheet pnl"
         data-open={open || undefined}
         onClick={(e) => (e.target as HTMLElement).closest('a') && setOpen(false)}
-        className={`${panel} invisible absolute top-full right-4 mt-2 flex w-56 origin-top-right scale-[0.97] flex-col p-1.5 opacity-0 transition-[opacity,scale,visibility] duration-180 ease-[cubic-bezier(0.23,1,0.32,1)] data-open:visible data-open:scale-100 data-open:opacity-100 motion-reduce:transition-none md:hidden`}
       >
-        {[...ITEMS, LINKS.github].map((l) => {
-          const external = l.href.startsWith('http');
-          return (
-            <Link
-              key={l.href}
-              href={l.href}
-              {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
-              aria-current={path.startsWith(l.href) && !l.href.includes('#') ? 'page' : undefined}
-              className="flex h-11 items-center gap-2 rounded-xl px-3 text-[15px] text-fg-muted transition-colors duration-150 hover:bg-page hover:text-fg aria-[current=page]:text-fg"
-            >
-              {external && <GitHubIcon size={16} />}
-              {l.label}
-            </Link>
-          );
-        })}
+        {ITEMS.map((i) => (
+          <Link key={i.href} href={i.href} className="lnk" aria-current={'page' in i && i.page(path) ? 'page' : undefined}>
+            {i.label}
+          </Link>
+        ))}
+        <a className="lnk" href={LINKS.github.href} target="_blank" rel="noreferrer">
+          {LINKS.github.label}
+        </a>
       </nav>
     </header>
   );

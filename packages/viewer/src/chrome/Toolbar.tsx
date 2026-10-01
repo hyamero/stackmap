@@ -1,6 +1,7 @@
 import { Filter, Moon, Presentation, Route, Search, Sun, Waypoints } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useExplore } from '../explore/ExploreContext';
+import { useInScope } from '../explore/scope';
 import type { ThemeChoice } from '../theme/theme';
 import { ExportMenu } from './ExportMenu';
 import { LensPanel } from './LensPanel';
@@ -11,8 +12,23 @@ import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 export const inMenu = (t: EventTarget | null) => t instanceof Element && !!t.closest('[role="menu"]');
 
-export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoice; onToggleTheme: () => void; onPresent?: () => void }) {
+export function Toolbar({
+  theme,
+  onToggleTheme,
+  onPresent,
+  exports = true,
+  trace = true,
+}: {
+  theme: ThemeChoice;
+  onToggleTheme: () => void;
+  onPresent?: () => void;
+  /** the export menu; a page that embeds the viewer has no file of its own to export */
+  exports?: boolean;
+  /** the trace button; an embed that offers trace elsewhere can leave it out */
+  trace?: boolean;
+}) {
   const { state, dispatch } = useExplore();
+  const inScope = useInScope();
   const [lensOpen, setLensOpen] = useState(false);
   const routingRef = useRef(false);
   routingRef.current = !!state.routing || !!state.route;
@@ -38,6 +54,7 @@ export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoic
   // (cards, the stage and the popovers handle their own Escape and stop it).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!inScope(e)) return;
       const onPage = e.target === document.body || e.target === document.documentElement;
       // Escape from the page body clears; while a route is picked or shown it ends it from any control too.
       if (e.key === 'Escape' && !e.defaultPrevented && !typing(e.target) && (onPage || routingRef.current)) {
@@ -59,7 +76,7 @@ export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoic
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [dispatch]);
+  }, [dispatch, inScope]);
 
   // Clicking outside closes the popovers.
   useEffect(() => {
@@ -111,14 +128,16 @@ export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoic
       >
         <Filter size={17} strokeWidth={1.75} />
       </IconButton>
-      <IconButton
-        label="Trace upstream and downstream of the selection"
-        pressed={state.trace && !state.route && !state.routing}
-        disabled={!!state.route || !!state.routing}
-        onClick={() => dispatch({ type: 'toggleTrace' })}
-      >
-        <Route size={17} strokeWidth={1.75} />
-      </IconButton>
+      {trace && (
+        <IconButton
+          label="Trace upstream and downstream of the selection"
+          pressed={state.trace && !state.route && !state.routing}
+          disabled={!!state.route || !!state.routing}
+          onClick={() => dispatch({ type: 'toggleTrace' })}
+        >
+          <Route size={17} strokeWidth={1.75} />
+        </IconButton>
+      )}
       <IconButton label="Route between two nodes (R)" pressed={!!state.routing || !!state.route} onClick={() => dispatch({ type: 'toggleRoute' })}>
         <Waypoints size={17} strokeWidth={1.75} />
       </IconButton>
@@ -132,7 +151,7 @@ export function Toolbar({ theme, onToggleTheme, onPresent }: { theme: ThemeChoic
       <IconButton label={`Switch to ${next} theme`} onClick={onToggleTheme}>
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>
-      <ExportMenu />
+      {exports && <ExportMenu />}
       {/* Always mounted, so screen readers announce the hint when its text arrives. */}
       <p
         role="status"

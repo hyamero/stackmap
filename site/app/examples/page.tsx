@@ -24,7 +24,7 @@ const agents = EXAMPLES.filter((e) => e.prompt).length;
 export default function ExamplesPage() {
   const { items, thumbs, rest } = galleryProps(EXAMPLES);
   return (
-    <main data-theme="light" className="bg-page text-fg">
+    <main className="bg-page text-fg">
       <div className="mx-auto max-w-[1440px] px-5 pt-28 pb-28 md:px-10 lg:pt-[120px] xl:px-24">
         <h1 className="text-mega">Examples.</h1>
         <p className="mt-6 max-w-[780px] text-lede text-fg-muted">

@@ -69,10 +69,10 @@ function SideNav({ current }: { current: string }) {
   );
 }
 
-/** The docs' three columns: the section nav, the article, and "on this page". Forced light, as the canvas draws it. */
+/** The docs' three columns: the section nav, the article, and "on this page". */
 export function DocsShell({ current, toc, source, children }: { current: string; toc: TocItem[]; source: string; children: ReactNode }) {
   return (
-    <main data-theme="light" className="bg-page text-fg">
+    <main className="bg-page text-fg">
       <div className="mx-auto grid max-w-[1440px] items-start justify-between gap-12 px-5 pt-28 pb-24 md:px-10 lg:grid-cols-[200px_minmax(0,680px)] lg:pt-32 xl:grid-cols-[232px_minmax(0,680px)_208px] xl:px-24">
         <aside aria-label="Documentation" className="sticky top-24 hidden lg:block">
           <SideNav current={current} />

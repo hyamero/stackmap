@@ -18,9 +18,11 @@ export function IdentityCard({ draft, onDetails }: { draft: DiagramDraft; onDeta
           </div>
         )}
       </div>
-      <IconButton label="Diagram details" onClick={onDetails}>
-        <Ellipsis size={17} strokeWidth={1.75} />
-      </IconButton>
+      {onDetails && (
+        <IconButton label="Diagram details" onClick={onDetails}>
+          <Ellipsis size={17} strokeWidth={1.75} />
+        </IconButton>
+      )}
     </div>
   );
 }

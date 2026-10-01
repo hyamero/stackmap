@@ -1,0 +1,124 @@
+/* The embedded viewer's frame, after the v2 canvas: the landing's (.ev-hero) and the examples' (.ev-gallery). */
+
+.ev {
+  position: relative;
+  outline: none;
+}
+.ev-head .crumb {
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--sm-text-muted);
+}
+.ev-head .vt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 5px;
+}
+.ev-head h2 {
+  min-width: 0;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ev-head .cnt {
+  font-size: 14px;
+  color: var(--sm-text-muted);
+  white-space: nowrap;
+}
+.ev-tabs {
+  margin-top: 4px;
+  box-shadow: inset 0 -1px 0 var(--sm-divider);
+}
+.ev-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  height: 686px;
+  margin-top: 12px;
+}
+.ev-gallery {
+  height: 620px;
+  margin-top: 0;
+}
+.ev-stage {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--sm-stage);
+  box-shadow: inset 0 0 0 1px var(--sm-panel-border);
+}
+.ev-body > aside {
+  height: 100%;
+  min-height: 0;
+}
+.ev-still {
+  position: absolute;
+  inset: 0;
+}
+/* With motion and script the live canvas plays the intro, so the still would only blink first. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .ev:not([data-live]) .ev-still {
+    visibility: hidden;
+  }
+}
+.ev-tools {
+  position: absolute;
+  left: 15px;
+  bottom: 15px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 14px 0 6px;
+  border-radius: 9999px;
+}
+.ev-tools .ib {
+  border-radius: 9999px;
+}
+.ev-tools .ib:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ev-hint {
+  font-size: 13px;
+  color: var(--sm-text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 1023px) {
+  .ev-body,
+  .ev-gallery {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+  .ev-stage {
+    height: 560px;
+  }
+  .ev-body > aside {
+    height: auto;
+    max-height: 340px;
+  }
+}
+@media (max-width: 767px) {
+  .ev-head .cnt {
+    display: none;
+  }
+  .ev-stage {
+    height: 470px;
+    border-radius: 18px;
+  }
+  .ev-body {
+    gap: 12px;
+  }
+  .ev-body > aside {
+    max-height: 260px;
+    border-radius: 18px;
+  }
+}

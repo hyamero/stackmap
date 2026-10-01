@@ -53,41 +53,119 @@ test('an unknown address gets the 404 page, kept out of the index', async ({ pag
   await expect(page).toHaveURL(/\/examples$/);
 });
 
-test('with reduced motion every landing scene is its resting frame, nothing pinned', async ({ page }) => {
+test('with reduced motion the landing is its resting frame: the whole session, nothing pinned', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.lp-d')).not.toHaveClass(/live/);
-  expect(await page.locator('.pin-spacer').count()).toBe(0);
-  await expect(page.getByRole('heading', { level: 1, name: /Every layer of your stack/ }).first()).toBeVisible();
-  // The composed frames need no scrolling through a pin: each scene is one frame tall.
-  for (const scene of await page.locator('.lp-d [data-scene]').all()) expect((await scene.boundingBox())!.height).toBeLessThanOrEqual(900);
-  await expect(page.locator('.lp-d #kinds .kl2')).toHaveCSS('opacity', '1');
+  await expect(page.getByRole('heading', { level: 1, name: /Every layer of your stack/ })).toBeVisible();
+  await expect(page.locator('.how-pin')).not.toHaveAttribute('data-live');
+  await expect(page.locator('.hpanel')).toHaveAttribute('data-step', '3');
+  await expect(page.locator('.hpanel').getByText(/delivered \.stackmap\/commerce-api\/diagram\.html/)).toBeVisible();
+  for (const el of await page.locator('[data-reveal]').all()) await expect(el).toHaveCSS('opacity', '1');
 });
 
-test('with motion allowed the scenes pin and scrub', async ({ browser }) => {
+test('with motion allowed the walkthrough pins and the scroll picks its step', async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
   await page.goto('/');
-  await expect(page.locator('.lp-d')).toHaveClass(/live/);
-  expect(await page.locator('.lp-d .pin-spacer').count()).toBeGreaterThanOrEqual(6);
+  const pin = page.locator('.how-pin');
+  await expect(pin).toHaveAttribute('data-live', 'true');
+  const at = (f: number) =>
+    page.evaluate((f) => {
+      const p = document.querySelector<HTMLElement>('.how-pin')!;
+      scrollTo(0, p.getBoundingClientRect().top + scrollY - 120 + (p.offsetHeight - innerHeight) * f);
+    }, f);
+  await at(0.05);
+  await expect(page.locator('.hpanel')).toHaveAttribute('data-step', '0');
+  await at(0.95);
+  await expect(page.locator('.hpanel')).toHaveAttribute('data-step', '3');
   await page.close();
 });
 
-test('the phone composition takes over below 768px', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+test('the phone layout never pins and fits a 390px screen', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'no-preference' });
   await page.goto('/');
-  await expect(page.locator('.lp-m')).toBeVisible();
-  await expect(page.locator('.lp-d')).toBeHidden();
+  await expect(page.locator('.how-pin')).not.toHaveAttribute('data-live');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.close();
 });
 
+test('the hero viewer selects a card and shows it in its inspector, without touching the URL', async ({ page }) => {
+  await page.goto('/');
+  const viewer = page.getByRole('group', { name: /The stackmap viewer/ });
+  const card = viewer.locator('.sm-card[data-card-id="orders"]');
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(viewer.getByRole('complementary', { name: 'Inspector' }).getByRole('heading', { level: 3, name: 'Orders DB' })).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('');
+});
+
+test('the try bar drives the viewer and says what each mode does', async ({ page }) => {
+  await page.goto('/');
+  const bar = page.getByRole('group', { name: 'Try the viewer' });
+  const inspector = page.getByRole('complementary', { name: 'Inspector' }).first();
+  await bar.getByRole('button', { name: /Route/ }).click();
+  await expect(bar.getByRole('button', { name: /Route/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(inspector.getByRole('heading', { name: 'Storefront → Orders DB' })).toBeVisible();
+  await expect(page.getByText('Pick two nodes and every path between them lights up, hop by hop.')).toBeVisible();
+  await bar.getByRole('button', { name: /Views/ }).click();
+  await expect(page.getByRole('tab', { name: 'Checkout path' })).toHaveAttribute('aria-selected', 'true');
+  await expect(bar.getByRole('button', { name: /Route/ })).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the viewer’s keys work only while it has focus', async ({ page }) => {
+  await page.goto('/');
+  const search = page.getByRole('combobox', { name: /search/i });
+  await page.keyboard.press('/');
+  await expect(search).toHaveCount(0);
+  await page.locator('.sm-card[data-card-id="api"]').first().click();
+  await page.keyboard.press('/');
+  await expect(search).toBeVisible();
+});
+
+test('the kind tabs swap the stage, by click and by arrow key', async ({ page }) => {
+  await page.goto('/');
+  const tabs = page.getByRole('tablist', { name: 'Diagram kinds' });
+  await tabs.getByRole('tab', { name: 'Sequence' }).click();
+  await expect(tabs.getByRole('tab', { name: 'Sequence' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('link', { name: /Sequence diagrams/ })).toHaveAttribute('href', '/kinds/sequence');
+  await page.keyboard.press('ArrowRight');
+  await expect(tabs.getByRole('tab', { name: 'Architecture' })).toHaveAttribute('aria-selected', 'true');
+  await expect(tabs.getByRole('tab', { name: 'Architecture' })).toBeFocused();
+});
+
+test('each kind plays its flow while on screen', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await page.locator('#kp').scrollIntoViewIfNeeded();
+  const visible = page.locator('#kp .k-layer.on [data-pulse]:not([style*="hidden"])');
+  await expect.poll(() => visible.count(), { timeout: 8000 }).toBeGreaterThan(0);
+  await page.close();
+});
+
+test('the theme toggle flips the page and is remembered', async ({ page }) => {
+  await page.goto('/docs');
+  const before = await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
+  await page.getByRole('navigation', { name: 'Site' }).getByRole('button', { name: /Switch to (dark|light) theme/ }).click();
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor)).not.toBe(before);
+  const theme = await page.evaluate(() => document.documentElement.dataset.theme);
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(theme);
+});
+
 test('the example viewer selects a card and shows it in the inspector', async ({ page }) => {
   await page.goto('/examples');
-  await page.getByRole('button', { name: /Open in the viewer/ }).click();
-  const card = page.locator('.sm-card').first();
+  const card = page.locator('#viewer-x .sm-card').first();
   await expect(card).toBeVisible();
   const title = (await card.getAttribute('aria-label'))!.split(',')[0]!;
   await card.click();
   await expect(page.getByRole('complementary', { name: 'Inspector' }).getByRole('heading', { name: title })).toBeVisible();
+});
+
+test('the examples pager and thumbnails switch the diagram, and agent-written ones say what was asked', async ({ page }) => {
+  await page.goto('/examples');
+  await page.getByRole('group', { name: 'Filter examples' }).getByRole('button', { name: /Written by an agent/ }).click();
+  await expect(page.locator('#viewer-x').getByText('What the agent was asked')).toBeVisible();
+  const first = await page.locator('.gv-t').textContent();
+  await page.getByRole('button', { name: 'Next example' }).click();
+  await expect(page.locator('.gv-t')).not.toHaveText(first!);
 });
 
 test('the docs copy button confirms', async ({ page, context }) => {
@@ -114,36 +192,5 @@ test('on a phone the nav menu opens the site links and closes on Escape', async 
   await links.getByRole('link', { name: 'Examples' }).click();
   await expect(page).toHaveURL(/\/examples$/);
   await expect(page.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false');
-  await page.close();
-});
-
-test('each kind plays its flow while it holds', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
-  await page.goto('/');
-  await expect(page.locator('.lp-d')).toHaveClass(/live/);
-  const visible = page.locator('.lp-d #kinds .kl0 [data-pulse]:not([style*="hidden"])');
-  expect(await visible.count()).toBe(0);
-  // A little way into the first kind's hold, its opening pulses are on the wire.
-  await page.evaluate(() => {
-    const spacer = document.querySelector('.lp-d [data-scene="kinds"]')!.closest('.pin-spacer') as HTMLElement;
-    const top = spacer.getBoundingClientRect().top + scrollY;
-    scrollTo(0, top + (spacer.offsetHeight - innerHeight) * 0.02);
-  });
-  await expect.poll(() => visible.count()).toBeGreaterThan(0);
-  await page.close();
-});
-
-test('the landing viewer keeps its own button colours', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' });
-  await page.goto('/');
-  await expect(page.locator('.lp-d')).toHaveClass(/live/);
-  await page.evaluate(() => {
-    const spacer = document.querySelector('.lp-d [data-scene="viewer"]')!.closest('.pin-spacer') as HTMLElement;
-    scrollTo(0, spacer.getBoundingClientRect().top + scrollY + (spacer.offsetHeight - innerHeight) * 0.9);
-  });
-  const exportButton = page.locator('.lp-d .vreal button[aria-haspopup="menu"]');
-  await expect(exportButton).toBeVisible();
-  const [fg, bg] = await exportButton.evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el).backgroundColor]);
-  expect(fg).not.toBe(bg);
   await page.close();
 });

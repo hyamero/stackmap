@@ -33,7 +33,7 @@ function Dangling() {
 
 export default function NotFound() {
   return (
-    <main data-theme="light" className="bg-page text-fg">
+    <main className="bg-page text-fg">
       <div className="mx-auto grid max-w-[1440px] gap-12 px-5 pt-28 pb-28 md:px-10 lg:grid-cols-[minmax(0,1fr)_560px] lg:items-end lg:pt-[120px] xl:px-24">
         <div>
           <p className="font-mono text-sm text-fg-muted">404</p>

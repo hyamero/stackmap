@@ -32,10 +32,25 @@ export interface ViewportApi extends Camera {
   restored: boolean;
 }
 
+/**
+ * `zoom`: the wheel zooms, as in a delivered file, which is the whole page. `modifier`: the viewer sits in a page
+ * that scrolls, so a plain wheel and a one-finger drag are the page's; ctrl/⌘ + wheel (a trackpad pinch) zooms and
+ * two fingers pan and pinch.
+ */
+export type WheelMode = 'zoom' | 'modifier';
+
+// d3-zoom's default filter, plus the modifier mode's rules. Events it rejects are never prevented.
+const zoomFilter = (wheel: WheelMode) => (event: WheelEvent & TouchEvent & MouseEvent) => {
+  if (wheel === 'zoom') return (!event.ctrlKey || event.type === 'wheel') && !event.button;
+  if (event.type === 'wheel') return event.ctrlKey || event.metaKey;
+  if (event.type === 'touchstart') return event.touches.length > 1;
+  return !event.ctrlKey && !event.button;
+};
+
 const duration = (opts?: MoveOptions) => (opts?.instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
 const toZoom = (t: Transform) => zoomIdentity.translate(t.x, t.y).scale(t.k);
 
-export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rect): ViewportApi {
+export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rect, wheel: WheelMode = 'zoom'): ViewportApi {
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
   const current = useRef(transform);
   current.current = transform;
@@ -52,6 +67,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
     const sel = select(el);
     const z = zoom<HTMLDivElement, unknown>()
       .scaleExtent([MIN_ZOOM, MAX_ZOOM])
+      .filter(zoomFilter(wheel))
       .on('zoom', (event: D3ZoomEvent<HTMLDivElement, unknown>) => {
         if (event.sourceEvent) pending.current = null; // the user took over
         const { x, y, k } = event.transform;
@@ -59,6 +75,8 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
       });
     // Double-click zoom is a surprise in a viewer where clicks will select nodes (M3).
     sel.call(z).on('dblclick.zoom', null);
+    // d3 claims every touch; in a scrolling page the browser keeps one-finger scrolling.
+    if (wheel === 'modifier') el.style.touchAction = 'pan-x pan-y';
     behavior.current = z;
 
     const size = { width: el.clientWidth, height: el.clientHeight };
@@ -85,7 +103,7 @@ export function useZoom(stageRef: RefObject<HTMLDivElement | null>, content: Rec
       sel.on('.zoom', null);
       behavior.current = null;
     };
-  }, [stageRef, content, stored]);
+  }, [stageRef, content, stored, wheel]);
 
   const animate = useCallback(
     (apply: (z: ZoomBehavior<HTMLDivElement, unknown>, el: HTMLDivElement) => void) => {
