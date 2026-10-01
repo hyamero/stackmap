@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.svg">
-    <img alt="stackmap: interactive system diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.png">
+    <img alt="stackmap: every layer of your stack, on one map. Interactive system diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.png" width="100%">
   </picture>
 </p>
 
@@ -9,20 +9,9 @@
   <a href="https://stackmap-site.vercel.app">Website</a> · <a href="https://stackmap-site.vercel.app/docs">Docs</a> · <a href="https://stackmap-site.vercel.app/examples">Examples</a>
 </p>
 
-<p align="center">
-  <img src="assets/readme/tour.webp" alt="A 25-second tour of the viewer on an agent tool call workflow: zoom in and select the planner, open the Approval gate guided view, pick a route from User to Final reply, play the flow hop by hop, then switch to the dark theme" width="100%" />
-</p>
-
 Ask your coding agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and delivers one self-contained HTML viewer. No server, no account, nothing to install to open it.
 
 Five kinds of diagram: **architecture** (components and what they call), **dataflow** (data moving through stages), **workflow** (steps across owner lanes), **lifecycle** (the states of one thing) and **sequence** (messages over time).
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/kinds-dark.png">
-    <img alt="One diagram of each kind, drawn by stackmap: architecture, dataflow, workflow, lifecycle and sequence" src="assets/readme/kinds-light.png" width="100%">
-  </picture>
-</p>
 
 https://github.com/user-attachments/assets/4dd05dfc-fa5a-42e7-ad1a-6150aeb9ad9f
 
@@ -50,8 +39,10 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
 ## The viewer
 
 <p align="center">
-  <img src="assets/readme/viewer-light.png" alt="stackmap viewer in light mode: a Commerce API topology with the Orders database selected and its upstream traced; the inspector shows its details, connections and source evidence" width="49%" />
-  <img src="assets/readme/viewer-dark.png" alt="The same diagram in dark mode" width="49%" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/tour-dark.webp">
+    <img alt="A tour of the viewer on the Commerce API diagram: zoom in and select Orders DB to see its connections and source evidence, open the Checkout path view, route from Storefront to Stripe, and play the flow hop by hop" src="assets/readme/tour.webp" width="100%">
+  </picture>
 </p>
 
 - **Explore:** select a card for its details, connections and source evidence. **Trace** keeps a node's upstream and downstream; **Route** lights every path between two nodes.
@@ -103,13 +94,6 @@ npx @hyamero/stackmap validate diagram.json [--json]    # diagnostics with fixes
 npx @hyamero/stackmap deliver  diagram.json [-o out.html]  # validate → layout → one offline HTML file
 npx @hyamero/stackmap serve    diagram.json [--port 4400]  # live viewer that reloads on every save
 ```
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/cli-dark.png">
-    <img alt="A terminal session: validate finds an edge to an unknown node and lists two fixes, the next run is clean, and deliver writes diagram.html with its sha256 and size" src="assets/readme/cli-light.png" width="100%">
-  </picture>
-</p>
 
 - **validate** lists every problem with a code, its evidence and the allowed fixes, including card text that won't fit. It exits `1` when the diagram has errors and `2` on usage, IO or internal errors.
 - **deliver** is deterministic: the same JSON always gives the same file, byte for byte.
