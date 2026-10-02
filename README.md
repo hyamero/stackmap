@@ -6,7 +6,13 @@
 </p>
 
 <p align="center">
-  <a href="https://stackmap-site.vercel.app">Website</a> · <a href="https://stackmap-site.vercel.app/docs">Docs</a> · <a href="https://stackmap-site.vercel.app/examples">Examples</a>
+  <a href="https://www.npmjs.com/package/@hyamero/stackmap"><img alt="npm" src="https://img.shields.io/npm/v/@hyamero/stackmap?color=cb3837&amp;logo=npm"></a>
+  <a href="https://github.com/hyamero/stackmap/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/hyamero/stackmap/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/github/license/hyamero/stackmap"></a>
+</p>
+
+<p align="center">
+  <a href="https://stackmap.omsimos.com">Website</a> · <a href="https://stackmap.omsimos.com/docs">Docs</a> · <a href="https://stackmap.omsimos.com/examples">Examples</a>
 </p>
 
 Ask your coding agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and delivers one self-contained HTML viewer. No server, no account, nothing to install to open it.
@@ -83,7 +89,7 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
 - **Edges** can be `async` or a `return`, with a `tone` for the main path, security crossings and failure paths.
 - **No coordinates:** stackmap lays everything out, with [ELK](https://eclipse.dev/elk/) for architecture and dataflow and its own layout for lanes and sequences.
 
-Full reference: [skill/references/schema.md](skill/references/schema.md), or the [schema reference](https://stackmap-site.vercel.app/docs/schema) on the website. Modelling guidance: [authoring contract](skill/references/authoring-contract.md).
+Full reference: [skill/references/schema.md](skill/references/schema.md), or the [schema reference](https://stackmap.omsimos.com/docs/schema) on the website. Modelling guidance: [authoring contract](skill/references/authoring-contract.md).
 
 ## The CLI
 
