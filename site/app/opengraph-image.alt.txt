@@ -1,1 +1,1 @@
-stackmap: every layer of your stack, on one map
+stackmap: every layer of your stack, on one map. The viewer, open on a Commerce API diagram with a route lit

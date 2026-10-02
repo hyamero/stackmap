@@ -9,13 +9,12 @@ import { LINKS } from './links';
 import { Lockup } from './Lockup';
 import { ThemeButton } from './theme';
 
-// The landing's sections the nav follows; `install` has no link, so over it the marker hides.
+// The landing's sections the nav follows; `kinds` and `install` have no link, so over them the marker hides.
 const SPY = ['how', 'kinds', 'install'] as const;
 type Spy = (typeof SPY)[number];
 
 const ITEMS = [
   { ...LINKS.how, spy: 'how' as Spy },
-  { ...LINKS.kinds, label: 'Kinds', spy: 'kinds' as Spy },
   { ...LINKS.examples, page: (p: string) => p.startsWith('/examples') },
   { ...LINKS.docs, page: (p: string) => p.startsWith('/docs') },
 ];
