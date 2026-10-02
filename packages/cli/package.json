@@ -1,6 +1,6 @@
 {
   "name": "@hyamero/stackmap",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Interactive system diagrams your coding agent writes, as one offline HTML file",
   "keywords": [
     "architecture",

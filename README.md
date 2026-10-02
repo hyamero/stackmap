@@ -57,7 +57,7 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
 
 ```json
 {
-  "$schema": "https://unpkg.com/@hyamero/stackmap@0.1.0/dist/stackmap.schema.json",
+  "$schema": "https://unpkg.com/@hyamero/stackmap@0.2.0/dist/stackmap.schema.json",
   "kind": "architecture",
   "title": "Bookshop",
   "direction": "DOWN",
