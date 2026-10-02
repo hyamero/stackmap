@@ -436,5 +436,6 @@ export const commerceApiLayout: LaidOutDiagram = {
   "bounds": {
     "width": 1160,
     "height": 657
-  }
+  },
+  "labels": {}
 };
