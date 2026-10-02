@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { explore, formatHash, INITIAL, parseHash } from './state';
+import { explore, formatHash, INITIAL, parseHash, type Speed } from './state';
 
 const known = { nodes: new Set(['api', 'db']), views: new Set(['data']), types: new Set(['service', 'database'] as const) };
 
@@ -76,6 +76,17 @@ describe('route picking', () => {
     expect(parseHash('#route=api~db&play=1', known)).toMatchObject({ playing: true, route: { from: 'api', to: 'db' } });
     expect(parseHash('#play=yes', known).playing).toBe(false);
     expect(explore(s, { type: 'togglePlay' }).playing).toBe(false);
+  });
+
+  it('cycles the flow speed through 0.5×, 1× and 2×, and keeps it in the hash', () => {
+    expect(INITIAL.speed).toBe(1);
+    const cycle = (speed: Speed) => explore({ ...INITIAL, speed }, { type: 'cycleSpeed' }).speed;
+    expect([cycle(1), cycle(2), cycle(0.5)]).toEqual([2, 0.5, 1]);
+    expect(formatHash({ ...INITIAL, playing: true, speed: 0.5 })).toBe('#play=1&speed=0.5');
+    expect(formatHash({ ...INITIAL, speed: 1 })).toBe('');
+    expect(parseHash('#speed=2', known).speed).toBe(2);
+    expect(parseHash('#speed=3', known).speed).toBe(1);
+    expect(explore({ ...INITIAL, speed: 2 }, { type: 'clear' }).speed).toBe(2);
   });
 
   it('reads a route from the hash, dropping unknown ends', () => {

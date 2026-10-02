@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Flow } from '../motion/flow';
-import { FlowLayer, type FlowClock } from './FlowLayer';
+import { FlowLayer, playingClock, type FlowClock } from './FlowLayer';
 
 const flow: Flow = {
   period: 2000,
@@ -39,5 +39,24 @@ describe('FlowLayer', () => {
     expect(head.getAttribute('transform')).toMatch(/^translate\(75 0\)$/);
     draw(null);
     expect(pulse.style.visibility).toBe('hidden');
+  });
+});
+
+describe('playingClock', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('runs at the current speed, and a change of speed carries on from where playback is', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (f: FrameRequestCallback) => frames.push(f));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    const at = (now: number) => frames.shift()!(now);
+    let speed = 2;
+    const drawn: (number | null)[] = [];
+    playingClock(() => speed)((ms) => drawn.push(ms));
+    at(1000);
+    at(1100);
+    speed = 0.5;
+    at(1300);
+    expect(drawn).toEqual([0, 200, 300]);
   });
 });

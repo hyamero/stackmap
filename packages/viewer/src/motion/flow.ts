@@ -6,20 +6,21 @@ import type { Graph } from '../explore/graph';
  * A pulse's travel time grows with its edge's length (clamped), so short hops don't crawl and long ones don't
  * jump. A whole diagram staggers its pulses across `wave` ms in reading order; a focused flow chains its hops
  * (a node fires on as its first pulse lands), squeezed to fit `span` (twice that for a sequence's replay).
+ * All of it is 1× playback: the viewer's speed control scales the clock, not these.
  */
 export const FLOW = {
-  wave: 1800,
-  span: 6000,
-  rest: 700,
-  travel: { base: 380, perPx: 1.1, min: 480, max: 1400 },
+  wave: 2700,
+  span: 9000,
+  rest: 1050,
+  travel: { base: 570, perPx: 1.65, min: 720, max: 2100 },
   /** trail length behind the head, diagram px */
   tail: 72,
   /** how long the trail takes to drain into the target once the head lands */
-  drain: 220,
+  drain: 330,
   /** the target's glow after a landing */
-  glow: 560,
+  glow: 840,
   /** the ring at the source port as a pulse sets off */
-  flash: 360,
+  flash: 540,
 } as const;
 
 /** A pulse's look in diagram px, the same on the canvas and in the video. */

@@ -16,9 +16,25 @@ export interface ExploreState {
   routing: { next: 'from' } | { next: 'to'; start: string } | null;
   /** flow playback (P): pulses run along whatever is shown */
   playing: boolean;
+  /** how fast the flow plays, against its 1× timing */
+  speed: Speed;
 }
 
-export const INITIAL: ExploreState = { selected: null, query: null, hiddenTypes: new Set(), trace: false, view: null, reveal: 0, route: null, routing: null, playing: false };
+export const SPEEDS = [0.5, 1, 2] as const;
+export type Speed = (typeof SPEEDS)[number];
+
+export const INITIAL: ExploreState = {
+  selected: null,
+  query: null,
+  hiddenTypes: new Set(),
+  trace: false,
+  view: null,
+  reveal: 0,
+  route: null,
+  routing: null,
+  playing: false,
+  speed: 1,
+};
 
 export type ExploreAction =
   | { type: 'select'; id: string | null; reveal?: boolean }
@@ -29,6 +45,7 @@ export type ExploreAction =
   | { type: 'view'; id: string | null }
   | { type: 'toggleRoute' }
   | { type: 'togglePlay' }
+  | { type: 'cycleSpeed' }
   | { type: 'replace'; state: ExploreState };
 
 export function explore(s: ExploreState, a: ExploreAction): ExploreState {
@@ -62,6 +79,8 @@ export function explore(s: ExploreState, a: ExploreAction): ExploreState {
       return { ...s, view: a.id };
     case 'togglePlay':
       return { ...s, playing: !s.playing };
+    case 'cycleSpeed':
+      return { ...s, speed: SPEEDS[(SPEEDS.indexOf(s.speed) + 1) % SPEEDS.length]! };
     case 'replace':
       return a.state;
   }
@@ -92,6 +111,7 @@ export function parseHash(hash: string, known: Known): ExploreState {
     hiddenTypes: new Set(lens),
     route,
     playing: params.get('play') === '1',
+    speed: SPEEDS.find((v) => String(v) === params.get('speed')) ?? 1,
   };
 }
 
@@ -102,5 +122,6 @@ export function formatHash(s: ExploreState): string {
   if (s.hiddenTypes.size) parts.push(`lens=${[...s.hiddenTypes].sort().join(',')}`);
   if (s.route) parts.push(`route=${encodeURIComponent(s.route.from)}~${encodeURIComponent(s.route.to)}`);
   if (s.playing) parts.push('play=1');
+  if (s.speed !== 1) parts.push(`speed=${s.speed}`);
   return parts.length ? `#${parts.join('&')}` : '';
 }

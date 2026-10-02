@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CANVAS_AREA_MAX, CANVAS_MAX, effectiveScale, exportFileName, videoExtension } from './export';
+import { CANVAS_AREA_MAX, CANVAS_MAX, effectiveScale, exportFileName, videoExtension, videoSpan } from './export';
 
 describe('export', () => {
   it('keeps the requested scale while the canvas fits', () => {
@@ -32,5 +32,13 @@ describe('video helpers', () => {
   it('names the file after the container', () => {
     expect(videoExtension('video/webm;codecs=vp9')).toBe('webm');
     expect(videoExtension('video/mp4')).toBe('mp4');
+  });
+});
+
+describe('videoSpan', () => {
+  it('records whole loops lasting at least VIDEO.duration of real time at the chosen speed', () => {
+    expect(videoSpan(4000, 1)).toBe(8000);
+    expect(videoSpan(4000, 2)).toBe(12000);
+    expect(videoSpan(4000, 0.5)).toBe(4000);
   });
 });

@@ -51,6 +51,11 @@ describe('flow timing', () => {
     expect(travelFor(5000)).toBe(FLOW.travel.max);
   });
 
+  it('paces a hop between 0.72 s and 2.1 s at 1×', () => {
+    expect(travelFor(0)).toBe(720);
+    expect(travelFor(5000)).toBe(2100);
+  });
+
   it('sets a whole diagram off as one wave in reading order', () => {
     const flow = waveFlow([
       { ...edge('b', 'n', 'm'), at: 200 },

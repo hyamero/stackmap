@@ -147,12 +147,15 @@ export const videoExtension = (type: string) => (type.startsWith('video/mp4') ? 
 
 export const VIDEO = { duration: 6000, fps: 30, maxWidth: 1920, maxHeight: 1080 } as const;
 
+/** How much of the flow (its own ms) a video records: whole loops, lasting at least VIDEO.duration at `speed`. */
+export const videoSpan = (period: number, speed: number) => Math.ceil((VIDEO.duration * speed) / period) * period;
+
 /**
- * A short video of the diagram with a flow playing on it: the snapshot every export uses, and the live canvas's
- * pulses (`colorOf` resolving a tint to a colour), for whole loops of at least VIDEO.duration. Recorded from a
- * canvas with MediaRecorder.
+ * A short video of the diagram with a flow playing on it at `speed`: the snapshot every export uses, and the live
+ * canvas's pulses (`colorOf` resolving a tint to a colour), for whole loops of at least VIDEO.duration. Recorded
+ * from a canvas with MediaRecorder.
  */
-export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (tint: NodeType) => string, type: string): Promise<Blob> {
+export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (tint: NodeType) => string, type: string, speed = 1): Promise<Blob> {
   const width = Math.ceil(content.width + 2 * EXPORT_PADDING);
   const height = Math.ceil(content.height + 2 * EXPORT_PADDING);
   // A frame the encoder can keep up with: the whole diagram inside 1920×1080.
@@ -168,7 +171,7 @@ export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (tint
   const at = (p: Point) => ({ x: (p.x - content.x + EXPORT_PADDING) * scale, y: (p.y - content.y + EXPORT_PADDING) * scale });
   const stage = getComputedStyle(document.documentElement).getPropertyValue('--sm-stage').trim();
   const pulses = flow.pulses.map((p) => ({ pulse: p, color: colorOf(p.tint), glowColor: p.glow ? colorOf(p.glow.tint) : '', path: p.path.map(at) }));
-  const duration = Math.ceil(VIDEO.duration / flow.period) * flow.period;
+  const span = videoSpan(flow.period, speed);
   const circle = (c: Point, r: number) => {
     ctx.beginPath();
     ctx.arc(c.x, c.y, r * scale, 0, Math.PI * 2);
@@ -271,9 +274,9 @@ export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (tint
   try {
     await new Promise<void>((resolve) => {
       const tick = () => {
-        const ms = performance.now() - began;
+        const ms = (performance.now() - began) * speed;
         frame(ms);
-        if (ms < duration && !failure) requestAnimationFrame(tick);
+        if (ms < span && !failure) requestAnimationFrame(tick);
         else resolve();
       };
       requestAnimationFrame(tick);

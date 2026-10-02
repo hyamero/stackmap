@@ -24,6 +24,26 @@ test('P plays the whole flow as pulses along every connection, and stops it', as
   await expect(page).not.toHaveURL(/play=/);
 });
 
+test('while the flow plays, a speed button cycles 1×, 2× and 0.5×, kept in the link', async ({ page }) => {
+  await page.goto('/?page=release-delivery');
+  const speed = page.getByRole('button', { name: /^Flow speed/ });
+  await expect(speed).toHaveCount(0);
+  await page.keyboard.press('p');
+  await expect(speed).toHaveText('1×');
+  await speed.click();
+  await expect(speed).toHaveText('2×');
+  await expect(page).toHaveURL(/#play=1&speed=2$/);
+  await speed.click();
+  await expect(speed).toHaveText('0.5×');
+  await speed.click();
+  await expect(speed).toHaveText('1×');
+  await expect(page).toHaveURL(/#play=1$/);
+  await page.goto('/?page=release-delivery#play=1&speed=0.5');
+  await expect(speed).toHaveText('0.5×');
+  const before = await positions(page);
+  await expect.poll(() => positions(page)).not.toBe(before);
+});
+
 test('a route plays only its own connections; a view plays only what it shows', async ({ page }) => {
   await page.goto('/?page=release-delivery#route=commit~announce&play=1');
   const lit = await page.locator('path[data-edge-id][data-tint]').evaluateAll((els) => els.map((el) => el.getAttribute('data-edge-id')).sort());
@@ -58,13 +78,14 @@ test('a sequence replays its messages one at a time, landing on activation bars'
   expect(await page.locator('[data-flow] [data-part="glow"]').count()).toBeGreaterThan(0);
 });
 
-test('presenting keeps the play button and the P key', async ({ page }) => {
+test('presenting keeps the play and speed buttons and the P key', async ({ page }) => {
   await page.goto('/?page=release-delivery');
   await expect(page.locator('.sm-card').first()).toBeVisible();
   await page.keyboard.press('f');
   const bar = page.getByRole('group', { name: 'Presentation' });
   await bar.getByRole('button', { name: 'Play the flow (P)' }).click();
   await expect(pulses(page).first()).toBeAttached();
+  await expect(bar.getByRole('button', { name: /^Flow speed/ })).toHaveText('1×');
   await page.keyboard.press('p');
   await expect(pulses(page)).toHaveCount(0);
 });
