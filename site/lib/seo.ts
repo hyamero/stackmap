@@ -15,7 +15,7 @@ export const OPEN_GRAPH = {
   type: 'website' as const,
   siteName: SITE_NAME,
   locale: 'en_US',
-  images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: 'stackmap: every layer of your stack, on one map' }],
+  images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: 'stackmap: every layer of your stack, on one map. The viewer, open on a Commerce API diagram with a route lit' }],
 };
 
 /** Every static page; the sitemap test fails when a page.tsx is added without its route here. */

@@ -21,7 +21,8 @@ Every file carries explicit colours, so pick the light file or its `-dark` twin 
 | `stackmap-app-icon.svg`, `-512.png`, `stackmap-apple-touch-icon-180.png` | The full mark on the near-black icon tile |
 | `stackmap-favicon.svg`, `-32.png`, `-16.png` | The compact mark on the icon tile (inlined in the viewer) |
 | `stackmap-readme-header.png`, `-dark` | The 1280×400 README header at 2×, in a `<picture>` at the full column width |
-| `stackmap-social-card.png`, `.svg`, `-light.svg` | The 1200×630 link preview (`og:image`, the GitHub social preview) |
+| `stackmap-social-card.png`, `-light.png` | The 1200×630 link preview (`og:image`, `twitter:image`); the site serves the dark one |
+| `stackmap-github-preview.png` | The 1280×640 GitHub social preview (Settings › General › Social preview) |
 
 ## Rules
 
