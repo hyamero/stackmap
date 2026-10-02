@@ -66,7 +66,7 @@ const FEATURES: { id: Try; label: string; icon: ReactNode; title: string; desc: 
     label: 'Play',
     icon: icon(Play),
     title: 'Play the flow',
-    desc: 'Pulses travel whatever you’re looking at: the whole diagram, a view, a trace or a route, hop by hop. With reduced motion there is nothing to play.',
+    desc: 'Pulses travel whatever you’re looking at: the whole diagram, a view, a trace or a route, hop by hop. The button beside Play sets the speed: 1×, 2× or 0.5×. With reduced motion there is nothing to play.',
     keys: [['P', 'play or stop']],
   },
 ];

@@ -45,4 +45,5 @@ export const SHARE_PARAMS = [
   { param: 'lens', keeps: 'The node types the lens hides, comma-separated', example: '#lens=cache,queue' },
   { param: 'route', keeps: 'A route between two nodes', example: '#route=storefront~orders' },
   { param: 'play', keeps: 'The flow is playing', example: '#play=1' },
+  { param: 'speed', keeps: 'The flow’s speed when it isn’t 1×: 0.5 or 2', example: '#play=1&speed=0.5' },
 ] as const;
