@@ -18,7 +18,7 @@ Run it as one literal command (each shell call starts fresh, so don't rely on va
 
 ```bash
 npx -y @hyamero/stackmap@0.1.0 validate <diagram.json> --json
-npx -y @hyamero/stackmap@0.1.0 deliver  <diagram.json>
+npx -y @hyamero/stackmap@0.1.0 deliver  <diagram.json> --open
 npx -y @hyamero/stackmap@0.1.0 serve    <diagram.json>   # optional live preview; see below
 ```
 
@@ -45,7 +45,7 @@ Unless the user names a location, each diagram lives in `.stackmap/<slug>/` unde
 5. **Repair only what the diagnostics name.** Each has a `code`, a `subject` (JSON pointer into your file), a `message`, `evidence` and `allowedFixes`. Apply one of the `allowedFixes` at `subject`; don't restructure unrelated parts. `card-fit/overflow` means the text would be cut off on the card: shorten it to the `maxChars` in its evidence, keeping the meaning (move detail into a row, or into an evidence note on compact cards, which have no rows). Re-run step 4.
    - **Stop rule:** if two consecutive rounds don't reduce the number of errors, stop, keep the last file, and report the remaining diagnostics verbatim instead of guessing.
    - Warnings don't block delivery. Fix the cheap ones (a misspelt brand, a node you forgot to connect); mention the ones you leave.
-6. **Deliver** with `deliver <path>`. Exit 1: back to step 5. Exit 2: an environment problem — report it; don't edit the diagram to "fix" it.
+6. **Deliver** with `deliver <path> --open`: it writes `diagram.html` and opens it in the user's browser. A warning that no browser could be opened is not a failure (a headless or remote machine): the file is written, so give its path. Exit 1: back to step 5. Exit 2: an environment problem — report it; don't edit the diagram to "fix" it.
 7. **Check evidence** (repository diagrams): every `evidence[].file` must exist, e.g. `git ls-files --error-unmatch <files…>` from the repo root.
 8. **Report** the absolute path of `diagram.html`, the receipt line, and any warnings you left. Offer `serve` for iterating. Don't claim you looked at the rendering unless you did.
 

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { deliverCommand, validateCommand, type CommandResult } from './commands';
+import { openInBrowser } from './open';
 import { serve } from './serve';
 import { styleFor } from './style';
 
@@ -12,12 +13,14 @@ const HELP = `stackmap ${VERSION}: validate agent-authored diagrams and deliver 
 
 Usage:
   stackmap validate <diagram.json> [--json]      check the diagram; exit 1 on errors
-  stackmap deliver  <diagram.json> [-o out.html] validate, lay out and write the viewer
+  stackmap deliver  <diagram.json> [-o out.html] [--open]
+                                                 validate, lay out and write the viewer
   stackmap serve    <diagram.json> [--port 4400] live viewer that reloads when the file changes
 
 Options:
   --json         machine-readable diagnostics (validate)
   -o, --out      output path (deliver; default: next to the input, .html)
+  --open         open the written viewer in the default browser (deliver)
   --port         port for serve (default 4400; the next free one is used if taken)
   -h, --help     show this help
   -v, --version  show the version
@@ -41,6 +44,7 @@ async function run(argv: string[]): Promise<CommandResult> {
       options: {
         json: { type: 'boolean' },
         out: { type: 'string', short: 'o' },
+        open: { type: 'boolean' },
         port: { type: 'string' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
@@ -58,6 +62,7 @@ async function run(argv: string[]): Promise<CommandResult> {
   if (command !== 'validate' && command !== 'deliver' && command !== 'serve') return usage(`unknown command "${command}"`);
   if (!file || extra.length) return usage(`${command} takes exactly one diagram file`);
   if (values.port !== undefined && command !== 'serve') return usage('--port applies to serve');
+  if (values.open && command !== 'deliver') return usage('--open applies to deliver');
   if (command === 'validate') {
     if (values.out !== undefined) return usage('-o/--out applies to deliver, not validate');
     return values.json ? validateCommand(file, { json: true }) : signed(command, await validateCommand(file, { json: false }));
@@ -70,7 +75,7 @@ async function run(argv: string[]): Promise<CommandResult> {
   } catch (e) {
     return { code: 2, stdout: '', stderr: `stackmap: internal error: viewer template missing (${(e as Error).message})\n` };
   }
-  if (command === 'deliver') return signed(command, await deliverCommand(file, { template, out: values.out, style }));
+  if (command === 'deliver') return signed(command, await deliverCommand(file, { template, out: values.out, style, open: values.open ? openInBrowser : undefined }));
 
   const port = values.port === undefined ? 4400 : Number(values.port);
   if (!Number.isInteger(port) || port < 0 || port > 65535) return usage(`--port must be 0-65535, got "${values.port}"`);
