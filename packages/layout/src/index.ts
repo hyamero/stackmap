@@ -3,7 +3,7 @@ import ElkApi from 'elkjs/lib/elk-api.js';
 import ElkBundled from 'elkjs/lib/elk.bundled.js';
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import { cardSize, isLaneKind, usesCompactCards, type DiagramDraft, type Direction, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
-import { findLabelSpot, labelWidth, placeLabel } from './labels';
+import { placeLabels } from './labels';
 import { layoutLanes } from './lanes';
 import { layoutSequence } from './sequence';
 
@@ -158,33 +158,17 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
       return collect(draft, result, direction, stages !== null);
     };
     let laid = await run();
-    if (!compact) return laid;
+    const place = (l: LaidOutDiagram) => placeLabels(draft.edges, l.edges, Object.values(l.nodes), !compact);
+    let spots = place(laid);
     // Compact layouts start with tight layer gaps and widen them once if a label found no room to sit.
-    let spots = compactLabels(draft, laid);
-    if (spots.misfit > 0) {
+    if (compact && spots.misfit > 0) {
       laid = await run(Math.min(COMPACT_GAP.max, Math.max(Number(root.layoutOptions!['elk.layered.spacing.nodeNodeBetweenLayers']), spots.misfit + 24)));
-      spots = compactLabels(draft, laid);
+      spots = place(laid);
     }
     return { ...laid, labels: spots.labels };
   } finally {
     dispose();
   }
-}
-
-/** Widest label (px) that found no free spot on its route; 0 when all fit. Labels are placed either way. */
-function compactLabels(draft: DiagramDraft, laid: LaidOutDiagram): { labels: Record<string, Point>; misfit: number } {
-  const cards = Object.values(laid.nodes);
-  const taken: Rect[] = [];
-  const labels: Record<string, Point> = {};
-  let misfit = 0;
-  const pending = draft.edges.filter((e) => e.label && laid.edges[e.id]);
-  for (const e of pending) {
-    const spot = findLabelSpot(laid.edges[e.id]!, e.label!, cards, taken);
-    if (spot) labels[e.id] = spot;
-    else misfit = Math.max(misfit, labelWidth(e.label!));
-  }
-  for (const e of pending) if (!labels[e.id]) labels[e.id] = placeLabel(laid.edges[e.id]!, e.label!, cards, taken);
-  return { labels, misfit };
 }
 
 function collect(draft: DiagramDraft, result: ElkNode, direction: Direction, staged: boolean): LaidOutDiagram {

@@ -1,5 +1,5 @@
 import { assignColumns, backEdges, cardSize, COMPACT, type DiagramDraft, type DiagramEdge, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
-import { labelWidth, placeLabel } from './labels';
+import { labelWidth, placeLabels } from './labels';
 
 export { assignColumns, backEdges } from '@stackmap/core';
 import { nudge, routeEdges, STUB, type PortChoice, type RouteRequest } from './route';
@@ -182,10 +182,7 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
     if (routed[e.id]) edges[e.id] = routed[e.id]!.map((p) => ({ x: round(p.x), y: round(p.y) }));
   }
 
-  const cards = Object.values(rects);
-  const taken: Rect[] = [];
-  const labels: Record<string, Point> = {};
-  for (const e of draft.edges) if (e.label && edges[e.id]) labels[e.id] = placeLabel(edges[e.id]!, e.label, cards, taken);
+  const { labels } = placeLabels(draft.edges, edges, Object.values(rects));
 
   const height = y - LANE_GAP + PAD;
   return {

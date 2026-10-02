@@ -201,7 +201,7 @@ export function DiagramCanvas({
             className="sm-viewport absolute top-0 left-0 origin-top-left"
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
           >
-            <SceneLayers scene={scene} emphasis={emphasis} selected={state.selected} flow={playing ? flow : null} />
+            <SceneLayers scene={scene} emphasis={emphasis} selected={state.selected} flow={playing ? flow : null} speed={state.speed} />
           </div>
         </div>
         {/* Overlays are siblings of the stage, so wheel/drag on them never reaches d3-zoom. */}

@@ -64,6 +64,26 @@ describe('validate', () => {
 });
 
 describe('deliver', () => {
+  it('opens the written file when asked, and still delivers with a warning when it can\'t', async () => {
+    const input = file('platform.json', groupedPlatform);
+    const opened: string[] = [];
+    const ok = await deliverCommand(input, { template: TEMPLATE, open: async (f) => (opened.push(f), null) });
+    expect(ok.code).toBe(0);
+    expect(opened).toEqual([join(dir, 'platform.html')]);
+    expect(ok.stderr).toBe('');
+    const failed = await deliverCommand(input, { template: TEMPLATE, open: async () => 'xdg-open not found' });
+    expect(failed.code).toBe(0);
+    expect(failed.stdout).toMatch(/^delivered /);
+    expect(failed.stderr).toBe(`warning: couldn't open ${join(dir, 'platform.html')} in a browser (xdg-open not found)\n`);
+  });
+
+  it('opens nothing when validation fails', async () => {
+    let opened = false;
+    const r = await deliverCommand(file('broken.json', broken), { template: TEMPLATE, open: async () => ((opened = true), null) });
+    expect(r.code).toBe(1);
+    expect(opened).toBe(false);
+  });
+
   it('writes the HTML next to the input and prints a sha256 receipt', async () => {
     const input = file('platform.json', groupedPlatform);
     const r = await deliverCommand(input, { template: TEMPLATE });

@@ -5,7 +5,7 @@ import { useInScope } from '../explore/scope';
 import type { ThemeChoice } from '../theme/theme';
 import { ExportMenu } from './ExportMenu';
 import { LensPanel } from './LensPanel';
-import { PlayButton } from './PlayButton';
+import { PlayButton, SpeedButton } from './PlayButton';
 import { SearchPanel } from './SearchPanel';
 import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
@@ -142,6 +142,7 @@ export function Toolbar({
         <Waypoints size={17} strokeWidth={1.75} />
       </IconButton>
       <PlayButton />
+      <SpeedButton />
       <ToolbarDivider />
       {onPresent && (
         <IconButton label="Present (F)" onClick={onPresent}>

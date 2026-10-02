@@ -433,5 +433,15 @@ export const groupedPlatformLayout: LaidOutDiagram = {
   "bounds": {
     "width": 1328,
     "height": 1081
+  },
+  "labels": {
+    "e1": {
+      "x": 344,
+      "y": 166.5
+    },
+    "e5": {
+      "x": 504,
+      "y": 695
+    }
   }
 };

@@ -71,7 +71,18 @@ export async function buildHtml(path: string, template: string): Promise<Validat
 
 export async function deliverCommand(
   path: string,
-  { template, out, style = plain }: { template: string; out?: string; style?: Style },
+  {
+    template,
+    out,
+    style = plain,
+    open,
+  }: {
+    template: string;
+    out?: string;
+    style?: Style;
+    /** opens the written file (deliver --open): null once it did, else why it couldn't */
+    open?: (file: string) => Promise<string | null>;
+  },
 ): Promise<CommandResult> {
   try {
     const target = out ?? path.slice(0, path.length - extname(path).length) + '.html';
@@ -82,7 +93,10 @@ export async function deliverCommand(
     writeAtomic(target, html);
     const bytes = Buffer.byteLength(html);
     const sha = createHash('sha256').update(html).digest('hex');
-    return { code: 0, stdout: `delivered ${style.path(target)} · sha256 ${sha} · ${bytes} bytes\n`, stderr: report(diagnostics) };
+    // The file is written either way, so a browser that won't open is a warning, not a failure.
+    const unopened = open ? await open(target) : null;
+    const warning = unopened ? `warning: couldn't open ${target} in a browser (${unopened})\n` : '';
+    return { code: 0, stdout: `delivered ${style.path(target)} · sha256 ${sha} · ${bytes} bytes\n`, stderr: report(diagnostics) + warning };
   } catch (e) {
     return failure(e);
   }
