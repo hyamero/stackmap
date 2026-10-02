@@ -113,7 +113,10 @@ export function How({ demo, receipt, repair }: { demo: LaidOutDiagram; receipt: 
       };
       layout();
       setPinned(true);
-      setStep(0);
+      const draw = (progress: number) => {
+        if (fill.current) fill.current.style.transform = `scaleX(${progress})`;
+        setStep(Math.min(3, Math.floor(progress * 4)));
+      };
       // CSS sticky does the pin; ScrollTrigger only reads how far through the runway the page is.
       const st = ScrollTrigger.create({
         trigger: p,
@@ -121,11 +124,10 @@ export function How({ demo, receipt, repair }: { demo: LaidOutDiagram; receipt: 
         end: () => `+=${runway.current}`,
         invalidateOnRefresh: true,
         onRefreshInit: layout,
-        onUpdate: ({ progress }) => {
-          if (fill.current) fill.current.style.transform = `scaleX(${progress})`;
-          setStep(Math.min(3, Math.floor(progress * 4)));
-        },
+        onUpdate: ({ progress }) => draw(progress),
       });
+      // onUpdate waits for a scroll; until then the rail would keep its resting (full) fill.
+      draw(st.progress);
       return () => {
         st.kill();
         p.style.height = '';

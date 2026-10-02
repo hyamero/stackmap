@@ -68,6 +68,8 @@ test('with motion allowed the walkthrough pins and the scroll picks its step', a
   await page.goto('/');
   const pin = page.locator('.how-pin');
   await expect(pin).toHaveAttribute('data-live', 'true');
+  // Before any scroll the rail is unlit, as step 1 is.
+  await expect.poll(() => page.locator('.hfill').evaluate((el) => getComputedStyle(el).transform)).toBe('matrix(0, 0, 0, 1, 0, 0)');
   const at = (f: number) =>
     page.evaluate((f) => {
       const p = document.querySelector<HTMLElement>('.how-pin')!;
@@ -191,9 +193,12 @@ test('the old kind pages redirect into the docs', async ({ page }) => {
 
 test('the docs search opens with ⌘K, finds a field and goes to it', async ({ page }) => {
   await page.goto('/docs');
-  await page.keyboard.press('ControlOrMeta+k');
   const box = page.getByRole('combobox', { name: 'Search the docs' });
-  await expect(box).toBeFocused();
+  // The shortcut is bound once the page hydrates; a press before that lands nowhere.
+  await expect(async () => {
+    await page.keyboard.press('ControlOrMeta+k');
+    await expect(box).toBeFocused({ timeout: 500 });
+  }).toPass();
   await box.fill('statsNote');
   await expect(page.getByRole('option').first()).toContainText('statsNote');
   await page.keyboard.press('Enter');
