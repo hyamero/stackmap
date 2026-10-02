@@ -11,7 +11,10 @@
     "elk",
     "offline",
     "html",
-    "dataflow"
+    "dataflow",
+    "workflow",
+    "lifecycle",
+    "sequence"
   ],
   "homepage": "https://stackmap.omsimos.com",
   "repository": {
