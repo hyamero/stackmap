@@ -68,6 +68,8 @@ test('with motion allowed the walkthrough pins and the scroll picks its step', a
   await page.goto('/');
   const pin = page.locator('.how-pin');
   await expect(pin).toHaveAttribute('data-live', 'true');
+  // Before any scroll the rail is unlit, as step 1 is.
+  await expect.poll(() => page.locator('.hfill').evaluate((el) => getComputedStyle(el).transform)).toBe('matrix(0, 0, 0, 1, 0, 0)');
   const at = (f: number) =>
     page.evaluate((f) => {
       const p = document.querySelector<HTMLElement>('.how-pin')!;
