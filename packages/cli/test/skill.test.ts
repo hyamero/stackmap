@@ -11,7 +11,7 @@ const pinned = `${pkg.name}@${pkg.version}`;
 describe('skill ↔ CLI version', () => {
   it('SKILL.md runs exactly this CLI version', () => {
     const md = skill('SKILL.md');
-    const pins = [...md.matchAll(/@hyamero\/stackmap@[\w.-]+/g)].map((m) => m[0]);
+    const pins = [...md.matchAll(/@omsimos\/stackmap@[\w.-]+/g)].map((m) => m[0]);
     expect(pins.length).toBeGreaterThan(0);
     expect(new Set(pins)).toEqual(new Set([pinned]));
     expect(md).toContain(`version: "${pkg.version}"`);

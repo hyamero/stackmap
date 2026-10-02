@@ -115,7 +115,7 @@ export default function SchemaPage() {
         <p>
           <FileJson size={16} strokeWidth={1.75} className="ic" aria-hidden="true" />
           <span>
-            Machine-readable: <a href={`https://unpkg.com/@hyamero/stackmap@${SITE.version}/dist/stackmap.schema.json`}>stackmap.schema.json</a>. Set it as{' '}
+            Machine-readable: <a href={`https://unpkg.com/@omsimos/stackmap@${SITE.version}/dist/stackmap.schema.json`}>stackmap.schema.json</a>. Set it as{' '}
             <C>$schema</C> for completion in your editor.
           </span>
         </p>

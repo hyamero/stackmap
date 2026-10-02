@@ -7,7 +7,7 @@ export const commerceApiLayout: LaidOutDiagram = {
     "title": "Commerce API",
     "subtitle": "Production topology",
     "source": {
-      "url": "https://github.com/hyamero/stackmap/blob/main"
+      "url": "https://github.com/omsimos/stackmap/blob/main"
     },
     "direction": "RIGHT",
     "nodes": [

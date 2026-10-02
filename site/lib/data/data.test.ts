@@ -21,8 +21,8 @@ describe('version', () => {
     // Built, not written out: a literal pin would be rewritten by every release (see tests/no-pins.test.ts).
     const version = '1.2.3';
     expect(installCommands(version)).toEqual({
-      skill: 'npx skills add hyamero/stackmap',
-      cli: `npx @hyamero/stackmap@${version} deliver diagram.json`,
+      skill: 'npx skills add omsimos/stackmap',
+      cli: `npx @omsimos/stackmap@${version} deliver diagram.json`,
     });
   });
 });

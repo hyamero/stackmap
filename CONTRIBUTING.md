@@ -29,7 +29,7 @@ bun run test && bun run typecheck && bun run build   # unit tests, types, viewer
 | `packages/schema` | Zod schema → `stackmap.schema.json`, the validator and its diagnostics |
 | `packages/layout` | ELK wrapper and stackmap's own lane and sequence layout: diagram → absolute geometry |
 | `packages/viewer` | React viewer, built into one self-contained HTML template |
-| `packages/cli` | `@hyamero/stackmap`: validate · deliver · serve (the only published package) |
+| `packages/cli` | `@omsimos/stackmap`: validate · deliver · serve (the only published package) |
 | `skill/` | the agent skill that `npx skills add` installs: `SKILL.md`, the schema reference, examples |
 | `site/` | `@stackmap/site`: the website (Next.js), deployed on Vercel; never published |
 
@@ -92,11 +92,11 @@ workflow's `release` job runs them after the checks pass.
 
 - **Release candidates:** every push to `staging` with a `feat`, `fix` or `perf` commit since the last release
   publishes `x.y.z-rc.N` to npm under the `rc` tag, with a GitHub prerelease. Try one with
-  `npx @hyamero/stackmap@rc`.
+  `npx @omsimos/stackmap@rc`.
 - **Releases:** merging `staging` into `main` with a **merge commit** publishes `x.y.z` under `latest`, with a
   GitHub release. Don't squash or rebase this merge: the release candidates' tags must stay in `main`'s history,
   or the next version is miscounted.
-- **The version is pinned in the repo:** the skill runs an exact CLI version (`npx -y @hyamero/stackmap@x.y.z`),
+- **The version is pinned in the repo:** the skill runs an exact CLI version (`npx -y @omsimos/stackmap@x.y.z`),
   and the JSON Schema id and the examples name it too. On a release, `scripts/set-version.mjs` updates them all,
   the bot commits `chore(release): x.y.z [skip ci]` to `main`, and then merges `main` back into `staging`.
   Release candidates only change the published package, so the repo keeps the last release's version between
