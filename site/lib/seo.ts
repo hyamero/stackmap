@@ -21,15 +21,14 @@ export const OPEN_GRAPH = {
 /** Every static page; the sitemap test fails when a page.tsx is added without its route here. */
 export const ROUTES = ['/', '/docs', '/docs/viewer', '/docs/cli', '/docs/schema', '/docs/brands', '/examples'] as const;
 
-// Vercel sets the production domain on every deployment, previews included, so canonical and OG URLs
-// never point at a preview. It follows a custom domain once one is attached.
-export function siteUrl(env: Env = process.env): URL {
-  return new URL(`https://${env.VERCEL_PROJECT_PRODUCTION_URL ?? 'stackmap-site-hyameros-projects.vercel.app'}`);
-}
+// Pinned rather than read from VERCEL_PROJECT_PRODUCTION_URL: Vercel reports the project's vercel.app domain there
+// even with the custom domain attached, and canonical, OG and sitemap URLs must all name the one real address.
+export const SITE_URL = 'https://stackmap.omsimos.com';
+export const siteUrl = (): URL => new URL(SITE_URL);
 
 export function robotsFor(env: Env = process.env): MetadataRoute.Robots {
   if (env.VERCEL_ENV !== 'production') return { rules: { userAgent: '*', disallow: '/' } };
-  return { rules: { userAgent: '*', allow: '/' }, sitemap: new URL('/sitemap.xml', siteUrl(env)).href };
+  return { rules: { userAgent: '*', allow: '/' }, sitemap: new URL('/sitemap.xml', siteUrl()).href };
 }
 
 export function sitemapFor(base: URL = siteUrl()): MetadataRoute.Sitemap {
