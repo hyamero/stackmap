@@ -31,6 +31,8 @@ export const VIEWER_KEYS: { keys: string[]; does: string }[] = [
   { keys: ['R'], does: 'Route: pick where it starts, then where it ends' },
   { keys: ['P'], does: 'Play or stop the flow' },
   { keys: ['F'], does: 'Present: the stage alone, stepping through the views' },
+  { keys: ['Z'], does: 'Focus: the canvas alone, without the header, tabs or inspector' },
+  { keys: ['H'], does: 'Hide or show the toolbar, in focus' },
   { keys: ['M'], does: 'Show or hide the minimap' },
   { keys: ['Esc'], does: 'Clear the selection, the search or the route' },
   { keys: ['←', '↑', '→', '↓'], does: 'Pan, while the stage has focus' },

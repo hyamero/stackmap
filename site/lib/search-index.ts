@@ -22,7 +22,7 @@ const WORDS: Record<string, string> = {
   '/docs/viewer': 'viewer html file inspector select trace route search lens views present play share export keyboard',
   '/docs/viewer#try': 'demo interactive select trace route find views play',
   '/docs/viewer#share': 'url hash link parameters deep link',
-  '/docs/viewer#present': 'full screen slides presentation',
+  '/docs/viewer#present': 'full screen slides presentation focus canvas only hide toolbar zen',
   '/docs/viewer#export': 'png jpeg webp svg video download image',
   '/docs/viewer#keys': 'shortcuts keyboard hotkeys',
   '/docs/viewer#themes': 'dark light theme reduced motion animation',

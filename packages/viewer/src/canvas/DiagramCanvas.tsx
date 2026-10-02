@@ -92,17 +92,22 @@ function DotGrid({ x, y, k }: Transform) {
   );
 }
 
-/** `chrome` false (presentation): no toolbar, zoom bar or minimap, and the camera refits the bigger stage. */
+/**
+ * `chrome` false (presentation): no toolbar, zoom bar or minimap, and the camera refits the bigger stage. A change
+ * of `stage` (focus mode) says the stage changed size for another reason, and refits too.
+ */
 export function DiagramCanvas({
   diagram,
   children,
   chrome = true,
+  stage,
   minimap: withMinimap = true,
   wheel = 'zoom',
 }: {
   diagram: LaidOutDiagram;
   children?: ReactNode;
   chrome?: boolean;
+  stage?: string;
   /** false: no minimap and no M key */
   minimap?: boolean;
   wheel?: WheelMode;
@@ -124,10 +129,11 @@ export function DiagramCanvas({
   const { x, y, k } = viewport.transform;
   useCameraEffects(scene, camera, viewport.restored);
   // The stage changes size when the chrome comes or goes: frame the current view again once it has.
-  const framed = useRef(chrome);
+  const layout = `${chrome}|${stage ?? ''}`;
+  const framed = useRef(layout);
   useEffect(() => {
-    if (framed.current === chrome) return;
-    framed.current = chrome;
+    if (framed.current === layout) return;
+    framed.current = layout;
     const id = requestAnimationFrame(() => {
       const members = state.view ? (explore.draft.views?.find((v) => v.id === state.view)?.nodes ?? []) : [];
       const box = union(members.flatMap((m) => scene.cards.find((c) => c.node.id === m)?.rect ?? []));
@@ -135,7 +141,7 @@ export function DiagramCanvas({
       else camera.fit();
     });
     return () => cancelAnimationFrame(id);
-  }, [chrome, state.view, explore.draft, scene, camera]);
+  }, [layout, state.view, explore.draft, scene, camera]);
   // M toggles the radar from anywhere but a text field or menu; not while presenting (it's hidden then).
   const chromeRef = useRef(chrome);
   chromeRef.current = chrome;
