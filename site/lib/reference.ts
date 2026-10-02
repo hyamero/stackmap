@@ -6,13 +6,14 @@ export type Family = (typeof FAMILIES)[number];
 
 export const CLI_COMMANDS = [
   { name: 'validate', usage: '<diagram.json> [--json]', does: 'Check the diagram' },
-  { name: 'deliver', usage: '<diagram.json> [-o out.html]', does: 'Write the offline HTML viewer' },
+  { name: 'deliver', usage: '<diagram.json> [-o out.html] [--open]', does: 'Write the offline HTML viewer' },
   { name: 'serve', usage: '<diagram.json> [--port 4400]', does: 'Live viewer that reloads on save' },
 ] as const;
 
 export const CLI_OPTIONS = [
   { flag: '--json', for: 'validate', does: 'Machine-readable diagnostics' },
   { flag: '-o, --out', for: 'deliver', does: 'The output path; the default is next to the input, as .html' },
+  { flag: '--open', for: 'deliver', does: 'Open the written viewer in the default browser; when none opens, it warns and still exits 0' },
   { flag: '--port', for: 'serve', does: 'The port; 4400 by default, and the next free one if it is taken' },
   { flag: '-h, --help', for: 'any', does: 'Show the help' },
   { flag: '-v, --version', for: 'any', does: 'Show the version' },
