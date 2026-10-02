@@ -1,3 +1,4 @@
+import { Eye } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '../canvas/CanvasPanel';
@@ -11,6 +12,7 @@ import { Inspector } from './Inspector';
 import { PresentBar } from './Presentation';
 import { inMenu } from './Toolbar';
 import { Toolbar } from './Toolbar';
+import { IconButton, PANEL_CLASS, PANEL_STYLE } from './ui';
 import { ViewTabs } from './ViewTabs';
 
 /** Below this width the inspector starts collapsed (Q27). */
@@ -64,12 +66,25 @@ export function ViewerShell({
     if (on) void shell.current?.requestFullscreen?.().catch(() => {});
     else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
   }, []);
+  // Focus (Z): the canvas alone in the window, everything on it still working; H hides the toolbar too.
+  const [focused, setFocused] = useState(false);
+  const [toolbarHidden, setToolbarHidden] = useState(false);
+  const focus = useCallback((on: boolean) => {
+    setFocused(on);
+    // Leaving focus always brings the toolbar back.
+    if (!on) setToolbarHidden(false);
+  }, []);
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if ((e.key !== 'f' && e.key !== 'F') || e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      const key = e.key.toLowerCase();
+      if ((key !== 'f' && key !== 'z' && key !== 'h') || e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      if (key !== 'f' && presenting) return;
+      if (key === 'h' && !focused) return;
       e.preventDefault();
-      present(!presenting);
+      if (key === 'f') present(!presenting);
+      else if (key === 'z') focus(!focused);
+      else setToolbarHidden((v) => !v);
     };
     // Leaving full screen (Esc in the browser's own handling) ends the presentation too.
     const onFullscreen = () => {
@@ -83,7 +98,7 @@ export function ViewerShell({
       removeEventListener('keydown', onKey);
       document.removeEventListener('fullscreenchange', onFullscreen);
     };
-  }, [presenting, present]);
+  }, [presenting, present, focused, focus]);
   // Read during render: the canvas (a child) records what it shows in its own layout effect, which runs first.
   const [reloaded] = useState(() => readLiveConfig(document) !== null && readShown() !== null);
   useLayoutEffect(() => {
@@ -95,8 +110,8 @@ export function ViewerShell({
   }, [reloaded]);
   return (
     <ExploreProvider draft={draft}>
-      <div ref={shell} data-presenting={presenting || undefined} className="@container flex h-full flex-col bg-page font-sans text-fg">
-        {!presenting && (
+      <div ref={shell} data-presenting={presenting || undefined} data-focused={focused || undefined} className="@container flex h-full flex-col bg-page font-sans text-fg">
+        {!presenting && !focused && (
         <header className="mx-8 mt-4 flex gap-8 border-b border-divider @max-2xl:mx-4 @max-2xl:mt-2 @max-md:flex-wrap @max-md:gap-x-4 @max-md:gap-y-0">
           <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3 @max-md:max-w-full @max-md:basis-full @max-md:pb-1">
             <Title className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</Title>
@@ -113,8 +128,8 @@ export function ViewerShell({
           </span>
         </header>
         )}
-        {!presenting && <ViewCaption />}
-        <Main className={`relative flex min-h-0 flex-1 gap-4 @max-2xl:gap-2 ${presenting ? '' : 'px-8 pt-4 pb-6 @max-2xl:px-3 @max-2xl:pt-3 @max-2xl:pb-3'}`}>
+        {!presenting && !focused && <ViewCaption />}
+        <Main className={`relative flex min-h-0 flex-1 gap-4 @max-2xl:gap-2 ${presenting ? '' : focused ? 'p-3' : 'px-8 pt-4 pb-6 @max-2xl:px-3 @max-2xl:pt-3 @max-2xl:pb-3'}`}>
           <section
             id={DIAGRAM_ID}
             role="tabpanel"
@@ -122,19 +137,38 @@ export function ViewerShell({
             className={`@container/stage relative min-w-0 flex-1 overflow-hidden bg-stage ${presenting ? '' : 'rounded-[20px]'}`}
             style={presenting ? undefined : { boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
           >
-            <DiagramCanvas diagram={diagram} chrome={!presenting}>
+            <DiagramCanvas diagram={diagram} chrome={!presenting} stage={focused ? 'focus' : undefined}>
               {/* Never wider than the stage: the identity card gives way (truncating, then hidden) before the toolbar. */}
               <CanvasPanel position="top-left" className="flex max-w-[calc(100%-30px)] gap-2">
-                {/* Narrow, the header already names the diagram: the toolbar gets the room. */}
-                <div className="flex min-w-0 @max-[640px]/stage:hidden">
-                  <DiagramIdentity onDetails={() => setInspectorCollapsed(false)} />
-                </div>
-                <Toolbar theme={theme} onToggleTheme={onToggleTheme} onPresent={() => present(true)} />
+                {toolbarHidden ? (
+                  <div className={`${PANEL_CLASS} p-1.5`} style={PANEL_STYLE}>
+                    <IconButton label="Show the toolbar (H)" onClick={() => setToolbarHidden(false)}>
+                      <Eye size={17} strokeWidth={1.75} />
+                    </IconButton>
+                  </div>
+                ) : (
+                  <>
+                    {/* Narrow, the header already names the diagram: the toolbar gets the room. Focus shows the canvas alone. */}
+                    {!focused && (
+                      <div className="flex min-w-0 @max-[640px]/stage:hidden">
+                        <DiagramIdentity onDetails={() => setInspectorCollapsed(false)} />
+                      </div>
+                    )}
+                    <Toolbar
+                      theme={theme}
+                      onToggleTheme={onToggleTheme}
+                      onPresent={() => present(true)}
+                      focused={focused}
+                      onFocus={() => focus(!focused)}
+                      onHide={() => setToolbarHidden(true)}
+                    />
+                  </>
+                )}
               </CanvasPanel>
             </DiagramCanvas>
             {presenting && <PresentBar onExit={() => present(false)} />}
           </section>
-          {!presenting && <Inspector collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((v) => !v)} />}
+          {!presenting && !focused && <Inspector collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((v) => !v)} />}
         </Main>
       </div>
     </ExploreProvider>
