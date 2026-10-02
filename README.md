@@ -6,6 +6,12 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/@hyamero/stackmap"><img alt="npm" src="https://img.shields.io/npm/v/@hyamero/stackmap?color=cb3837&amp;logo=npm"></a>
+  <a href="https://github.com/hyamero/stackmap/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/hyamero/stackmap/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/github/license/hyamero/stackmap"></a>
+</p>
+
+<p align="center">
   <a href="https://stackmap-site.vercel.app">Website</a> · <a href="https://stackmap-site.vercel.app/docs">Docs</a> · <a href="https://stackmap-site.vercel.app/examples">Examples</a>
 </p>
 
