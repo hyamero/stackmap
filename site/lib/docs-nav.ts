@@ -42,7 +42,7 @@ export const DOC_PAGES: DocPage[] = [
     sections: [
       s('try', 'Try it'),
       s('share', 'Share a view'),
-      s('present', 'Present'),
+      s('present', 'Present and focus'),
       s('export', 'Export'),
       s('keys', 'Keyboard'),
       s('themes', 'Themes and motion'),
