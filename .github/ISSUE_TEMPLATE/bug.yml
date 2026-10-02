@@ -19,7 +19,7 @@ body:
     id: version
     attributes:
       label: stackmap version
-      description: "`npx @hyamero/stackmap --version`, or the version in the skill's SKILL.md"
+      description: "`npx @omsimos/stackmap --version`, or the version in the skill's SKILL.md"
     validations:
       required: true
   - type: input

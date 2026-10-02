@@ -6,9 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@hyamero/stackmap"><img alt="npm" src="https://img.shields.io/npm/v/@hyamero/stackmap?color=cb3837&amp;logo=npm"></a>
-  <a href="https://github.com/hyamero/stackmap/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/hyamero/stackmap/actions/workflows/ci.yml/badge.svg?branch=main"></a>
-  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/github/license/hyamero/stackmap"></a>
+  <a href="https://www.npmjs.com/package/@omsimos/stackmap"><img alt="npm" src="https://img.shields.io/npm/v/@omsimos/stackmap?color=cb3837&amp;logo=npm"></a>
+  <a href="https://github.com/omsimos/stackmap/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/omsimos/stackmap/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/github/license/omsimos/stackmap"></a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/4dd05dfc-fa5a-42e7-ad1a-6150aeb9ad9f
 Install the skill into your agent (Claude Code, Cursor, Codex and [others](https://github.com/vercel-labs/skills)):
 
 ```bash
-npx skills add hyamero/stackmap
+npx skills add omsimos/stackmap
 ```
 
 Then ask:
@@ -63,7 +63,7 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
 
 ```json
 {
-  "$schema": "https://unpkg.com/@hyamero/stackmap@0.2.0/dist/stackmap.schema.json",
+  "$schema": "https://unpkg.com/@omsimos/stackmap@0.2.0/dist/stackmap.schema.json",
   "kind": "architecture",
   "title": "Bookshop",
   "direction": "DOWN",
@@ -96,9 +96,9 @@ Full reference: [skill/references/schema.md](skill/references/schema.md), or the
 The skill runs the CLI for you, and it works on its own too (Node 22.12 or later):
 
 ```bash
-npx @hyamero/stackmap validate diagram.json [--json]                # diagnostics with fixes; exit 1 on errors
-npx @hyamero/stackmap deliver  diagram.json [-o out.html] [--open]  # validate → layout → one offline HTML file
-npx @hyamero/stackmap serve    diagram.json [--port 4400]           # live viewer that reloads on every save
+npx @omsimos/stackmap validate diagram.json [--json]                # diagnostics with fixes; exit 1 on errors
+npx @omsimos/stackmap deliver  diagram.json [-o out.html] [--open]  # validate → layout → one offline HTML file
+npx @omsimos/stackmap serve    diagram.json [--port 4400]           # live viewer that reloads on every save
 ```
 
 - **validate** lists every problem with a code, its evidence and the allowed fixes, including card text that won't fit. It exits `1` when the diagram has errors and `2` on usage, IO or internal errors.

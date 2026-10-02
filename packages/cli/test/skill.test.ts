@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { DIAGRAM_KINDS } from '@stackmap/core';
 import { SCHEMA_ID } from '@stackmap/schema';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { name: string; version: string };
@@ -10,7 +11,7 @@ const pinned = `${pkg.name}@${pkg.version}`;
 describe('skill ↔ CLI version', () => {
   it('SKILL.md runs exactly this CLI version', () => {
     const md = skill('SKILL.md');
-    const pins = [...md.matchAll(/@hyamero\/stackmap@[\w.-]+/g)].map((m) => m[0]);
+    const pins = [...md.matchAll(/@omsimos\/stackmap@[\w.-]+/g)].map((m) => m[0]);
     expect(pins.length).toBeGreaterThan(0);
     expect(new Set(pins)).toEqual(new Set([pinned]));
     expect(md).toContain(`version: "${pkg.version}"`);
@@ -24,6 +25,11 @@ describe('skill ↔ CLI version', () => {
 });
 
 describe('package.json', () => {
+  it('names every diagram kind in its npm keywords, so a search for any of them finds the package', () => {
+    const { keywords } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { keywords: string[] };
+    for (const kind of DIAGRAM_KINDS) expect(keywords, kind).toContain(kind);
+  });
+
   it('declares bin paths the way npm publish accepts them (no "./" prefix, or npm drops the bin)', () => {
     const { bin } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { bin: Record<string, string> };
     expect(bin).toEqual({ stackmap: 'dist/cli.js' });

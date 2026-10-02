@@ -4,7 +4,7 @@
   "subtitle": "How an agent-written diagram.json becomes the delivered viewer",
   "direction": "DOWN",
   "source": {
-    "url": "https://github.com/hyamero/stackmap/blob/a2111f0590892de04f16c2d2f11ad877a502d89b"
+    "url": "https://github.com/omsimos/stackmap/blob/a2111f0590892de04f16c2d2f11ad877a502d89b"
   },
   "groups": [
     {
@@ -61,7 +61,7 @@
       "type": "service",
       "group": "pipeline",
       "card": {
-        "title": "@hyamero/stackmap",
+        "title": "@omsimos/stackmap",
         "subtitle": "CLI: validate/deliver/serve",
         "rows": [
           {

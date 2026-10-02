@@ -3,10 +3,10 @@
 ## Reporting a vulnerability
 
 Please report security issues privately through GitHub:
-[**Report a vulnerability**](https://github.com/hyamero/stackmap/security/advisories/new). Don't open a public
+[**Report a vulnerability**](https://github.com/omsimos/stackmap/security/advisories/new). Don't open a public
 issue or pull request for them.
 
-Include what an attacker could do, the stackmap version (`npx @hyamero/stackmap --version`), and a diagram or steps
+Include what an attacker could do, the stackmap version (`npx @omsimos/stackmap --version`), and a diagram or steps
 that reproduce it. You'll get a reply within a week. Once a fix is released, the advisory is published with credit
 to you unless you'd rather stay anonymous.
 

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 const DEMO = '.stackmap/commerce-api/diagram.json';
-const npx = `npx @hyamero/stackmap@${SITE.version}`;
+const npx = `npx @omsimos/stackmap@${SITE.version}`;
 
 function Synopsis({ name }: { name: (typeof CLI_COMMANDS)[number]['name'] }) {
   const c = CLI_COMMANDS.find((x) => x.name === name)!;

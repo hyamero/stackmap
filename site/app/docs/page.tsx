@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 const ASK = 'Make an architecture diagram of this repository, backed by evidence from the code.';
 // The agent's file pins the schema to the installed CLI, so the example does too.
-const JSON_TEXT = SOURCES.quickStart.replace('{\n', `{\n  "$schema": "https://unpkg.com/@hyamero/stackmap@${SITE.version}/dist/stackmap.schema.json",\n`);
+const JSON_TEXT = SOURCES.quickStart.replace('{\n', `{\n  "$schema": "https://unpkg.com/@omsimos/stackmap@${SITE.version}/dist/stackmap.schema.json",\n`);
 const FILE = '.stackmap/commerce-api/diagram.json';
 
 function Step({ n, id, title, children }: { n: number; id: string; title: string; children: React.ReactNode }) {
