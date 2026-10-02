@@ -7,5 +7,5 @@ export function readCliVersion(pkg: URL = CLI_PACKAGE): string {
 
 // The skill command has no version: `skills add` installs from the repo, not from npm.
 export function installCommands(version: string) {
-  return { skill: 'npx skills add hyamero/stackmap', cli: `npx @hyamero/stackmap@${version} deliver diagram.json` };
+  return { skill: 'npx skills add omsimos/stackmap', cli: `npx @omsimos/stackmap@${version} deliver diagram.json` };
 }

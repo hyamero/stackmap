@@ -16,7 +16,7 @@ export const commerceApi: DiagramDraft = {
   kind: 'architecture',
   title: 'Commerce API',
   subtitle: 'Production topology',
-  source: { url: 'https://github.com/hyamero/stackmap/blob/main' },
+  source: { url: 'https://github.com/omsimos/stackmap/blob/main' },
   direction: 'RIGHT',
   nodes: [
     {

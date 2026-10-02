@@ -20,7 +20,7 @@
       },
     },
     "packages/cli": {
-      "name": "@hyamero/stackmap",
+      "name": "@omsimos/stackmap",
       "version": "0.2.0",
       "bin": {
         "stackmap": "./dist/cli.js",
@@ -263,7 +263,7 @@
 
     "@gsap/react": ["@gsap/react@2.1.2", "", { "peerDependencies": { "gsap": "^3.12.5", "react": ">=17" } }, "sha512-JqliybO1837UcgH2hVOM4VO+38APk3ECNrsuSM4MuXp+rbf+/2IG2K1YJiqfTcXQHH7XlA0m3ykniFYstfq0Iw=="],
 
-    "@hyamero/stackmap": ["@hyamero/stackmap@workspace:packages/cli"],
+    "@omsimos/stackmap": ["@omsimos/stackmap@workspace:packages/cli"],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

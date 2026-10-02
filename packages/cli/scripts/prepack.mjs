@@ -5,5 +5,5 @@ for (const f of ['README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md']) copyFileSync
 
 // npm resolves relative images against the package, not the repo root: point the README's images at GitHub.
 const readme = new URL('../README.md', import.meta.url);
-const raw = 'https://raw.githubusercontent.com/hyamero/stackmap/main/';
+const raw = 'https://raw.githubusercontent.com/omsimos/stackmap/main/';
 writeFileSync(readme, readFileSync(readme, 'utf8').replace(/(src|srcset)="(assets\/[^"]+)"/g, `$1="${raw}$2"`));

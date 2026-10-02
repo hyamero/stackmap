@@ -26,7 +26,7 @@ test('clicking a card selects it: inspector shows its data, connections and evid
   await expect(panel.getByText('Read replicas', { exact: true })).toBeVisible();
   await expect(panel.getByRole('list', { name: 'Connections' }).getByRole('button')).toHaveCount(3);
   const link = panel.getByRole('link', { name: 'infra/orders/postgres.tf:12' });
-  await expect(link).toHaveAttribute('href', 'https://github.com/hyamero/stackmap/blob/main/infra/orders/postgres.tf#L12');
+  await expect(link).toHaveAttribute('href', 'https://github.com/omsimos/stackmap/blob/main/infra/orders/postgres.tf#L12');
   await expect(panel.getByText('Primary + 2 read replicas')).toBeVisible();
   // Its direct edges take the source (service) tint.
   await expect(page.locator('path[data-edge-id="e-1-orders"]')).toHaveAttribute('data-tint', 'service');

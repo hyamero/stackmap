@@ -10,8 +10,8 @@ describe('site links', () => {
   });
 
   it('points the project links at the public repo and npm', () => {
-    expect(LINKS.github.href).toBe('https://github.com/hyamero/stackmap');
-    expect(LINKS.npm.href).toBe('https://www.npmjs.com/package/@hyamero/stackmap');
-    expect(LINKS.contributing.href).toBe('https://github.com/hyamero/stackmap/blob/main/CONTRIBUTING.md');
+    expect(LINKS.github.href).toBe('https://github.com/omsimos/stackmap');
+    expect(LINKS.npm.href).toBe('https://www.npmjs.com/package/@omsimos/stackmap');
+    expect(LINKS.contributing.href).toBe('https://github.com/omsimos/stackmap/blob/main/CONTRIBUTING.md');
   });
 });

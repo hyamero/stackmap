@@ -17,9 +17,9 @@ You write a typed diagram JSON. `stackmap` validates it, lays it out (you never 
 Run it as one literal command (each shell call starts fresh, so don't rely on variables set earlier):
 
 ```bash
-npx -y @hyamero/stackmap@0.2.0 validate <diagram.json> --json
-npx -y @hyamero/stackmap@0.2.0 deliver  <diagram.json> --open
-npx -y @hyamero/stackmap@0.2.0 serve    <diagram.json>   # optional live preview; see below
+npx -y @omsimos/stackmap@0.2.0 validate <diagram.json> --json
+npx -y @omsimos/stackmap@0.2.0 deliver  <diagram.json> --open
+npx -y @omsimos/stackmap@0.2.0 serve    <diagram.json>   # optional live preview; see below
 ```
 
 If the environment variable `STACKMAP_BIN` is set, it is the path of a stackmap executable: use `"$STACKMAP_BIN" validate …` (quoted, exactly like that) instead of `npx …`.

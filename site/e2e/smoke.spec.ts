@@ -236,7 +236,7 @@ test('the docs copy button confirms', async ({ page, context }) => {
   await page.goto('/docs');
   await page.getByRole('button', { name: 'Copy the install command' }).click();
   await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npx skills add hyamero/stackmap');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npx skills add omsimos/stackmap');
 });
 
 test('on a phone the nav menu opens the site links and closes on Escape', async ({ browser }) => {

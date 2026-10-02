@@ -7,7 +7,7 @@ type Env = Record<string, string | undefined>;
 
 export const SITE_NAME = 'stackmap';
 export const DESCRIPTION = 'Interactive system diagrams your coding agent writes, as one offline HTML file.';
-export const REPO = 'https://github.com/hyamero/stackmap';
+export const REPO = 'https://github.com/omsimos/stackmap';
 
 // Next merges metadata shallowly: a page that sets openGraph replaces the layout's, and with it the root's
 // opengraph-image file, so pages spread this and it names the image (and its alt.txt) again.

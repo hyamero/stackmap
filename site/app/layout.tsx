@@ -6,7 +6,7 @@ import { tokens } from '@stackmap/core';
 import { DocsFooter, Footer } from '@/components/site/Footer';
 import { FooterFor } from '@/components/site/FooterFor';
 import { Nav } from '@/components/site/Nav';
-import { DESCRIPTION, OPEN_GRAPH, REPO, SITE_NAME, siteUrl } from '@/lib/seo';
+import { DESCRIPTION, OPEN_GRAPH, SITE_NAME, siteUrl } from '@/lib/seo';
 import { THEME_SCRIPT, themeCss } from '@/lib/theme';
 import './globals.css';
 import './site.css';
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: { default: `${SITE_NAME} · Interactive system diagrams your coding agent writes`, template: `%s · ${SITE_NAME}` },
   description: DESCRIPTION,
   applicationName: SITE_NAME,
-  authors: [{ name: 'hyamero', url: REPO }],
+  authors: [{ name: 'hyamero', url: 'https://github.com/hyamero' }],
   openGraph: OPEN_GRAPH,
   twitter: { card: 'summary_large_image' },
 };
