@@ -41,10 +41,14 @@ export default function ViewerPage() {
         Parameters join with <C>&amp;</C>: <C>diagram.html#view=checkout&amp;node=api&amp;play=1</C>.
       </P>
 
-      <H2 id="present">Present</H2>
+      <H2 id="present">Present and focus</H2>
       <P>
         Press <Kbd>F</Kbd>, or Present in the toolbar, for the stage alone, full screen where the browser allows it. It steps through Overview and then each view:{' '}
         <Kbd>→</Kbd> or <Kbd>Space</Kbd> moves on, <Kbd>←</Kbd> goes back, <Kbd>Home</Kbd> and <Kbd>End</Kbd> jump to the ends, and <Kbd>Esc</Kbd> leaves.
+      </P>
+      <P>
+        For the canvas alone without presenting, press <Kbd>Z</Kbd> or Focus in the toolbar. The header, view tabs and inspector step aside and everything on the canvas keeps
+        working; <Kbd>H</Kbd> then hides the toolbar too, and <Kbd>Z</Kbd> brings it all back.
       </P>
 
       <H2 id="export">Export</H2>

@@ -34,7 +34,7 @@ Then ask:
   </picture>
 </p>
 
-The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and delivers `.stackmap/<name>/diagram.html`. Open that file in any browser. To change the diagram, ask again: the agent edits the JSON and delivers it again. The viewer itself is read-only.
+The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and delivers `.stackmap/<name>/diagram.html`, opening it in your browser. It opens in any browser later too. To change the diagram, ask again: the agent edits the JSON and delivers it again. The viewer itself is read-only.
 
 ## The viewer
 
@@ -90,9 +90,9 @@ Full reference: [skill/references/schema.md](skill/references/schema.md), or the
 The skill runs the CLI for you, and it works on its own too (Node 22.12 or later):
 
 ```bash
-npx @hyamero/stackmap validate diagram.json [--json]    # diagnostics with fixes; exit 1 on errors
-npx @hyamero/stackmap deliver  diagram.json [-o out.html]  # validate → layout → one offline HTML file
-npx @hyamero/stackmap serve    diagram.json [--port 4400]  # live viewer that reloads on every save
+npx @hyamero/stackmap validate diagram.json [--json]                # diagnostics with fixes; exit 1 on errors
+npx @hyamero/stackmap deliver  diagram.json [-o out.html] [--open]  # validate → layout → one offline HTML file
+npx @hyamero/stackmap serve    diagram.json [--port 4400]           # live viewer that reloads on every save
 ```
 
 - **validate** lists every problem with a code, its evidence and the allowed fixes, including card text that won't fit. It exits `1` when the diagram has errors and `2` on usage, IO or internal errors.

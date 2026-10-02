@@ -73,7 +73,8 @@ export default function CliPage() {
       <Synopsis name="deliver" />
       <P>
         Validates, lays out and writes one offline HTML file, next to the input unless you pass <C>-o</C>. It refuses to overwrite its input. Delivery is deterministic:
-        the same JSON always gives the same file, byte for byte, so the receipt’s hash is worth keeping.
+        the same JSON always gives the same file, byte for byte, so the receipt’s hash is worth keeping. With <C>--open</C> it then opens the file in your default
+        browser; the skill passes it, so a diagram opens as soon as the agent delivers it.
       </P>
       <div className="d-fig">
         <Terminal title="stackmap deliver" lines={[`$ stackmap deliver ${DEMO}`, `delivered ${file} · sha256 ${sha256} · ${bytes} bytes`]} />

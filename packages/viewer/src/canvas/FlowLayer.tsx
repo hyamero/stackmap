@@ -9,17 +9,22 @@ const PACKETS = [0, 1, 2];
 /** Drives the layer: calls `draw` with ms into playback, or null to hide every pulse; returns a stop. */
 export type FlowClock = (draw: (ms: number | null) => void) => () => void;
 
-const playing: FlowClock = (draw) => {
-  let began: number | null = null;
-  let frame = 0;
-  const tick = (now: number) => {
-    began ??= now;
-    draw(now - began);
+/** The viewer's own playback: real time at `speed()` (read every frame, so a change carries on without a jump). */
+export const playingClock =
+  (speed: () => number): FlowClock =>
+  (draw) => {
+    let last: number | null = null;
+    let ms = 0;
+    let frame = 0;
+    const tick = (now: number) => {
+      if (last !== null) ms += (now - last) * speed();
+      last = now;
+      draw(ms);
+      frame = requestAnimationFrame(tick);
+    };
     frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   };
-  frame = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(frame);
-};
 
 /**
  * Flow playback on the canvas, drawing `pulseFrame` for every pulse: a landing glow behind the target, a
@@ -28,8 +33,10 @@ const playing: FlowClock = (draw) => {
  * and a pulse slides out of one card into the next. One rAF loop writes attributes; React renders only when
  * the flow changes; a `clock` (a scroll scrub) can drive it instead. Exports skip it (`data-flow`).
  */
-export function FlowLayer({ flow, width, height, clock }: { flow: Flow; width: number; height: number; clock?: FlowClock }) {
+export function FlowLayer({ flow, width, height, speed = 1, clock }: { flow: Flow; width: number; height: number; speed?: number; clock?: FlowClock }) {
   const root = useRef<SVGGElement>(null);
+  const rate = useRef(speed);
+  rate.current = speed;
   useEffect(() => {
     const groups = [...(root.current?.children ?? [])] as SVGGElement[];
     if (!groups.length) return;
@@ -90,7 +97,7 @@ export function FlowLayer({ flow, width, height, clock }: { flow: Flow; width: n
       });
       if (tracked) setInFlight(flying);
     };
-    const stop = (clock ?? playing)(draw);
+    const stop = (clock ?? playingClock(() => rate.current))(draw);
     return () => {
       stop();
       if (tracked) setInFlight([]);

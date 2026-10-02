@@ -1,11 +1,11 @@
-import { Filter, Moon, Presentation, Route, Search, Sun, Waypoints } from 'lucide-react';
+import { EyeOff, Filter, Focus, Moon, Presentation, Route, Search, Sun, Waypoints } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useExplore } from '../explore/ExploreContext';
 import { useInScope } from '../explore/scope';
 import type { ThemeChoice } from '../theme/theme';
 import { ExportMenu } from './ExportMenu';
 import { LensPanel } from './LensPanel';
-import { PlayButton } from './PlayButton';
+import { PlayButton, SpeedButton } from './PlayButton';
 import { SearchPanel } from './SearchPanel';
 import { IconButton, PANEL_CLASS, PANEL_STYLE, ToolbarDivider } from './ui';
 
@@ -16,12 +16,19 @@ export function Toolbar({
   theme,
   onToggleTheme,
   onPresent,
+  focused = false,
+  onFocus,
+  onHide,
   exports = true,
   trace = true,
 }: {
   theme: ThemeChoice;
   onToggleTheme: () => void;
   onPresent?: () => void;
+  /** focus mode (Z): the canvas alone, and in it a button that hides the toolbar (H) */
+  focused?: boolean;
+  onFocus?: () => void;
+  onHide?: () => void;
   /** the export menu; a page that embeds the viewer has no file of its own to export */
   exports?: boolean;
   /** the trace button; an embed that offers trace elsewhere can leave it out */
@@ -142,10 +149,24 @@ export function Toolbar({
         <Waypoints size={17} strokeWidth={1.75} />
       </IconButton>
       <PlayButton />
+      <SpeedButton />
       <ToolbarDivider />
       {onPresent && (
         <IconButton label="Present (F)" onClick={onPresent}>
           <Presentation size={17} strokeWidth={1.75} />
+        </IconButton>
+      )}
+      {/* A phone's toolbar has no room for it; Z still works there with a keyboard. */}
+      {onFocus && (
+        <span className="contents @max-md:hidden">
+          <IconButton label={focused ? 'Leave focus (Z)' : 'Focus on the canvas (Z)'} pressed={focused} onClick={onFocus}>
+            <Focus size={17} strokeWidth={1.75} />
+          </IconButton>
+        </span>
+      )}
+      {focused && onHide && (
+        <IconButton label="Hide the toolbar (H)" onClick={onHide}>
+          <EyeOff size={17} strokeWidth={1.75} />
         </IconButton>
       )}
       <IconButton label={`Switch to ${next} theme`} onClick={onToggleTheme}>

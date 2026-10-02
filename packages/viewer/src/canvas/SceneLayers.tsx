@@ -209,12 +209,15 @@ export const SceneLayers = memo(function SceneLayers({
   emphasis,
   selected,
   flow = null,
+  speed = 1,
 }: {
   scene: Scene;
   emphasis: Emphasis;
   selected: string | null;
   /** the flow playing, if any */
   flow?: Flow | null;
+  /** its playback speed */
+  speed?: number;
 }) {
   const horizontal = scene.direction === 'RIGHT';
   const typeOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.node.type])), [scene]);
@@ -306,7 +309,7 @@ export const SceneLayers = memo(function SceneLayers({
               );
             })}
       </svg>
-      {flow && <FlowLayer flow={flow} width={scene.bounds.width} height={scene.bounds.height} />}
+      {flow && <FlowLayer flow={flow} speed={speed} width={scene.bounds.width} height={scene.bounds.height} />}
       {scene.cards.map((c) => (
         <Card
           key={c.node.id}
