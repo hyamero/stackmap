@@ -1,12 +1,12 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.svg">
-    <img alt="stackmap: interactive system diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.svg" width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/stackmap-readme-header-dark.png">
+    <img alt="stackmap: every layer of your stack, on one map. Interactive system diagrams your coding agent writes, as one offline HTML file" src="assets/brand/stackmap-readme-header.png" width="100%">
   </picture>
 </p>
 
 <p align="center">
-  <img src="assets/readme/tour.webp" alt="A 25-second tour of the viewer on an agent tool call workflow: zoom in and select the planner, open the Approval gate guided view, pick a route from User to Final reply, play the flow hop by hop, then switch to the dark theme" width="100%" />
+  <a href="https://stackmap-site.vercel.app">Website</a> · <a href="https://stackmap-site.vercel.app/docs">Docs</a> · <a href="https://stackmap-site.vercel.app/examples">Examples</a>
 </p>
 
 Ask your coding agent to diagram a codebase, a system, a process or a request. It writes a small typed JSON, stackmap validates it with repair hints the agent acts on, lays it out, and delivers one self-contained HTML viewer. No server, no account, nothing to install to open it.
@@ -27,13 +27,22 @@ Then ask:
 
 > Make an architecture diagram of this repository, backed by evidence from the code.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/agent-loop-dark.svg">
+    <img alt="The loop: you ask your coding agent, it writes diagram.json, stackmap checks it and names the fix, the agent repairs it, and you open one HTML file" src="assets/readme/agent-loop-light.svg" width="100%">
+  </picture>
+</p>
+
 The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and delivers `.stackmap/<name>/diagram.html`. Open that file in any browser. To change the diagram, ask again: the agent edits the JSON and delivers it again. The viewer itself is read-only.
 
 ## The viewer
 
 <p align="center">
-  <img src="assets/readme/viewer-light.png" alt="stackmap viewer in light mode: a Commerce API topology with the Orders database selected and its upstream traced; the inspector shows its details, connections and source evidence" width="49%" />
-  <img src="assets/readme/viewer-dark.png" alt="The same diagram in dark mode" width="49%" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/tour-dark.webp">
+    <img alt="A tour of the viewer on the Commerce API diagram: zoom in and select Orders DB to see its connections and source evidence, open the Checkout path view, route from Storefront to Stripe, and play the flow hop by hop" src="assets/readme/tour.webp" width="100%">
+  </picture>
 </p>
 
 - **Explore:** select a card for its details, connections and source evidence. **Trace** keeps a node's upstream and downstream; **Route** lights every path between two nodes.
@@ -63,11 +72,18 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
 }
 ```
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/readme/card-dark.png">
+    <img alt="A card's parts: the icon tile, up to three stats with a note, a footer with two items and a link; beside it, the six connection styles: a call, async, reply, main path, security crossing and failure path" src="assets/readme/card-light.png" width="100%">
+  </picture>
+</p>
+
 - **Nodes:** nine types set the colour (`client`, `gateway`, `service`, `database`, `cache`, `queue`, `storage`, `external`, `security`), and lifecycles have seven state types. Cards can add rows, stats, a footer, a link and one of 146 [Simple Icons](https://simpleicons.org) logos.
 - **Edges** can be `async` or a `return`, with a `tone` for the main path, security crossings and failure paths.
 - **No coordinates:** stackmap lays everything out, with [ELK](https://eclipse.dev/elk/) for architecture and dataflow and its own layout for lanes and sequences.
 
-Full reference: [skill/references/schema.md](skill/references/schema.md). Modelling guidance: [authoring contract](skill/references/authoring-contract.md).
+Full reference: [skill/references/schema.md](skill/references/schema.md), or the [schema reference](https://stackmap-site.vercel.app/docs/schema) on the website. Modelling guidance: [authoring contract](skill/references/authoring-contract.md).
 
 ## The CLI
 
