@@ -20,20 +20,16 @@ function pageRoutes(dir = join(site, 'app')): string[] {
 }
 
 describe('siteUrl', () => {
-  it('uses the production domain Vercel reports', () => {
-    expect(siteUrl({ VERCEL_PROJECT_PRODUCTION_URL: 'stackmap.dev' }).href).toBe('https://stackmap.dev/');
-  });
-
-  it('falls back to the project domain outside Vercel', () => {
-    expect(siteUrl({}).href).toBe('https://stackmap-site-hyameros-projects.vercel.app/');
+  it('is the custom domain, never a vercel.app one', () => {
+    expect(siteUrl().href).toBe('https://stackmap.omsimos.com/');
   });
 });
 
 describe('robots', () => {
   it('lets crawlers in on production and points them at the sitemap', () => {
-    const r = robotsFor({ VERCEL_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'stackmap.dev' });
+    const r = robotsFor({ VERCEL_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'stackmap-site.vercel.app' });
     expect(r.rules).toEqual({ userAgent: '*', allow: '/' });
-    expect(r.sitemap).toBe('https://stackmap.dev/sitemap.xml');
+    expect(r.sitemap).toBe('https://stackmap.omsimos.com/sitemap.xml');
   });
 
   it('keeps previews and local builds out of the index', () => {
