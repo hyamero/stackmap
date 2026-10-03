@@ -25,9 +25,10 @@ export function Toolbar({
   theme: ThemeChoice;
   onToggleTheme: () => void;
   onPresent?: () => void;
-  /** focus mode (Z): the canvas alone, and in it a button that hides the toolbar (H) */
+  /** focus mode (Z): the canvas alone */
   focused?: boolean;
   onFocus?: () => void;
+  /** a button that hides the toolbar (H) */
   onHide?: () => void;
   /** the export menu; a page that embeds the viewer has no file of its own to export */
   exports?: boolean;
@@ -156,19 +157,19 @@ export function Toolbar({
           <Presentation size={17} strokeWidth={1.75} />
         </IconButton>
       )}
-      {/* A phone's toolbar has no room for it; Z still works there with a keyboard. */}
-      {onFocus && (
-        <span className="contents @max-md:hidden">
+      {/* A phone's toolbar has no room for these; Z and H still work there with a keyboard. */}
+      <span className="contents @max-md:hidden">
+        {onFocus && (
           <IconButton label={focused ? 'Leave focus (Z)' : 'Focus on the canvas (Z)'} pressed={focused} onClick={onFocus}>
             <Focus size={17} strokeWidth={1.75} />
           </IconButton>
-        </span>
-      )}
-      {focused && onHide && (
-        <IconButton label="Hide the toolbar (H)" onClick={onHide}>
-          <EyeOff size={17} strokeWidth={1.75} />
-        </IconButton>
-      )}
+        )}
+        {onHide && (
+          <IconButton label="Hide the toolbar (H)" onClick={onHide}>
+            <EyeOff size={17} strokeWidth={1.75} />
+          </IconButton>
+        )}
+      </span>
       <IconButton label={`Switch to ${next} theme`} onClick={onToggleTheme}>
         {theme === 'dark' ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
       </IconButton>

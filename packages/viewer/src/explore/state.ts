@@ -5,6 +5,8 @@ export interface ExploreState {
   /** null = search closed; '' = open, nothing typed */
   query: string | null;
   hiddenTypes: ReadonlySet<NodeType>;
+  /** a legend row under the pointer: only that type stays lit while it is (never in the hash) */
+  peek: NodeType | null;
   trace: boolean;
   /** null = Overview */
   view: string | null;
@@ -27,6 +29,7 @@ export const INITIAL: ExploreState = {
   selected: null,
   query: null,
   hiddenTypes: new Set(),
+  peek: null,
   trace: false,
   view: null,
   reveal: 0,
@@ -41,6 +44,7 @@ export type ExploreAction =
   | { type: 'clear' }
   | { type: 'search'; query: string | null }
   | { type: 'toggleType'; nodeType: NodeType }
+  | { type: 'peek'; nodeType: NodeType | null }
   | { type: 'toggleTrace' }
   | { type: 'view'; id: string | null }
   | { type: 'toggleRoute' }
@@ -72,6 +76,8 @@ export function explore(s: ExploreState, a: ExploreAction): ExploreState {
       if (!hidden.delete(a.nodeType)) hidden.add(a.nodeType);
       return { ...s, hiddenTypes: hidden };
     }
+    case 'peek':
+      return { ...s, peek: a.nodeType };
     case 'toggleTrace':
       // A route owns the emphasis while it is shown.
       return s.route || s.routing ? s : { ...s, trace: !s.trace };
