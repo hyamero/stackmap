@@ -162,17 +162,17 @@ describe('layoutDiagram', () => {
     expect(ca.at(-1)!.y).toBeCloseTo(out.nodes.a!.y + out.nodes.a!.height, 0);
   });
 
-  it('gives labelled edges and edges of different styles their own port', async () => {
-    const targets = ['t1', 't2', 't3', 't4'];
+  it('gives edges of another tone or line style their own port', async () => {
     for (const direction of ['RIGHT', 'DOWN'] as const) {
       const out = await layoutDiagram(
         draft({
           direction,
-          nodes: [node('hub'), ...targets.map((t) => node(t)), node('m'), node('s')],
+          nodes: [node('hub'), node('plain'), node('m'), node('s'), node('q')],
           edges: [
-            ...targets.map((t) => ({ id: t, from: 'hub', to: t, label: `to ${t}` })),
+            { id: 'plain', from: 'hub', to: 'plain', label: 'reads' },
             { id: 'main', from: 'hub', to: 'm', tone: 'main' as const },
             { id: 'sec', from: 'hub', to: 's', tone: 'security' as const },
+            { id: 'async', from: 'hub', to: 'q', kind: 'async' as const },
           ],
         }),
       );
@@ -181,16 +181,25 @@ describe('layoutDiagram', () => {
     }
   });
 
-  it('still merges unlabelled edges of one style into a shared port', async () => {
+  it('merges edges of one style into a shared trunk, labelled or not, with each label by its target', async () => {
+    const targets = ['a', 'b', 'c', 'd'];
     const out = await layoutDiagram(
       draft({
         direction: 'DOWN',
-        nodes: [node('hub'), node('a'), node('b'), node('c')],
-        edges: ['a', 'b', 'c'].map((t) => ({ id: t, from: 'hub', to: t })),
+        nodes: [node('hub'), ...targets.map((t) => node(t))],
+        edges: targets.map((t, i) => ({ id: t, from: 'hub', to: t, ...(i % 2 ? { label: `to ${t}` } : {}) })),
       }),
     );
     const starts = Object.values(out.edges).map((pts) => `${pts[0]!.x},${pts[0]!.y}`);
     expect(new Set(starts).size).toBe(1);
+    for (const t of ['b', 'd']) {
+      const label = out.labels![t]!;
+      const target = out.nodes[t]!;
+      // Above its own target, not out on the shared bus.
+      expect(label.x).toBeGreaterThan(target.x);
+      expect(label.x).toBeLessThan(target.x + target.width);
+      expect(label.y).toBeLessThan(target.y);
+    }
   });
 
   it('top-aligns the cards of a row, whatever their heights', async () => {

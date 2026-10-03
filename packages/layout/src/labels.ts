@@ -16,6 +16,17 @@ const crossed = (r: Rect, lines: Point[][]) =>
       return Math.max(a.x, b.x) > r.x && Math.min(a.x, b.x) < r.x + r.width && Math.max(a.y, b.y) > r.y && Math.min(a.y, b.y) < r.y + r.height;
     }),
   );
+/** Distance from a point to the nearest segment of a polyline. */
+function distance(p: Point, pts: Point[]): number {
+  let best = Infinity;
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1]!, pts[i]!];
+    const x = Math.max(Math.min(a.x, b.x), Math.min(p.x, Math.max(a.x, b.x)));
+    const y = Math.max(Math.min(a.y, b.y), Math.min(p.y, Math.max(a.y, b.y)));
+    best = Math.min(best, Math.hypot(p.x - x, p.y - y));
+  }
+  return best;
+}
 const pillAt = (p: Point, w: number): Rect => ({ x: p.x - w / 2, y: p.y - LABEL_H / 2, width: w, height: LABEL_H });
 
 /** A group frame: labels keep off its border and its title. */
@@ -63,7 +74,7 @@ function biases(edges: { id: string; from?: string; to?: string }[]): Map<string
 
 /**
  * Every label of a laid-out diagram, in draft order. A label goes on the longest run of its route that holds its
- * pill clear of cards, other labels and other edges' lines; along a run it may slide off the midpoint to clear a
+ * pill clear of cards, other labels and other edges' lines, nearer its own edge than any other; along a run it may slide off the midpoint to clear a
  * neighbour. Horizontal runs are preferred. Where no spot clears the lines, one that clears cards and labels does,
  * and failing that the middle of the longest run. With `keepMidpoints`, a label whose route midpoint is already
  * clear stays there (where the viewer drew it before full layouts placed labels), so only the crowded ones move.
@@ -83,7 +94,8 @@ export function placeLabels(
   const { lines: borders, titles } = frameObstacles(frames);
   const cards = [...cardRects, ...titles];
   const bias = biases(edges);
-  const others = (id: string) => [...Object.entries(routes).flatMap(([k, pts]) => (k === id ? [] : [pts])), ...borders];
+  const rivals = (id: string) => Object.entries(routes).flatMap(([k, pts]) => (k === id ? [] : [pts]));
+  const others = (id: string) => [...rivals(id), ...borders];
   const taken: Rect[] = [];
   const labels: Record<string, Point> = {};
   if (keepMidpoints) {
@@ -101,7 +113,7 @@ export function placeLabels(
   let unseated = 0;
   for (const e of labelled) {
     if (labels[e.id]) continue;
-    const spot = findLabelSpot(routes[e.id]!, e.label!, cards, taken, others(e.id), bias.get(e.id));
+    const spot = findLabelSpot(routes[e.id]!, e.label!, cards, taken, others(e.id), bias.get(e.id), rivals(e.id));
     if (spot) labels[e.id] = spot;
     else {
       misfit = Math.max(misfit, labelWidth(e.label!));
@@ -119,7 +131,16 @@ export function placeLabels(
 }
 
 /** A spot that fits, claimed in `taken`; null when none does. */
-export function findLabelSpot(points: Point[], text: string, cards: Rect[], taken: Rect[], lines: Point[][] = [], bias: Bias = 'mid'): Point | null {
+export function findLabelSpot(
+  points: Point[],
+  text: string,
+  cards: Rect[],
+  taken: Rect[],
+  lines: Point[][] = [],
+  bias: Bias = 'mid',
+  /** other edges' routes: a spot nearer one of them than its own would read as naming that edge */
+  rivals: Point[][] = [],
+): Point | null {
   const w = labelWidth(text);
   let best: { p: Point; score: number } | null = null;
   const total = points.slice(1).reduce((s, b, i) => s + Math.abs(b.x - points[i]!.x) + Math.abs(b.y - points[i]!.y), 0);
@@ -142,6 +163,7 @@ export function findLabelSpot(points: Point[], text: string, cards: Rect[], take
         const p = { x: round(a.x + (b.x - a.x) * t + dx), y: round(a.y + (b.y - a.y) * t + dy) };
         const pill = pillAt(p, w);
         if (cards.some((r) => overlaps(pill, r)) || taken.some((r) => overlaps(pill, r)) || crossed(pill, lines)) continue;
+        if (rivals.some((r) => distance(p, r) < distance(p, points))) continue;
         // Longer and horizontal runs first; off-centre and off-line spots lose a little. A biased label goes as near
         // its far end as it fits instead.
         const reach = bias === 'end' ? total - (from + t * len) : bias === 'start' ? from + t * len : null;

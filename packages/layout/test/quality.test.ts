@@ -4,7 +4,7 @@ import { layoutDiagram } from '../src/index';
 import { CORPUS } from './corpus';
 
 // Properties that keep a layout readable whatever the author draws: these failed on real diagrams before (a hub's
-// calls merged into one unlabellable trunk, a reply pushing the client below the API, an entry call wrapping round
+// calls of every colour merged into one trunk, a reply pushing the client below the API, an entry call wrapping round
 // the whole picture to come in from the far side).
 
 const laid = await Promise.all(CORPUS.filter(([, d]) => !isLaneKind(d.kind)).map(async ([name, d]) => [name, d, await layoutDiagram(d)] as const));
@@ -14,11 +14,11 @@ const centre = (r: Rect) => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
 const near = (a: number, b: number) => Math.abs(a - b) < 0.5;
 
 describe.each(laid)('layout quality of %s', (_name, draft, out) => {
-  it('never lets edges that look different, or a labelled edge, share a port', () => {
+  it('never lets edges that look different share a port', () => {
     const at = new Map<string, Set<string>>();
     for (const e of draft.edges) {
       const pts = out.edges[e.id]!;
-      const style = e.label ? `label:${e.id}` : `${e.tone ?? ''}|${e.kind ?? 'sync'}`;
+      const style = `${e.tone ?? ''}|${e.kind ?? 'sync'}`;
       for (const [node, p, role] of [
         [e.from, pts[0]!, 'out'],
         [e.to, pts.at(-1)!, 'in'],
