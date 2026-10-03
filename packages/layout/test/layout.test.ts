@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cardSize, type DiagramDraft, type DiagramNode, type Point, type Rect } from '@stackmap/core';
 import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
 import { GROUP_LABEL_BAND, layoutDiagram } from '../src/index';
+import { STRESS } from './stress';
 
 const node = (id: string, extra: Partial<DiagramNode> = {}): DiagramNode => ({
   id,
@@ -190,6 +191,14 @@ describe('layoutDiagram', () => {
     );
     const starts = Object.values(out.edges).map((pts) => `${pts[0]!.x},${pts[0]!.y}`);
     expect(new Set(starts).size).toBe(1);
+  });
+
+  it('top-aligns the cards of a row, whatever their heights', async () => {
+    // In the hub, feed (a reply's target) and finisher are shorter than their row-mates and used to be centred on them.
+    const out = await layoutDiagram(STRESS['hub-down']!);
+    expect(out.nodes.feed!.y).toBe(out.nodes.picker!.y);
+    expect(out.nodes.finisher!.y).toBe(out.nodes.pin!.y);
+    expect(out.nodes.effort!.y).toBe(out.nodes.pin!.y);
   });
 
   it('is deterministic', async () => {

@@ -172,8 +172,9 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
       id: n.id,
       width,
       height,
-      // ELK orders and spaces the ports along the side to keep crossings down.
-      layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE', ...(partition === undefined ? {} : { 'elk.partitioning.partition': String(partition) }) },
+      // ELK orders and spaces the ports along the side to keep crossings down. Top-down, a short card would sit
+      // centred on a taller neighbour's row; aligning tops keeps the row's titles on one line.
+      layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE', ...(direction === 'DOWN' ? { 'elk.alignment': 'TOP' } : {}), ...(partition === undefined ? {} : { 'elk.partitioning.partition': String(partition) }) },
       ports: [],
     });
   }
