@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { Fragment, memo, useId, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ShieldCheck, TriangleAlert } from 'lucide-react';
 import { TYPE_LABELS, type Rect } from '@stackmap/core';
 import { NodeCard } from '../card/NodeCard';
@@ -7,7 +7,7 @@ import type { Emphasis, NodeEmphasis } from '../explore/emphasis';
 import { useExploreDispatch } from '../explore/ExploreContext';
 import { neighbourInDirection, type Direction } from '../explore/graph';
 import { arrowMarkerId, ArrowMarkerDefs, edgeStroke, type EdgeColor } from './ArrowMarker';
-import type { Scene, SceneCard, SceneEdge, SceneFrame, SceneLane, ScenePhase } from './scene';
+import type { Scene, SceneCard, SceneEdge, SceneFrame, SceneGap, SceneLane, ScenePhase } from './scene';
 import { useCamera } from './ViewportContext';
 import type { Flow } from '../motion/flow';
 import { FlowLayer } from './FlowLayer';
@@ -119,6 +119,26 @@ function edgeLook(e: SceneEdge, tint: EdgeColor): { color: EdgeColor; width: num
   return { color, width, dash };
 }
 
+// The break a crossing leaves in the line passing under: the over line's width plus 4px either side, along the line.
+const GAP = { along: 10, across: 8 };
+
+/** Cuts the gaps out of one edge (and its arrowhead) whatever is behind it, frame fills included. */
+function GapMask({ id, edge, gaps }: { id: string; edge: SceneEdge; gaps: SceneGap[] }) {
+  // The route's own box (plus the arrowhead), not the diagram's: a mask is rasterised over its whole region.
+  const xs = edge.points.map((p) => p.x);
+  const ys = edge.points.map((p) => p.y);
+  const box = { x: Math.min(...xs) - 12, y: Math.min(...ys) - 12, width: Math.max(...xs) - Math.min(...xs) + 24, height: Math.max(...ys) - Math.min(...ys) + 24 };
+  return (
+    <mask id={id} maskUnits="userSpaceOnUse" {...box}>
+      <rect {...box} fill="white" />
+      {gaps.map((g) => {
+        const [w, h] = g.vertical ? [GAP.across, GAP.along] : [GAP.along, GAP.across];
+        return <rect key={`${g.x},${g.y}`} x={g.x - w / 2} y={g.y - h / 2} width={w} height={h} fill="black" />;
+      })}
+    </mask>
+  );
+}
+
 // Memoised with stable props: an explorer change re-renders only the cards whose emphasis changed.
 const Card = memo(function Card({
   card,
@@ -203,6 +223,8 @@ export const SceneLayers = memo(function SceneLayers({
   const typeOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.node.type])), [scene]);
   const rects = useMemo(() => Object.fromEntries(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
   const [lastFocused, setLastFocused] = useState<string | null>(null);
+  // Mask ids are document-wide, and a page may embed several diagrams.
+  const maskPrefix = `sm-gaps${useId().replace(/[^\w-]/g, '')}`;
   const tabStop = selected ?? (lastFocused && rects[lastFocused] ? lastFocused : scene.cards[0]?.node.id);
   return (
     <>
@@ -250,28 +272,34 @@ export const SceneLayers = memo(function SceneLayers({
             style={{ fill: `var(--sm-${a.type}-accent)`, fillOpacity: 0.16, stroke: `var(--sm-${a.type}-accent)`, strokeWidth: 1 }}
           />
         ))}
-        {scene.edges.map((e) => {
+        {scene.edges.map((e, i) => {
           const { dim, tint } = emphasis.edges.get(e.id) ?? { dim: false, tint: null };
           const look = edgeLook(e, tint);
+          // Faded lines crossing over would cut a gap into a lit one for nothing.
+          const gaps = e.gaps.filter((g) => g.over.some((o) => !emphasis.edges.get(o)?.dim));
+          const mask = `${maskPrefix}-${i}`;
           return (
-            <path
-              key={e.id}
-              data-edge-id={e.id}
-              data-dim={dim || undefined}
-              data-tint={tint ?? undefined}
-              data-tone={e.tone}
-              data-kind={e.kind === 'sync' ? undefined : e.kind}
-              className="sm-edge-path"
-              d={e.path}
-              fill="none"
-              markerEnd={`url(#${arrowMarkerId(look.color, e.kind === 'return')})`}
-              style={{
-                stroke: edgeStroke(look.color),
-                strokeWidth: look.width,
-                strokeDasharray: look.dash,
-                strokeLinecap: e.kind === 'return' ? 'round' : undefined,
-              }}
-            />
+            <Fragment key={e.id}>
+              {gaps.length > 0 && <GapMask id={mask} edge={e} gaps={gaps} />}
+              <path
+                data-edge-id={e.id}
+                data-dim={dim || undefined}
+                data-tint={tint ?? undefined}
+                data-tone={e.tone}
+                data-kind={e.kind === 'sync' ? undefined : e.kind}
+                className="sm-edge-path"
+                d={e.path}
+                fill="none"
+                markerEnd={`url(#${arrowMarkerId(look.color, e.kind === 'return')})`}
+                mask={gaps.length > 0 ? `url(#${mask})` : undefined}
+                style={{
+                  stroke: edgeStroke(look.color),
+                  strokeWidth: look.width,
+                  strokeDasharray: look.dash,
+                  strokeLinecap: e.kind === 'return' ? 'round' : undefined,
+                }}
+              />
+            </Fragment>
           );
         })}
         {/* Lifecycle: a start state's initial marker, a filled dot with a stub into the card (UML). */}
