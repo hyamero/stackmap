@@ -98,6 +98,7 @@ export function How({ demo, receipt, repair }: { demo: LaidOutDiagram; receipt: 
   const [shown, setShown] = useState(0);
   const runway = useRef(0);
   const stickTop = useRef(0);
+  const arrived = useRef(false);
 
   useEffect(() => {
     const mm = gsap.matchMedia();
@@ -112,6 +113,11 @@ export function How({ demo, receipt, repair }: { demo: LaidOutDiagram; receipt: 
         s.style.top = `${stickTop.current}px`;
       };
       layout();
+      // The runway arrives after the browser (or Next, from another page) has scrolled to the hash, pushing a
+      // target below it a runway further down: go there again.
+      const target = !arrived.current && location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+      arrived.current = true;
+      if (target && p.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING) target.scrollIntoView();
       setPinned(true);
       const draw = (progress: number) => {
         if (fill.current) fill.current.style.transform = `scaleX(${progress})`;
