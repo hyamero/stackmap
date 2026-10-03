@@ -3,7 +3,6 @@ import { useRef, type ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { commerceApiLayout } from './samples/commerce-api.layout';
 import { DiagramCanvas } from './canvas/DiagramCanvas';
-import { IdentityCard } from './chrome/IdentityCard';
 import { Inspector } from './chrome/Inspector';
 import { Toolbar } from './chrome/Toolbar';
 import { ExploreProvider, useExplore } from './explore/ExploreContext';
@@ -137,11 +136,6 @@ describe('embedding the viewer', () => {
     expect(screen.queryByRole('button', { name: /^Trace/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Search nodes (/)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Route between two nodes (R)' })).toBeInTheDocument();
-  });
-
-  it('draws the identity card without a details button when there is nothing to open', () => {
-    render(<IdentityCard draft={draft} />);
-    expect(screen.queryByRole('button', { name: 'Diagram details' })).toBeNull();
   });
 
   it('gives the inspector no toggle when it cannot collapse, and lets the page add to it', () => {

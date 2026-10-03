@@ -38,12 +38,20 @@ const LINE_STYLES: { key: string; label: string; test: (e: DiagramEdge) => boole
 ];
 
 function Legend({ draft }: { draft: DiagramDraft }) {
+  const { dispatch } = useExplore();
   const lines = LINE_STYLES.filter((l) => draft.edges.some(l.test));
+  // A row that unmounts under the pointer never gets its mouseleave.
+  useEffect(() => () => dispatch({ type: 'peek', nodeType: null }), [dispatch]);
   return (
     <>
-      <ul aria-label="Legend" className="space-y-2.5">
+      <ul aria-label="Legend" className="space-y-0.5">
         {countByType(draft.nodes).map(([type, count]) => (
-          <li key={type} className="flex items-center justify-between text-[13px] text-fg">
+          <li
+            key={type}
+            onMouseEnter={() => dispatch({ type: 'peek', nodeType: type })}
+            onMouseLeave={() => dispatch({ type: 'peek', nodeType: null })}
+            className="-mx-2 flex items-center justify-between rounded-lg px-2 py-1 text-[13px] text-fg transition-colors duration-150 hover:bg-page"
+          >
             <span className="flex items-center gap-2.5">
               <span aria-hidden="true" className="size-2.5 rounded-full" style={{ background: `var(--sm-${type}-accent)` }} />
               {TYPE_LABELS[type]}
@@ -375,7 +383,7 @@ export function Inspector({
   const narrow = placement === 'auto';
   if (collapsed && toggle) {
     return (
-      <aside aria-label="Inspector" className={`shrink-0 rounded-[20px] bg-panel p-1.5 ${narrow ? NARROW_COLLAPSED : ''}`} style={PANEL_STYLE}>
+      <aside aria-label="Inspector" className={`shrink-0 self-start rounded-2xl bg-panel p-1.5 ${narrow ? NARROW_COLLAPSED : ''}`} style={PANEL_STYLE}>
         {toggle}
       </aside>
     );
