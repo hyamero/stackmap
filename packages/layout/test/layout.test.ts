@@ -121,6 +121,77 @@ describe('layoutDiagram', () => {
     }
   });
 
+  it('lays a reply out against the flow, so the caller stays upstream of what it calls', async () => {
+    const out = await layoutDiagram(
+      draft({
+        direction: 'DOWN',
+        groups: [{ id: 'ui', label: 'UI' }, { id: 'api', label: 'API' }],
+        nodes: [node('api', { group: 'api' }), node('feed', { type: 'client', group: 'ui' }), node('picker', { type: 'client', group: 'ui' })],
+        edges: [
+          { id: 'send', from: 'picker', to: 'api' },
+          { id: 'reply', from: 'api', to: 'feed', kind: 'return' },
+        ],
+      }),
+    );
+    expect(out.groups.ui!.y + out.groups.ui!.height).toBeLessThan(out.groups.api!.y);
+    // The call drops straight in; the reply climbs back up from the callee's top to the caller's bottom.
+    expect(out.edges.send!.length).toBeLessThanOrEqual(4);
+    const reply = out.edges.reply!;
+    expect(reply[0]!.y).toBeCloseTo(out.nodes.api!.y, 0);
+    expect(reply.at(-1)!.y).toBeCloseTo(out.nodes.feed!.y + out.nodes.feed!.height, 0);
+  });
+
+  it('breaks a cycle at the edge that points back to where the flow started', async () => {
+    const out = await layoutDiagram(
+      draft({
+        direction: 'DOWN',
+        nodes: [node('a'), node('b'), node('c')],
+        edges: [
+          { id: 'ab', from: 'a', to: 'b' },
+          { id: 'bc', from: 'b', to: 'c' },
+          { id: 'ca', from: 'c', to: 'a', label: 'retry' },
+        ],
+      }),
+    );
+    expect(out.nodes.a!.y).toBeLessThan(out.nodes.b!.y);
+    expect(out.nodes.b!.y).toBeLessThan(out.nodes.c!.y);
+    // The back edge leaves c by its top and enters a by its bottom instead of wrapping round the diagram.
+    const ca = out.edges.ca!;
+    expect(ca[0]!.y).toBeCloseTo(out.nodes.c!.y, 0);
+    expect(ca.at(-1)!.y).toBeCloseTo(out.nodes.a!.y + out.nodes.a!.height, 0);
+  });
+
+  it('gives labelled edges and edges of different styles their own port', async () => {
+    const targets = ['t1', 't2', 't3', 't4'];
+    for (const direction of ['RIGHT', 'DOWN'] as const) {
+      const out = await layoutDiagram(
+        draft({
+          direction,
+          nodes: [node('hub'), ...targets.map((t) => node(t)), node('m'), node('s')],
+          edges: [
+            ...targets.map((t) => ({ id: t, from: 'hub', to: t, label: `to ${t}` })),
+            { id: 'main', from: 'hub', to: 'm', tone: 'main' as const },
+            { id: 'sec', from: 'hub', to: 's', tone: 'security' as const },
+          ],
+        }),
+      );
+      const starts = Object.values(out.edges).map((pts) => `${pts[0]!.x},${pts[0]!.y}`);
+      expect(new Set(starts).size, direction).toBe(starts.length);
+    }
+  });
+
+  it('still merges unlabelled edges of one style into a shared port', async () => {
+    const out = await layoutDiagram(
+      draft({
+        direction: 'DOWN',
+        nodes: [node('hub'), node('a'), node('b'), node('c')],
+        edges: ['a', 'b', 'c'].map((t) => ({ id: t, from: 'hub', to: t })),
+      }),
+    );
+    const starts = Object.values(out.edges).map((pts) => `${pts[0]!.x},${pts[0]!.y}`);
+    expect(new Set(starts).size).toBe(1);
+  });
+
   it('is deterministic', async () => {
     expect(await layoutDiagram(groupedPlatform)).toEqual(await layoutDiagram(groupedPlatform));
   });

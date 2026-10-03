@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import ElkApi from 'elkjs/lib/elk-api.js';
 import ElkBundled from 'elkjs/lib/elk.bundled.js';
-import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
+import type { ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
 import { cardSize, isLaneKind, usesCompactCards, type DiagramDraft, type Direction, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
 import { placeLabels } from './labels';
 import { layoutLanes } from './lanes';
@@ -16,6 +16,11 @@ export const GROUP_LABEL_BAND = 48;
 export const STAGE_LABEL_BAND = 44;
 const STAGE_PAD = 20;
 const COMPACT_GAP = { right: 72, max: 168 } as const;
+/** Widest layer gap a full-card layout grows to so its labels fit. */
+const FULL_GAP_MAX = 280;
+const GROUP_LAYER_GAP = 80;
+const LAYER_GAP = 'elk.layered.spacing.nodeNodeBetweenLayers';
+const EDGE_RUN = 'elk.layered.spacing.edgeNodeBetweenLayers';
 const GROUP_PREFIX = 'group:';
 
 // elkjs's bundled build treats any runtime with a global `self` and no `document` as a web worker
@@ -66,23 +71,54 @@ const wrapOptions: Record<string, string> = {
   'elk.layered.wrapping.additionalEdgeSpacing': '40',
 };
 
-// One fixed in/out port per node is what makes fan-in/fan-out collapse into shared trunks.
-function ports(id: string, width: number, height: number, direction: Direction): ElkPort[] {
-  const horizontal = direction === 'RIGHT';
-  return [
-    {
-      id: `${id}:in`,
-      x: horizontal ? 0 : width / 2,
-      y: horizontal ? height / 2 : 0,
-      layoutOptions: { 'elk.port.side': horizontal ? 'WEST' : 'NORTH' },
-    },
-    {
-      id: `${id}:out`,
-      x: horizontal ? width : width / 2,
-      y: horizontal ? height / 2 : height,
-      layoutOptions: { 'elk.port.side': horizontal ? 'EAST' : 'SOUTH' },
-    },
-  ];
+/**
+ * Edges laid out against their drawn direction: every reply (`return`), then whatever still closes a cycle, found by
+ * a depth-first walk from the entry points in draft order. ELK would otherwise break cycles itself and may pick the
+ * entry call, pushing the caller below what it calls and sending that call round the whole diagram.
+ */
+export function reversedEdges(draft: DiagramDraft): Set<string> {
+  const reversed = new Set(draft.edges.filter((e) => e.kind === 'return').map((e) => e.id));
+  const out = new Map<string, { id: string; to: string }[]>(draft.nodes.map((n) => [n.id, []]));
+  const fed = new Set<string>();
+  for (const e of draft.edges) {
+    if (e.from === e.to) continue;
+    const [a, b] = reversed.has(e.id) ? [e.to, e.from] : [e.from, e.to];
+    out.get(a)?.push({ id: e.id, to: b });
+    fed.add(b);
+  }
+  const state = new Map<string, 'open' | 'done'>();
+  const visit = (start: string) => {
+    const stack: { id: string; next: number }[] = [{ id: start, next: 0 }];
+    state.set(start, 'open');
+    while (stack.length) {
+      const top = stack.at(-1)!;
+      const edge = out.get(top.id)![top.next++];
+      if (!edge) {
+        state.set(top.id, 'done');
+        stack.pop();
+      } else if (state.get(edge.to) === 'open') {
+        // Points back at a node on the current path: flipping it (twice for a reply) keeps the flow acyclic.
+        if (reversed.has(edge.id)) reversed.delete(edge.id);
+        else reversed.add(edge.id);
+      } else if (!state.has(edge.to)) {
+        state.set(edge.to, 'open');
+        stack.push({ id: edge.to, next: 0 });
+      }
+    }
+  };
+  for (const n of draft.nodes) if (!fed.has(n.id) && !state.has(n.id)) visit(n.id);
+  for (const n of draft.nodes) if (!state.has(n.id)) visit(n.id);
+  return reversed;
+}
+
+/**
+ * The port an edge end attaches to. Unlabelled edges of one style leaving (or entering) a card the same way share
+ * one, so fan-in and fan-out merge into a trunk; a labelled edge, or one of another tone or line style, gets its
+ * own: on a shared trunk a label can't say which branch it names, and colours would hide each other.
+ */
+function portKey(e: DiagramDraft['edges'][number], node: string, role: 'out' | 'in', flipped: boolean): string {
+  if (e.label) return `${node}:${role}:${e.id}`;
+  return `${node}:${role}:${flipped ? 'flipped' : 'flow'}:${e.tone ?? ''}:${e.kind ?? 'sync'}`;
 }
 
 const round = (n: number) => Math.round(n * 100) / 100;
@@ -113,7 +149,7 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
         'elk.padding': `[top=${GROUP_LABEL_BAND},left=24,bottom=24,right=24]`,
         // Spacing doesn't inherit into containers. ELK's 20px layer gap can't fit a label pill plus an
         // arrowhead, and its 10px edge-node gap routes edges flush under cards.
-        'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+        [LAYER_GAP]: String(GROUP_LAYER_GAP),
         'elk.spacing.edgeNode': '20',
       },
     });
@@ -136,8 +172,9 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
       id: n.id,
       width,
       height,
-      layoutOptions: { 'elk.portConstraints': 'FIXED_POS', ...(partition === undefined ? {} : { 'elk.partitioning.partition': String(partition) }) },
-      ports: ports(n.id, width, height, direction),
+      // ELK orders and spaces the ports along the side to keep crossings down.
+      layoutOptions: { 'elk.portConstraints': 'FIXED_SIDE', ...(partition === undefined ? {} : { 'elk.partitioning.partition': String(partition) }) },
+      ports: [],
     });
   }
 
@@ -145,25 +182,90 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
     for (const end of [e.from, e.to]) {
       if (!nodeIds.has(end)) throw new Error(`Edge '${e.id}' references unknown node '${end}'`);
     }
-    root.edges!.push({ id: e.id, sources: [`${e.from}:out`], targets: [`${e.to}:in`] });
   }
+  const elkNodes = new Map<string, ElkNode>();
+  const index = (c: ElkNode) => c.children?.forEach((k) => (elkNodes.set(k.id, k), index(k)));
+  index(root);
+  const wire = (reversed: Set<string>) => {
+    for (const n of elkNodes.values()) if (n.ports) n.ports = [];
+    root.edges = [];
+    const portOf = (node: string, role: 'out' | 'in', key: string) => {
+      const owner = elkNodes.get(node)!;
+      if (!owner.ports!.some((p) => p.id === key)) {
+        const side = direction === 'RIGHT' ? (role === 'out' ? 'EAST' : 'WEST') : role === 'out' ? 'SOUTH' : 'NORTH';
+        owner.ports!.push({ id: key, width: 0, height: 0, layoutOptions: { 'elk.port.side': side } });
+      }
+      return key;
+    };
+    for (const e of draft.edges) {
+      const flipped = reversed.has(e.id);
+      // Laid out from its target to its source; collect() turns the route back round.
+      const [a, b] = flipped ? [e.to, e.from] : [e.from, e.to];
+      root.edges.push({ id: e.id, sources: [portOf(a, 'out', portKey(e, a, 'out', flipped))], targets: [portOf(b, 'in', portKey(e, b, 'in', flipped))] });
+    }
+  };
+  let reversed = reversedEdges(draft);
+  wire(reversed);
 
   const { elk, dispose } = createElk();
   try {
-    const run = async (gap?: number) => {
-      const opts = gap === undefined ? root.layoutOptions! : { ...root.layoutOptions, 'elk.layered.spacing.nodeNodeBetweenLayers': String(gap) };
-      let result = await elk.layout({ ...structuredClone(root), layoutOptions: opts });
+    const run = async (room?: { gap: number; run: number }) => {
+      const graph = structuredClone(root);
+      if (room) {
+        // The straight run into (and out of) a card becomes long enough to hold a label by the arrowhead.
+        const set = (o: Record<string, string>, gap: number) => {
+          o[LAYER_GAP] = String(gap);
+          o[EDGE_RUN] = String(room.run);
+        };
+        set(graph.layoutOptions!, room.gap);
+        // Groups lay out their own layers, so the wider gap has to reach them too.
+        const widen = (c: ElkNode) =>
+          c.children?.forEach((k) => {
+            if (k.id.startsWith(GROUP_PREFIX)) set(k.layoutOptions!, Math.max(GROUP_LAYER_GAP, room.gap));
+            widen(k);
+          });
+        widen(graph);
+      }
+      const opts = graph.layoutOptions!;
+      const flat = await elk.layout(structuredClone(graph));
       // Wrapping would fold stages back onto each other.
-      if ((result.width ?? 0) > MAX_UNWRAPPED_WIDTH && !stages) result = await elk.layout({ ...structuredClone(root), layoutOptions: { ...opts, ...wrapOptions } });
-      return collect(draft, result, direction, stages !== null);
+      const wrap = (flat.width ?? 0) > MAX_UNWRAPPED_WIDTH && !stages;
+      const result = wrap ? await elk.layout({ ...structuredClone(graph), layoutOptions: { ...opts, ...wrapOptions } }) : flat;
+      // Flow order is read before wrapping, which moves later layers back to the start of a new row.
+      return { laid: collect(draft, result, direction, stages !== null, reversed), flow: collect(draft, flat, direction, false, reversed).nodes };
     };
-    let laid = await run();
-    const place = (l: LaidOutDiagram) => placeLabels(draft.edges, l.edges, Object.values(l.nodes), !compact);
+    let { laid, flow } = await run();
+    // A group that both feeds and is fed by another can only sit on one side of it, so some edge between them runs
+    // against the flow: entering its target from the far side, it wraps round the diagram. Lay such an edge out
+    // from its target (it then leaves and enters by the facing sides) and redo the layout once.
+    const flips = againstFlow(draft, flow, direction, reversed);
+    if (flips.length) {
+      reversed = new Set(reversed);
+      for (const id of flips) reversed.has(id) ? reversed.delete(id) : reversed.add(id);
+      wire(reversed);
+      ({ laid } = await run());
+    }
+    const place = (l: LaidOutDiagram) => placeLabels(draft.edges, l.edges, Object.values(l.nodes), !compact, Object.values(l.groups).map((rect) => ({ rect, band: GROUP_LABEL_BAND })));
     let spots = place(laid);
-    // Compact layouts start with tight layer gaps and widen them once if a label found no room to sit.
-    if (compact && spots.misfit > 0) {
-      laid = await run(Math.min(COMPACT_GAP.max, Math.max(Number(root.layoutOptions!['elk.layered.spacing.nodeNodeBetweenLayers']), spots.misfit + 24)));
-      spots = place(laid);
+    // A label that found no room to sit widens the layer gaps: compact layouts start tight on purpose, and a full
+    // layout's gap can still be narrower than a label beside a branch. Two ways to make room are tried: wider gaps,
+    // and wider gaps whose straight runs into and out of cards are themselves long enough to hold the label (left to
+    // right a label lies along the run, top-down beside it). The best of the three layouts is kept.
+    if (spots.misfit > 0) {
+      const cap = compact ? COMPACT_GAP.max : FULL_GAP_MAX;
+      const defaultRun = Number(root.layoutOptions![EDGE_RUN]);
+      const gap = Math.min(cap, Math.max(Number(root.layoutOptions![LAYER_GAP]), spots.misfit + (compact ? 24 : 48)));
+      const longRun = Math.min(direction === 'RIGHT' ? spots.misfit + 16 : 40, Math.floor((cap - 24) / 2));
+      const tries = [
+        { gap, run: defaultRun },
+        { gap: Math.max(gap, 2 * longRun + 24), run: longRun },
+      ];
+      const worse = (a: typeof spots, b: typeof spots) => a.forced - b.forced || a.unseated - b.unseated || a.misfit - b.misfit;
+      for (const room of tries) {
+        const wider = (await run(room)).laid;
+        const retry = place(wider);
+        if (worse(retry, spots) < 0) [laid, spots] = [wider, retry];
+      }
     }
     return { ...laid, labels: spots.labels };
   } finally {
@@ -171,7 +273,23 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
   }
 }
 
-function collect(draft: DiagramDraft, result: ElkNode, direction: Direction, staged: boolean): LaidOutDiagram {
+/**
+ * Edges whose drawing direction disagrees with where their cards ended up: one that is laid out forward but whose
+ * target sits wholly before its source along the flow, or one laid out reversed whose target sits wholly after it.
+ */
+function againstFlow(draft: DiagramDraft, nodes: Record<string, Rect>, direction: Direction, reversed: Set<string>): string[] {
+  const span = (r: Rect): [number, number] => (direction === 'RIGHT' ? [r.x, r.x + r.width] : [r.y, r.y + r.height]);
+  return draft.edges.flatMap((e) => {
+    if (e.from === e.to) return [];
+    const [s0, s1] = span(nodes[e.from]!);
+    const [t0, t1] = span(nodes[e.to]!);
+    const before = t1 <= s0;
+    const after = t0 >= s1;
+    return (reversed.has(e.id) ? after : before) ? [e.id] : [];
+  });
+}
+
+function collect(draft: DiagramDraft, result: ElkNode, direction: Direction, staged: boolean, reversed: Set<string>): LaidOutDiagram {
   const nodes: Record<string, Rect> = {};
   const groups: Record<string, Rect> = {};
   const edges: Record<string, Point[]> = {};
@@ -187,6 +305,7 @@ function collect(draft: DiagramDraft, result: ElkNode, direction: Direction, sta
       edges[e.id] = (e.sections ?? [])
         .flatMap((s) => [s.startPoint, ...(s.bendPoints ?? []), s.endPoint])
         .map((p) => ({ x: round(p.x), y: round(p.y) }));
+      if (reversed.has(e.id)) edges[e.id]!.reverse();
     }
   };
   visit(result);
