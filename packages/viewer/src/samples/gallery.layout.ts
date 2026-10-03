@@ -4606,14 +4606,6 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
       "e4": [
         {
           "x": 526,
-          "y": 338
-        },
-        {
-          "x": 550,
-          "y": 338
-        },
-        {
-          "x": 550,
           "y": 324
         },
         {
@@ -4784,7 +4776,7 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
         "y": 214
       },
       "e4": {
-        "x": 605,
+        "x": 593,
         "y": 324
       },
       "e5": {

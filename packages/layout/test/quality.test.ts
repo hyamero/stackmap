@@ -48,6 +48,21 @@ describe.each(laid)('layout quality of %s', (_name, draft, out) => {
     }
   });
 
+  it('runs every segment along an axis', () => {
+    for (const [id, pts] of Object.entries(out.edges)) {
+      pts.slice(1).forEach((b, i) => expect(pts[i]!.x === b.x || pts[i]!.y === b.y, `${id} segment ${i}`).toBe(true));
+    }
+  });
+
+  // Archetypal noise: two ports a few px out of line drawn as a step instead of one straight line.
+  it('draws no shallow step between ports that could line up', () => {
+    for (const [id, pts] of Object.entries(out.edges)) {
+      if (pts.length !== 4) continue;
+      const step = pts[1]!.x === pts[2]!.x ? Math.abs(pts[1]!.y - pts[2]!.y) : Math.abs(pts[1]!.x - pts[2]!.x);
+      expect(step, id).not.toBeLessThan(16);
+    }
+  });
+
   it('takes no long detours', () => {
     for (const e of draft.edges) {
       if (e.from === e.to) continue;
