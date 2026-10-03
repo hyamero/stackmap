@@ -74,8 +74,9 @@ function biases(edges: { id: string; from?: string; to?: string }[]): Map<string
 
 /**
  * Every label of a laid-out diagram, in draft order. A label goes on the longest run of its route that holds its
- * pill clear of cards, other labels and other edges' lines, nearer its own edge than any other; along a run it may slide off the midpoint to clear a
- * neighbour. Horizontal runs are preferred. Where no spot clears the lines, one that clears cards and labels does,
+ * pill clear of cards, other labels and other edges' lines, nearer its own edge than any other: on a run of its own
+ * if one has room, else beside a trunk it shares. Along a run it may slide off the midpoint to clear a neighbour.
+ * Horizontal runs are preferred. Where no spot clears the lines, one that clears cards and labels does,
  * and failing that the middle of the longest run. With `keepMidpoints`, a label whose route midpoint is already
  * clear stays there (where the viewer drew it before full layouts placed labels), so only the crowded ones move.
  * Frames' borders count as lines and their titles as cards. On a fan-out or fan-in a label sits as near the far card
@@ -109,11 +110,17 @@ export function placeLabels(
       labels[e.id] = { x: round(p.x), y: round(p.y) };
     }
   }
+  // Runs an edge has to itself first, for every label, before any label settles beside a trunk it shares.
+  for (const e of labelled) {
+    if (labels[e.id]) continue;
+    const spot = findLabelSpot(routes[e.id]!, e.label!, cards, taken, others(e.id), bias.get(e.id), rivals(e.id));
+    if (spot) labels[e.id] = spot;
+  }
   let misfit = 0;
   let unseated = 0;
   for (const e of labelled) {
     if (labels[e.id]) continue;
-    const spot = findLabelSpot(routes[e.id]!, e.label!, cards, taken, others(e.id), bias.get(e.id), rivals(e.id));
+    const spot = findLabelSpot(routes[e.id]!, e.label!, cards, taken, others(e.id), bias.get(e.id), rivals(e.id), true);
     if (spot) labels[e.id] = spot;
     else {
       misfit = Math.max(misfit, labelWidth(e.label!));
@@ -140,6 +147,8 @@ export function findLabelSpot(
   bias: Bias = 'mid',
   /** other edges' routes: a spot nearer one of them than its own would read as naming that edge */
   rivals: Point[][] = [],
+  /** whether the label may hang off a run a rival also takes: a trunk the edge shares */
+  shared = false,
 ): Point | null {
   const w = labelWidth(text);
   let best: { p: Point; score: number } | null = null;
@@ -160,10 +169,11 @@ export function findLabelSpot(
     const offsets: [number, number][] = horizontal ? [[0, 0], [0, -beside], [0, beside]] : [[0, 0], [beside, 0], [-beside, 0]];
     search: for (const [dx, dy] of offsets) {
       for (const t of [0.5, 0.35, 0.65, 0.2, 0.8]) {
-        const p = { x: round(a.x + (b.x - a.x) * t + dx), y: round(a.y + (b.y - a.y) * t + dy) };
+        const at = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        const p = { x: round(at.x + dx), y: round(at.y + dy) };
         const pill = pillAt(p, w);
         if (cards.some((r) => overlaps(pill, r)) || taken.some((r) => overlaps(pill, r)) || crossed(pill, lines)) continue;
-        if (rivals.some((r) => distance(p, r) < distance(p, points))) continue;
+        if (rivals.some((r) => distance(p, r) < distance(p, points) || (!shared && distance(at, r) < 0.5))) continue;
         // Longer and horizontal runs first; off-centre and off-line spots lose a little. A biased label goes as near
         // its far end as it fits instead.
         const reach = bias === 'end' ? total - (from + t * len) : bias === 'start' ? from + t * len : null;

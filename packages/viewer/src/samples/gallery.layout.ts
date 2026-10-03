@@ -1795,8 +1795,8 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
         "y": 674
       },
       "e13": {
-        "x": 540,
-        "y": 661
+        "x": 720,
+        "y": 515
       }
     },
     "bounds": {
@@ -3326,10 +3326,6 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
         "x": 1074,
         "y": 178
       },
-      "e7": {
-        "x": 1074,
-        "y": 269
-      },
       "e10": {
         "x": 1625.5,
         "y": 178
@@ -3341,6 +3337,10 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
       "e12": {
         "x": 1761,
         "y": 344
+      },
+      "e7": {
+        "x": 1074,
+        "y": 269
       }
     }
   },
@@ -4803,13 +4803,9 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
         "x": 1225,
         "y": 414
       },
-      "e9": {
-        "x": 903,
-        "y": 191
-      },
       "e10": {
-        "x": 915,
-        "y": 217
+        "x": 830.5,
+        "y": 259
       },
       "e11": {
         "x": 1225,
@@ -4818,6 +4814,10 @@ export const galleryLayouts: Record<string, LaidOutDiagram> = {
       "e12": {
         "x": 1213,
         "y": 214
+      },
+      "e9": {
+        "x": 903,
+        "y": 191
       }
     }
   },
