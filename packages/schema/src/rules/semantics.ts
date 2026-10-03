@@ -145,8 +145,8 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
       });
   });
 
-  // Two edges a → b run side by side between the same cards (unlabelled ones of one style share a port and draw
-  // as one line): one relationship drawn twice.
+  // Two edges a → b of one style share their ports and draw as one line; of different styles they run side by side:
+  // either way, one relationship drawn twice.
   if (d.kind === 'architecture' || d.kind === 'dataflow') {
     const first = new Map<string, string>();
     d.edges.forEach((e, i) => {
