@@ -19,6 +19,9 @@ const COMPACT_GAP = { right: 72, max: 168 } as const;
 /** Widest layer gap a full-card layout grows to so its labels fit. */
 const FULL_GAP_MAX = 280;
 const GROUP_LAYER_GAP = 80;
+/** Past this many nodes (where validation warns to split) a layout isn't redone to make room for labels: each ELK run
+ * grows with the graph, and a diagram that size is read zoomed in anyway. */
+const RETRY_LIMIT = 60;
 const LAYER_GAP = 'elk.layered.spacing.nodeNodeBetweenLayers';
 const EDGE_RUN = 'elk.layered.spacing.edgeNodeBetweenLayers';
 const GROUP_PREFIX = 'group:';
@@ -252,7 +255,7 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
     // layout's gap can still be narrower than a label beside a branch. Two ways to make room are tried: wider gaps,
     // and wider gaps whose straight runs into and out of cards are themselves long enough to hold the label (left to
     // right a label lies along the run, top-down beside it). The best of the three layouts is kept.
-    if (spots.misfit > 0) {
+    if (spots.misfit > 0 && draft.nodes.length <= RETRY_LIMIT) {
       const cap = compact ? COMPACT_GAP.max : FULL_GAP_MAX;
       const defaultRun = Number(root.layoutOptions![EDGE_RUN]);
       const gap = Math.min(cap, Math.max(Number(root.layoutOptions![LAYER_GAP]), spots.misfit + (compact ? 24 : 48)));
@@ -266,6 +269,7 @@ export async function layoutDiagram(draft: DiagramDraft): Promise<LaidOutDiagram
         const wider = (await run(room)).laid;
         const retry = place(wider);
         if (worse(retry, spots) < 0) [laid, spots] = [wider, retry];
+        if (spots.unseated === 0) break;
       }
     }
     return { ...laid, labels: spots.labels };
