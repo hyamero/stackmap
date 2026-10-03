@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { polylineMidpoint, type DiagramDraft, type LaidOutDiagram, type Point, type Rect } from '@stackmap/core';
-import { labelWidth } from '../src/labels';
+import { labelWidth, placeLabels } from '../src/labels';
 import { layoutDiagram } from '../src/index';
 import { CORPUS } from './corpus';
 import { STRESS } from './stress';
@@ -99,6 +99,31 @@ describe.each(laid)('edge label legibility in %s', (_name, draft, out) => {
       const own = distance(c, out.edges[p.id]!);
       for (const [id, pts] of Object.entries(out.edges)) if (id !== p.id) expect(distance(c, pts), `${p.id} nearer ${id}`).toBeGreaterThanOrEqual(own);
     }
+  });
+});
+
+describe('labels beside a trunk', () => {
+  // Two calls into one card at the right merge into a trunk along y=120; each comes down or up a run of its own first.
+  const b = [{ x: 100, y: 240 }, { x: 100, y: 120 }, { x: 800, y: 120 }];
+
+  it('go on a run the edge has to itself, where they name one edge, not beside the shared one', () => {
+    const a = [{ x: 0, y: 0 }, { x: 0, y: 120 }, { x: 800, y: 120 }];
+    const { labels } = placeLabels([{ id: 'a', label: 'reads state' }], { a, b }, []);
+    expect(distance(labels.a!, b)).toBeGreaterThan(distance(labels.a!, a));
+  });
+
+  it('stay off the shared run even where it turns out of a run of their own', () => {
+    const a = [{ x: 614, y: 384 }, { x: 614, y: 408 }, { x: 294, y: 408 }, { x: 294, y: 456 }];
+    const trunk = [{ x: 294, y: 176 }, { x: 294, y: 456 }];
+    const { labels } = placeLabels([{ id: 'a', label: 'lookup', from: 'x', to: 'z' }, { id: 'p', from: 'x', to: 'p' }, { id: 'q', from: 'x', to: 'q' }], { a, trunk }, []);
+    expect(labels.a!.y).toBe(408);
+  });
+
+  it('still sit beside the shared run when the edge has no other with room', () => {
+    const a = [{ x: 90, y: 120 }, { x: 800, y: 120 }];
+    const { labels, unseated } = placeLabels([{ id: 'a', label: 'reads state' }], { a, b }, []);
+    expect(labels.a!.y).not.toBe(120);
+    expect(unseated).toBe(0);
   });
 });
 
