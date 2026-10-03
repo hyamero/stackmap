@@ -390,3 +390,28 @@ test('a canvas that mounts at zero size fits once it gets one, without errors', 
   }
   expect(errors).toEqual([]); // a zero-size zoom animation used to render NaN transforms
 });
+
+test('zoomed out past reading size, edge labels fade, except on the edges a selection lights', async ({ page }) => {
+  await page.goto('/?page=event-stream');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
+  await settle(page);
+  const label = (id: string) => page.locator(`[data-edge-label="${id}"]`);
+  await expect(label('e4')).toHaveCSS('opacity', '1');
+  await page.locator('.sm-stage').focus();
+  while ((await viewportOf(page)).k >= 0.5) {
+    await page.keyboard.press('-');
+    await settle(page);
+  }
+  await expect(label('e4')).toHaveCSS('opacity', '0');
+  await expect(label('e1')).toHaveCSS('opacity', '0');
+  // Selecting payments lights e4, so its label comes back while the rest stay hidden.
+  await card(page, 'payments').click();
+  await expect(label('e4')).toHaveCSS('opacity', '1');
+  await expect(label('e1')).not.toHaveCSS('opacity', '1');
+  await page.keyboard.press('Escape');
+  await page.locator('.sm-stage').focus();
+  await page.keyboard.press('+');
+  await page.keyboard.press('+');
+  await settle(page);
+  await expect(label('e1')).toHaveCSS('opacity', '1');
+});

@@ -47,6 +47,16 @@ const includedStyles = (el: Element) =>
 // Font CSS (the inlined Geist data URLs) is the same for every export; build it once.
 let fontCss: Promise<string> | undefined;
 
+/** An export is the diagram, not the camera: labels the zoom has faded are drawn, at once, for the snapshot. */
+async function whole<T>(node: HTMLElement, snapshot: () => Promise<T>): Promise<T> {
+  node.classList.add('sm-exporting');
+  try {
+    return await snapshot();
+  } finally {
+    node.classList.remove('sm-exporting');
+  }
+}
+
 async function options(content: SceneRect, pixelRatio: number) {
   // The clone copies computed styles: an export mid-intro would otherwise keep faded cards and half-drawn edges.
   await settleAll();
@@ -84,7 +94,7 @@ export async function exportPng(content: SceneRect, scale: 1 | 2): Promise<{ blo
   const height = Math.ceil(content.height + 2 * EXPORT_PADDING);
   const effective = effectiveScale(width, height, scale);
   const { node, opts } = await options(content, effective);
-  const blob = await toBlob(node, opts);
+  const blob = await whole(node, () => toBlob(node, opts));
   if (!blob) throw new Error('PNG export produced no image');
   return { blob, scale: effective };
 }
@@ -95,7 +105,7 @@ export async function exportPng(content: SceneRect, scale: 1 | 2): Promise<{ blo
  */
 export async function exportSvg(content: SceneRect): Promise<Blob> {
   const { node, opts } = await options(content, 1);
-  const url = await toSvg(node, opts);
+  const url = await whole(node, () => toSvg(node, opts));
   // A Blob instead of a multi-megabyte data: URL on an <a href>.
   return new Blob([decodeURIComponent(url.slice(url.indexOf(',') + 1))], { type: 'image/svg+xml' });
 }
@@ -133,7 +143,7 @@ export async function exportRaster(content: SceneRect, type: RasterType): Promis
   const height = Math.ceil(content.height + 2 * EXPORT_PADDING);
   const scale = effectiveScale(width, height, 2);
   const { node, opts } = await options(content, scale);
-  const canvas = await toCanvas(node, opts);
+  const canvas = await whole(node, () => toCanvas(node, opts));
   return { blob: await canvasBlob(canvas, type, 0.92), scale };
 }
 
@@ -161,7 +171,7 @@ export async function exportVideo(content: SceneRect, flow: Flow, colorOf: (tint
   // A frame the encoder can keep up with: the whole diagram inside 1920×1080.
   const scale = Math.min(effectiveScale(width, height, 2), VIDEO.maxWidth / width, VIDEO.maxHeight / height);
   const { node, opts } = await options(content, scale);
-  const base = await toCanvas(node, opts);
+  const base = await whole(node, () => toCanvas(node, opts));
   const out = document.createElement('canvas');
   // Encoders want even dimensions.
   out.width = base.width - (base.width % 2);

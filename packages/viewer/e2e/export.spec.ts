@@ -104,6 +104,20 @@ test('SVG is a foreignObject snapshot with the fonts embedded', async ({ page })
   expect(bytes.length).toBeLessThan(600_000);
 });
 
+test('an export carries the edge labels even when the canvas is zoomed out past showing them', async ({ page }) => {
+  await page.goto('/?page=event-stream');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
+  await page.locator('.sm-stage').focus();
+  for (let i = 0; i < 6; i++) await page.keyboard.press('-');
+  await page.waitForTimeout(250);
+  await expect(page.locator('[data-edge-label="e4"]')).toHaveCSS('opacity', '0');
+  const raw = (await exportAs(page, /^SVG/)).bytes.toString('utf8');
+  const svg = raw.startsWith('data:') ? decodeURIComponent(raw.slice(raw.indexOf(',') + 1)) : raw;
+  const e4 = svg.slice(svg.indexOf('data-edge-label="e4"'));
+  expect(e4.slice(0, e4.indexOf('payment facts'))).not.toMatch(/opacity: 0[;"]/);
+  await expect(page.locator('[data-edge-label="e4"]')).toHaveCSS('opacity', '0');
+});
+
 test('the export menu is keyboard operable and closes on Escape', async ({ page }) => {
   await page.getByRole('button', { name: 'Export' }).focus();
   await page.keyboard.press('ArrowDown');
