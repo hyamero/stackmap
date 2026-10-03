@@ -27,6 +27,7 @@ export function searchMatches(draft: DiagramDraft, query: string): DiagramNode[]
 }
 
 export function emphasis(draft: DiagramDraft, graph: Graph, s: ExploreState): Emphasis {
+  if (s.peek) return peekAt(draft, s.peek);
   const view = s.view ? new Set(draft.views?.find((v) => v.id === s.view)?.nodes ?? []) : null;
   const q = s.query?.trim() ? new Set(searchMatches(draft, s.query).map((n) => n.id)) : null;
   const trace = s.trace && s.selected && !s.route ? reachable(graph, s.selected) : null;
@@ -34,11 +35,16 @@ export function emphasis(draft: DiagramDraft, graph: Graph, s: ExploreState): Em
   const route = s.route ? (routeBetween(graph, s.route.from, s.route.to) ?? { nodes: new Set([s.route.from, s.route.to]), edges: new Set<string>() }) : null;
   const ends = s.route ? new Set([s.route.from, s.route.to]) : s.routing?.next === 'to' ? new Set([s.routing.start]) : null;
   const typeOf = new Map(draft.nodes.map((n) => [n.id, n.type]));
+  // A selection on its own keeps its neighbours lit; trace and route widen or replace that.
+  const near =
+    s.selected && !trace && !route
+      ? new Set([s.selected, ...(graph.out.get(s.selected) ?? []).map((e) => graph.ends.get(e)!.to), ...(graph.in.get(s.selected) ?? []).map((e) => graph.ends.get(e)!.from)])
+      : null;
 
   const nodes = new Map<string, NodeEmphasis>();
   for (const n of draft.nodes) {
     const excluded =
-      (view && !view.has(n.id)) || s.hiddenTypes.has(n.type) || (q && !q.has(n.id)) || (trace && !trace.nodes.has(n.id)) || (route && !route.nodes.has(n.id));
+      (view && !view.has(n.id)) || s.hiddenTypes.has(n.type) || (q && !q.has(n.id)) || (trace && !trace.nodes.has(n.id)) || (route && !route.nodes.has(n.id)) || (near && !near.has(n.id));
     nodes.set(n.id, n.id === s.selected || ends?.has(n.id) ? 'focus' : excluded ? 'dim' : 'normal');
   }
 
@@ -46,9 +52,18 @@ export function emphasis(draft: DiagramDraft, graph: Graph, s: ExploreState): Em
   for (const e of draft.edges) {
     const lit = route ? route.edges.has(e.id) : !!s.selected && (trace ? trace.edges.has(e.id) : e.from === s.selected || e.to === s.selected);
     const endDim = nodes.get(e.from) === 'dim' || nodes.get(e.to) === 'dim';
-    edges.set(e.id, { dim: !lit && (endDim || !!trace || !!route), tint: lit ? (typeOf.get(e.from) ?? null) : null });
+    edges.set(e.id, { dim: !lit && (endDim || !!trace || !!route || !!near), tint: lit ? (typeOf.get(e.from) ?? null) : null });
   }
 
   const active = !!s.selected || !!route || [...nodes.values()].some((v) => v !== 'normal');
   return { active, nodes, edges };
+}
+
+/** Only `type` lit: a legend row under the pointer, shown over whatever else is on. */
+function peekAt(draft: DiagramDraft, type: NodeType): Emphasis {
+  const nodes = new Map<string, NodeEmphasis>(draft.nodes.map((n) => [n.id, n.type === type ? 'normal' : 'dim']));
+  const edges = new Map<string, EdgeEmphasis>(
+    draft.edges.map((e) => [e.id, { dim: nodes.get(e.from) !== 'normal' || nodes.get(e.to) !== 'normal', tint: null }]),
+  );
+  return { active: true, nodes, edges };
 }

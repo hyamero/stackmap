@@ -19,6 +19,13 @@ describe('explorer reducer', () => {
     expect(explore(a, { type: 'select', id: 'db' }).reveal).toBe(1);
   });
 
+  it('peeks at a type and back, without touching the hash', () => {
+    const s = explore(INITIAL, { type: 'peek', nodeType: 'database' });
+    expect(s.peek).toBe('database');
+    expect(formatHash(s)).toBe('');
+    expect(explore(s, { type: 'peek', nodeType: null }).peek).toBeNull();
+  });
+
   it('toggles lens types and switches views', () => {
     let s = explore(INITIAL, { type: 'toggleType', nodeType: 'database' });
     expect([...s.hiddenTypes]).toEqual(['database']);

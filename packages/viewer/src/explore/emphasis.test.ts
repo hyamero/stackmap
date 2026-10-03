@@ -31,12 +31,21 @@ describe('emphasis', () => {
     expect([...e.edges.values()].every((x) => !x.dim && x.tint === null)).toBe(true);
   });
 
-  it('selection focuses the node and tints its direct edges with the source type', () => {
+  it('selection focuses the node and its neighbours, tints its direct edges and dims the rest', () => {
     const e = run({ selected: 'db' });
     expect(e.nodes.get('db')).toBe('focus');
-    expect(e.nodes.get('web')).toBe('normal');
+    expect(e.nodes.get('api')).toBe('normal');
+    expect(e.nodes.get('web')).toBe('dim');
+    expect(e.nodes.get('mail')).toBe('dim');
     expect(e.edges.get('e2')).toEqual({ dim: false, tint: 'service' });
-    expect(e.edges.get('e1')).toEqual({ dim: false, tint: null });
+    expect(e.edges.get('e1')).toEqual({ dim: true, tint: null });
+  });
+
+  it('peeking at a type dims every other type and every edge leaving it, whatever else is on', () => {
+    const e = run({ peek: 'service', selected: 'db', query: 'web' });
+    expect([...e.nodes.entries()].filter(([, v]) => v !== 'dim').map(([k]) => k)).toEqual(['api']);
+    expect([...e.edges.values()].every((x) => x.dim && x.tint === null)).toBe(true);
+    expect(e.active).toBe(true);
   });
 
   it('trace dims everything outside the selection’s upstream and downstream', () => {

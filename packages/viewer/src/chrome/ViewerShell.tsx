@@ -1,4 +1,4 @@
-import { Eye } from 'lucide-react';
+import { Eye, Workflow } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '../canvas/CanvasPanel';
@@ -7,7 +7,6 @@ import { ExploreProvider, useExplore } from '../explore/ExploreContext';
 import { readLiveConfig, readShown } from '../live';
 import { revealChrome } from '../motion/motion';
 import type { ThemeChoice } from '../theme/theme';
-import { IdentityCard } from './IdentityCard';
 import { Inspector } from './Inspector';
 import { PresentBar } from './Presentation';
 import { inMenu } from './Toolbar';
@@ -19,20 +18,6 @@ import { ViewTabs } from './ViewTabs';
 const INSPECTOR_BREAKPOINT = 1100;
 
 const DIAGRAM_ID = 'sm-diagram';
-
-/** The identity card's details button shows the diagram itself in the inspector, whatever was selected. */
-function DiagramIdentity({ onDetails }: { onDetails: () => void }) {
-  const { draft, dispatch } = useExplore();
-  return (
-    <IdentityCard
-      draft={draft}
-      onDetails={() => {
-        dispatch({ type: 'clear' });
-        onDetails();
-      }}
-    />
-  );
-}
 
 function ViewCaption() {
   const { draft, state } = useExplore();
@@ -66,7 +51,7 @@ export function ViewerShell({
     if (on) void shell.current?.requestFullscreen?.().catch(() => {});
     else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
   }, []);
-  // Focus (Z): the canvas alone in the window, everything on it still working; H hides the toolbar too.
+  // Focus (Z): the canvas alone in the window, everything on it still working. H hides the toolbar, in focus or not.
   const [focused, setFocused] = useState(false);
   const [toolbarHidden, setToolbarHidden] = useState(false);
   const focus = useCallback((on: boolean) => {
@@ -80,7 +65,6 @@ export function ViewerShell({
       const key = e.key.toLowerCase();
       if ((key !== 'f' && key !== 'z' && key !== 'h') || e.metaKey || e.ctrlKey || e.altKey || e.repeat || inMenu(t) || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
       if (key !== 'f' && presenting) return;
-      if (key === 'h' && !focused) return;
       e.preventDefault();
       if (key === 'f') present(!presenting);
       else if (key === 'z') focus(!focused);
@@ -114,6 +98,9 @@ export function ViewerShell({
         {!presenting && !focused && (
         <header className="mx-8 mt-4 flex gap-8 border-b border-divider @max-2xl:mx-4 @max-2xl:mt-2 @max-md:flex-wrap @max-md:gap-x-4 @max-md:gap-y-0">
           <div className="flex max-w-[45%] min-w-0 items-center gap-3 py-3 @max-md:max-w-full @max-md:basis-full @max-md:pb-1">
+            <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-panel text-fg-muted" style={{ boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}>
+              <Workflow size={16} strokeWidth={1.75} />
+            </span>
             <Title className="truncate text-[20px] leading-7 font-semibold tracking-tight">{draft.title}</Title>
             <span
               className="shrink-0 rounded-lg bg-panel px-2 py-0.5 text-[13px] text-fg-muted"
@@ -129,7 +116,7 @@ export function ViewerShell({
         </header>
         )}
         {!presenting && !focused && <ViewCaption />}
-        <Main className={`relative flex min-h-0 flex-1 gap-4 @max-2xl:gap-2 ${presenting ? '' : focused ? 'p-3' : 'px-8 pt-4 pb-6 @max-2xl:px-3 @max-2xl:pt-3 @max-2xl:pb-3'}`}>
+        <Main className={`relative flex min-h-0 flex-1 gap-3 @max-2xl:gap-2 ${presenting ? '' : focused ? 'p-3' : 'px-8 pt-4 pb-6 @max-2xl:px-3 @max-2xl:pt-3 @max-2xl:pb-3'}`}>
           <section
             id={DIAGRAM_ID}
             role="tabpanel"
@@ -138,8 +125,7 @@ export function ViewerShell({
             style={presenting ? undefined : { boxShadow: 'inset 0 0 0 1px var(--sm-panel-border)' }}
           >
             <DiagramCanvas diagram={diagram} chrome={!presenting} stage={focused ? 'focus' : undefined}>
-              {/* Never wider than the stage: the identity card gives way (truncating, then hidden) before the toolbar. */}
-              <CanvasPanel position="top-left" className="flex max-w-[calc(100%-30px)] gap-2">
+              <CanvasPanel position="top-left" className="flex max-w-[calc(100%-30px)]">
                 {toolbarHidden ? (
                   <div className={`${PANEL_CLASS} p-1.5`} style={PANEL_STYLE}>
                     <IconButton label="Show the toolbar (H)" onClick={() => setToolbarHidden(false)}>
@@ -147,22 +133,14 @@ export function ViewerShell({
                     </IconButton>
                   </div>
                 ) : (
-                  <>
-                    {/* Narrow, the header already names the diagram: the toolbar gets the room. Focus shows the canvas alone. */}
-                    {!focused && (
-                      <div className="flex min-w-0 @max-[640px]/stage:hidden">
-                        <DiagramIdentity onDetails={() => setInspectorCollapsed(false)} />
-                      </div>
-                    )}
-                    <Toolbar
-                      theme={theme}
-                      onToggleTheme={onToggleTheme}
-                      onPresent={() => present(true)}
-                      focused={focused}
-                      onFocus={() => focus(!focused)}
-                      onHide={() => setToolbarHidden(true)}
-                    />
-                  </>
+                  <Toolbar
+                    theme={theme}
+                    onToggleTheme={onToggleTheme}
+                    onPresent={() => present(true)}
+                    focused={focused}
+                    onFocus={() => focus(!focused)}
+                    onHide={() => setToolbarHidden(true)}
+                  />
                 )}
               </CanvasPanel>
             </DiagramCanvas>

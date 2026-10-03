@@ -10,7 +10,7 @@ import { useTry, type Showcase, type Try } from '@/components/viewer/useTry';
 export type { Showcase };
 
 const TRIES: { id: Try; label: string; key?: string; icon: ReactNode; desc: string }[] = [
-  { id: 'select', label: 'Select', key: 'Click', icon: <MousePointerClick size={16} strokeWidth={1.75} />, desc: 'Select a card for its details, connections and the file and line behind it.' },
+  { id: 'select', label: 'Select', key: 'Click', icon: <MousePointerClick size={16} strokeWidth={1.75} />, desc: 'Select a card to light its connections and see its details and the file and line behind it.' },
   { id: 'trace', label: 'Trace', key: 'T', icon: <Route size={16} strokeWidth={1.75} />, desc: 'Keep a node’s upstream and downstream. Everything else dims; nothing moves.' },
   { id: 'route', label: 'Route', key: 'R', icon: <Waypoints size={16} strokeWidth={1.75} />, desc: 'Pick two nodes and every path between them lights up, hop by hop.' },
   { id: 'find', label: 'Find', key: '/', icon: <Search size={16} strokeWidth={1.75} />, desc: 'Search titles, ids and types. The lens dims the types you don’t need.' },

@@ -59,14 +59,30 @@ describe('ViewerShell', () => {
     expect(screen.getByText('100%')).toBeInTheDocument(); // zero-size stage in jsdom → identity transform
   });
 
-  it('the identity card’s details button opens the inspector on the diagram, leaving any selection', () => {
-    innerWidth = 900;
+  it('names the diagram once, in the header: no title card on the canvas', () => {
     render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Orders, Database' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Diagram details' }));
-    const inspector = screen.getByRole('complementary', { name: 'Inspector' });
-    expect(within(inspector).getByRole('heading', { level: 2, name: 'Commerce API' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Orders, Database' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: 'Diagram details' })).toBeNull();
+    expect(screen.getAllByText('Commerce API')).toHaveLength(2); // the header and the inspector
+  });
+
+  it('hovering a legend row dims every other type until the pointer leaves', () => {
+    const { container } = render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
+    const row = within(screen.getByRole('list', { name: 'Legend' })).getByText('Service').closest('li')!;
+    const lit = () => [...container.querySelectorAll('.sm-card')].filter((c) => c.getAttribute('data-emphasis') !== 'dim').length;
+    expect(lit()).toBe(6);
+    fireEvent.mouseEnter(row);
+    expect(lit()).toBe(3);
+    fireEvent.mouseLeave(row);
+    expect(lit()).toBe(6);
+  });
+
+  it('H hides the toolbar outside focus too, and the button beside it does the same', () => {
+    render(<ViewerShell diagram={commerceApiLayout} theme="light" onToggleTheme={() => {}} />);
+    fireEvent.keyDown(window, { key: 'h' });
+    expect(screen.queryByRole('button', { name: 'Search nodes (/)' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show the toolbar (H)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide the toolbar (H)' }));
+    expect(screen.queryByRole('button', { name: 'Search nodes (/)' })).toBeNull();
   });
 
   it('has no editor controls', () => {

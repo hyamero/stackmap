@@ -16,7 +16,7 @@ const FEATURES: { id: Try; label: string; icon: ReactNode; title: string; desc: 
     label: 'Select',
     icon: icon(MousePointerClick),
     title: 'Select a card',
-    desc: 'Click a card for its details, its connections and the evidence behind it: the file and line it came from. Click a connection to move along it.',
+    desc: 'Click a card and it stays lit with its direct connections while the rest dims. The inspector shows its details, its connections and the evidence behind it: the file and line it came from. Click a connection to move along it.',
     keys: [
       ['Click', 'select'],
       ['Esc', 'clear'],
@@ -27,7 +27,7 @@ const FEATURES: { id: Try; label: string; icon: ReactNode; title: string; desc: 
     label: 'Trace',
     icon: icon(Route),
     title: 'Trace a node',
-    desc: 'With a card selected, Trace keeps everything upstream and downstream of it and dims the rest. Nothing moves, so the layout stays where you learned it.',
+    desc: 'With a card selected, Trace widens what stays lit to everything upstream and downstream of it. Nothing moves, so the layout stays where you learned it.',
     keys: [['Esc', 'clear']],
   },
   {
@@ -46,7 +46,7 @@ const FEATURES: { id: Try; label: string; icon: ReactNode; title: string; desc: 
     label: 'Find',
     icon: icon(Search),
     title: 'Find a node',
-    desc: 'Press / to search titles, ids and types; the arrow keys and Enter pick a match, and the camera brings it to you. The lens beside it dims the node types you don’t need.',
+    desc: 'Press / to search titles, ids and types; the arrow keys and Enter pick a match, and the camera brings it to you. The lens beside it dims the node types you don’t need, and pointing at a type in the legend shows only that type.',
     keys: [
       ['/', 'search'],
       ['↑ ↓', 'move'],

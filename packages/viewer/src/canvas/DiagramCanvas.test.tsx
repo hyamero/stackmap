@@ -42,7 +42,8 @@ describe('DiagramCanvas', () => {
     );
     nodeCardRenders.mockClear();
     fireEvent.click(container.querySelector('.sm-card[data-card-id="orders"]')!);
-    // orders gains focus + the tab stop; edge (the default tab stop) loses it. The other four stay put.
-    expect([...new Set(nodeCardRenders.mock.calls.map(([id]) => id))].sort()).toEqual(['edge', 'orders']);
+    // orders gains focus + the tab stop; edge (the default tab stop) loses it; sessions, not a neighbour, dims.
+    // The other three stay put.
+    expect([...new Set(nodeCardRenders.mock.calls.map(([id]) => id))].sort()).toEqual(['edge', 'orders', 'sessions']);
   });
 });

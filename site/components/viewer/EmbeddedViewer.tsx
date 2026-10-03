@@ -1,10 +1,10 @@
 'use client';
 
+import { Workflow } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { KIND_LABELS, type LaidOutDiagram } from '@stackmap/core';
 import { CanvasPanel } from '@stackmap/viewer/src/canvas/CanvasPanel';
 import { DiagramCanvas } from '@stackmap/viewer/src/canvas/DiagramCanvas';
-import { IdentityCard } from '@stackmap/viewer/src/chrome/IdentityCard';
 import { Inspector } from '@stackmap/viewer/src/chrome/Inspector';
 import { Toolbar } from '@stackmap/viewer/src/chrome/Toolbar';
 import { ViewTabs } from '@stackmap/viewer/src/chrome/ViewTabs';
@@ -85,6 +85,9 @@ function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; s
         <div className="ev-head">
           <p className="crumb">{crumb}</p>
           <div className="vt">
+            <span className="ev-icon" aria-hidden="true">
+              <Workflow size={18} strokeWidth={1.75} />
+            </span>
             <h2>{draft.title}</h2>
             <span className="badge">{KIND_LABELS[draft.kind]}</span>
             <span className="cnt tnum">
@@ -96,10 +99,7 @@ function HeroFrame({ diagram, still, crumb, live }: { diagram: LaidOutDiagram; s
       <ViewTabs controls={stage} className="ev-tabs h-9" />
       <div className="ev-body">
         <Stage id={stage} diagram={diagram} still={still} live={live}>
-          <CanvasPanel position="top-left" className="flex max-w-[calc(100%-30px)] gap-2">
-            <div className="flex min-w-0 @max-[640px]/stage:hidden">
-              <IdentityCard draft={draft} />
-            </div>
+          <CanvasPanel position="top-left" className="flex max-w-[calc(100%-30px)]">
             <Toolbar theme={theme} onToggleTheme={toggleTheme} exports={false} trace={false} />
           </CanvasPanel>
         </Stage>

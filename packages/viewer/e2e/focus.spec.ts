@@ -37,12 +37,19 @@ test('the toolbar button enters focus, and the URL never keeps it', async ({ pag
   await expect(header(page)).toBeVisible();
 });
 
+test('H hides the toolbar outside focus too', async ({ page }) => {
+  await page.goto('/?page=release-delivery');
+  await expect(page.locator('.sm-card').first()).toBeVisible();
+  await page.keyboard.press('h');
+  await expect(tool(page, 'Focus on the canvas (Z)')).toHaveCount(0);
+  await expect(header(page)).toBeVisible();
+  await page.keyboard.press('h');
+  await expect(tool(page, 'Focus on the canvas (Z)')).toBeVisible();
+});
+
 test('in focus, H hides the toolbar and shows the way back; leaving focus restores it', async ({ page }) => {
   await page.goto('/?page=release-delivery');
   await expect(page.locator('.sm-card').first()).toBeVisible();
-  // Outside focus H does nothing.
-  await page.keyboard.press('h');
-  await expect(tool(page, 'Focus on the canvas (Z)')).toBeVisible();
   await page.keyboard.press('z');
   await page.keyboard.press('h');
   await expect(tool(page, 'Leave focus (Z)')).toHaveCount(0);
@@ -56,7 +63,6 @@ test('in focus, H hides the toolbar and shows the way back; leaving focus restor
   await page.keyboard.press('z');
   await expect(header(page)).toBeVisible();
   await expect(tool(page, /^Play the flow/)).toBeVisible();
-  await expect(tool(page, 'Hide the toolbar (H)')).toHaveCount(0);
 });
 
 test('Z and H are ignored while typing in search', async ({ page }) => {
