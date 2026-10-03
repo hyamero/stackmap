@@ -58,6 +58,17 @@ export interface SceneEdge {
   tone?: EdgeTone;
   label?: string;
   mid?: Point;
+  /** where another edge crosses over this one: the viewer breaks this line there */
+  gaps: SceneGap[];
+}
+
+/** A crossing on the line that passes under, and whether that line runs vertically there. */
+export interface SceneGap {
+  x: number;
+  y: number;
+  vertical: boolean;
+  /** the edges passing over */
+  over: string[];
 }
 
 export interface SceneLifeline {
@@ -121,6 +132,55 @@ function union(rects: Rect[]): Rect {
   return { x, y, width: right - x, height: bottom - y };
 }
 
+// A crossing this near a run's end sits on its rounded corner or arrowhead: leave it whole.
+const CROSSING_CLEAR = EDGE_RADIUS + 4;
+// The main flow outranks any toned edge, which outranks a plain one.
+const prominence = (e: SceneEdge) => (e.tone === 'main' ? 2 : e.tone ? 1 : 0);
+
+/**
+ * With trunks, a line crossing another can read as a branch joining it; a short break in the line that passes under
+ * says it doesn't. Only proper crossings count: where any edge bends, lines meet at a junction instead. Every edge
+ * running through a crossing one way breaks there together (a trunk's mates would otherwise show through the gap).
+ */
+function markCrossings(edges: SceneEdge[]): void {
+  // Runs by the line they lie on: vertical ones by x, horizontal ones by y.
+  type Run = { k: number; lo: number; hi: number };
+  const ups = new Map<number, Run[]>();
+  const acrosses = new Map<number, Run[]>();
+  const bends = new Set<string>();
+  edges.forEach((e, k) => {
+    e.points.forEach((p, i) => {
+      bends.add(`${p.x},${p.y}`);
+      const q = e.points[i + 1];
+      if (!q || (p.x === q.x) === (p.y === q.y)) return;
+      const [map, at, lo, hi] = p.x === q.x ? [ups, p.x, Math.min(p.y, q.y), Math.max(p.y, q.y)] : [acrosses, p.y, Math.min(p.x, q.x), Math.max(p.x, q.x)];
+      map.set(at, [...(map.get(at) ?? []), { k, lo, hi }]);
+    });
+  });
+  const ys = [...acrosses.keys()].sort((a, b) => a - b);
+  const through = (runs: Run[] | undefined, v: number) => [...new Set((runs ?? []).filter((r) => r.lo < v && v < r.hi).map((r) => r.k))];
+  // The bundle that stays whole: the more prominent, then the busier (break a lone line, not a trunk), then the later.
+  const n = edges.length;
+  const rank = (bundle: number[]) => Math.max(...bundle.map((k) => prominence(edges[k]!))) * n * n + bundle.length * n + Math.max(...bundle);
+  const done = new Set<string>();
+  for (const [x, verticals] of ups) {
+    for (const v of verticals) {
+      // Horizontal lines strictly inside this run, clear of its corners.
+      let i = ys.findIndex((y) => y > v.lo + CROSSING_CLEAR);
+      for (; i >= 0 && i < ys.length && ys[i]! < v.hi - CROSSING_CLEAR; i++) {
+        const y = ys[i]!;
+        const key = `${x},${y}`;
+        if (done.has(key) || bends.has(key)) continue;
+        if (!acrosses.get(y)!.some((h) => h.k !== v.k && h.lo + CROSSING_CLEAR < x && x < h.hi - CROSSING_CLEAR)) continue;
+        done.add(key);
+        const [down, across] = [through(ups.get(x), y), through(acrosses.get(y), x)];
+        const [under, over] = rank(down) < rank(across) ? [down, across] : [across, down];
+        for (const k of under) edges[k]!.gaps.push({ x, y, vertical: under === down, over: over.map((o) => edges[o]!.id) });
+      }
+    }
+  }
+}
+
 export function toScene(d: LaidOutDiagram): Scene {
   const lanes = isLaneKind(d.draft.kind);
   // Lane layouts leave empty groups out (nothing to frame).
@@ -169,6 +229,7 @@ export function toScene(d: LaidOutDiagram): Scene {
       tone: e.tone,
       label: e.label,
       mid: e.label ? (d.labels?.[e.id] ?? polylineMidpoint(points)) : undefined,
+      gaps: [],
     };
   });
 
@@ -192,6 +253,7 @@ export function toScene(d: LaidOutDiagram): Scene {
   const activations: SceneActivation[] = (d.sequence?.activations ?? []).flatMap((a) =>
     typeOf.has(a.participant) ? [{ node: a.participant, type: typeOf.get(a.participant)!, rect: a.rect, depth: a.depth }] : [],
   );
+  if (!sequence) markCrossings(edges);
   const handles: SceneHandle[] = [];
   if (!sequence) {
     const seen = new Set<string>();
