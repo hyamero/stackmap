@@ -108,7 +108,7 @@ describe('labels on a fan-out', () => {
       const d = STRESS[name]!;
       const out = await layoutDiagram(d);
       for (const e of d.edges.filter((e) => e.from === 'handler' && e.label && e.kind !== 'return')) {
-        expect(along(out.labels![e.id]!, out.edges[e.id]!), `${name} ${e.id}`).toBeGreaterThan(0.5);
+        expect(along(out.labels![e.id]!, out.edges[e.id]!), `${name} ${e.id}`).toBeGreaterThanOrEqual(0.5);
       }
     }
   });

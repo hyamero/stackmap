@@ -139,7 +139,7 @@ describe('ELK layout properties', () => {
         const onBorder = (Math.abs(p.x - r.x) < 0.5 || Math.abs(p.x - r.x - r.width) < 0.5 ? p.y >= r.y - 0.5 && p.y <= r.y + r.height + 0.5 : false) || (Math.abs(p.y - r.y) < 0.5 || Math.abs(p.y - r.y - r.height) < 0.5 ? p.x >= r.x - 0.5 && p.x <= r.x + r.width + 0.5 : false);
         expect(onBorder, `${e.id} ends on ${id}`).toBe(true);
       }
-      const style = e.label ? `label:${e.id}` : `${e.tone ?? ''}|${e.kind ?? 'sync'}`;
+      const style = `${e.tone ?? ''}|${e.kind ?? 'sync'}`;
       for (const [role, node, p] of [['out', e.from, pts[0]!], ['in', e.to, pts.at(-1)!]] as const) {
         const key = `${node}@${p.x},${p.y}`;
         ports.set(key, (ports.get(key) ?? new Set()).add(`${role}:${style}`));

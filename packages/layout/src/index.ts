@@ -115,12 +115,12 @@ export function reversedEdges(draft: DiagramDraft): Set<string> {
 }
 
 /**
- * The port an edge end attaches to. Unlabelled edges of one style leaving (or entering) a card the same way share
- * one, so fan-in and fan-out merge into a trunk; a labelled edge, or one of another tone or line style, gets its
- * own: on a shared trunk a label can't say which branch it names, and colours would hide each other.
+ * The port an edge end attaches to. Edges of one style leaving (or entering) a card the same way share one, so a
+ * hub's calls leave as a few trunks instead of a ribbon of parallel lines; their labels sit by the cards they name
+ * (see placeLabels). Edges of another tone or line style get their own: on a shared trunk colours would hide each
+ * other.
  */
 function portKey(e: DiagramDraft['edges'][number], node: string, role: 'out' | 'in', flipped: boolean): string {
-  if (e.label) return `${node}:${role}:${e.id}`;
   return `${node}:${role}:${flipped ? 'flipped' : 'flow'}:${e.tone ?? ''}:${e.kind ?? 'sync'}`;
 }
 
