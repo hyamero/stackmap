@@ -14,6 +14,8 @@ export interface Size {
 export const MIN_ZOOM = 0.2;
 export const MAX_ZOOM = 2;
 export const ZOOM_STEP = 1.2;
+/** Below this an 11px edge label renders under ~5.5px: unreadable, so the viewer fades labels out. */
+export const LABEL_MIN_ZOOM = 0.5;
 export const FIT_PADDING = 0.15;
 const OVERFLOW_GUTTER = 24;
 

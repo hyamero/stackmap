@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagramDraft, Point, Rect } from '@stackmap/core';
+import { layoutDiagram } from '../src/index';
 import { layoutLanes } from '../src/lanes';
 
 // Property test: random workflows and lifecycles (tones, returns, async, labels, tags, phases, groups, self-loops,
@@ -63,6 +64,89 @@ describe('lane layout properties', () => {
     }
     // No point is both where an arrow arrives and where another edge leaves: that would read as two-way.
     expect([...ports].filter(([, roles]) => roles.size > 1).map(([k]) => k)).toEqual([]);
+    for (const [id, p] of Object.entries(out.labels ?? {})) for (const [n, r] of Object.entries(out.nodes)) expect(inside(p, r), `label ${id} on ${n}`).toBe(false);
+  });
+});
+
+// The same for architecture and dataflow (ELK): random groups (nested too), directions, compact cards, stages, tones,
+// replies, async edges, labels, self-loops and parallel edges.
+function elkGenerator(seed: number) {
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff), seed / 0x7fffffff);
+  const pick = <T,>(a: readonly T[]) => a[Math.floor(rnd() * a.length)]!;
+  return (): DiagramDraft => {
+    const n = 2 + Math.floor(rnd() * 13);
+    const groups = Array.from({ length: Math.floor(rnd() * 4) }, (_, i) => ({ id: `g${i}`, label: `Group ${i}`, ...(i > 0 && rnd() < 0.3 ? { parent: `g${i - 1}` } : {}) }));
+    const staged = !groups.length && rnd() < 0.3;
+    const nodes = Array.from({ length: n }, (_, i) => ({
+      id: `n${i}`,
+      type: pick(['service', 'client', 'database', 'queue', 'external', 'security'] as const),
+      ...(groups.length && rnd() < 0.7 ? { group: pick(groups).id } : {}),
+      card: { title: `N${i}`, rows: Array.from({ length: Math.floor(rnd() * 4) }, (_, j) => ({ label: `k${j}`, value: 'v' })) },
+    }));
+    const edges = Array.from({ length: Math.floor(rnd() * n * 1.8) }, (_, i) => {
+      const r = rnd();
+      return {
+        id: `e${i}`,
+        from: pick(nodes).id,
+        to: pick(nodes).id,
+        ...(rnd() < 0.5 ? { label: pick(['reads', 'writes pin', 'stream + metadata', 'gRPC', 'enqueue']) } : {}),
+        ...(r < 0.15 ? { kind: 'return' as const } : r < 0.3 ? { kind: 'async' as const } : {}),
+        ...(rnd() < 0.3 ? { tone: pick(['main', 'security', 'error'] as const) } : {}),
+      };
+    });
+    const d: DiagramDraft = { kind: pick(['architecture', 'dataflow'] as const), title: 'fuzz', direction: pick(['RIGHT', 'DOWN'] as const), groups, nodes, edges };
+    if (rnd() < 0.3) d.density = 'compact';
+    if (staged) {
+      const per = Math.ceil(n / 3);
+      d.phases = [0, 1, 2].map((i) => ({ id: `p${i}`, label: `P${i}`, nodes: nodes.slice(i * per, (i + 1) * per).map((x) => x.id) })).filter((p) => p.nodes.length);
+    }
+    return d;
+  };
+}
+
+describe('ELK layout properties', () => {
+  const next = elkGenerator(20261003);
+  const cases = Array.from({ length: 200 }, next);
+
+  it.each(cases.map((d, i) => [i, d] as const))('random diagram %i lays out soundly', async (_i, d) => {
+    const out = await layoutDiagram(d);
+    expect(Number.isFinite(out.bounds.width) && Number.isFinite(out.bounds.height)).toBe(true);
+    const ports = new Map<string, Set<string>>();
+    for (const e of d.edges) {
+      const pts = out.edges[e.id]!;
+      expect(pts.length, e.id).toBeGreaterThanOrEqual(2);
+      for (let i = 1; i < pts.length; i++) expect(Math.abs(pts[i]!.x - pts[i - 1]!.x) < 0.5 || Math.abs(pts[i]!.y - pts[i - 1]!.y) < 0.5, `${e.id} is orthogonal`).toBe(true);
+      if (e.from === e.to) continue;
+      for (const [id, r] of Object.entries(out.nodes))
+        for (let i = 1; i < pts.length; i++) {
+          const own = (i === 1 && id === e.from) || (i === pts.length - 1 && id === e.to);
+          if (!own) expect(crosses(pts[i - 1]!, pts[i]!, r), `${e.id} segment ${i} crosses ${id}`).toBe(false);
+        }
+      // A target wholly before or after its source along the flow is entered by the side facing it (same row only:
+      // a wrapped layout carries forward edges back to the start of the next row).
+      const [s, t] = [out.nodes[e.from]!, out.nodes[e.to]!];
+      const end = pts.at(-1)!;
+      if (d.direction === 'DOWN') {
+        if (t.y + t.height <= s.y) expect(Math.abs(end.y - t.y - t.height) < 0.5, `${e.id} enters the bottom`).toBe(true);
+        if (t.y >= s.y + s.height) expect(Math.abs(end.y - t.y) < 0.5, `${e.id} enters the top`).toBe(true);
+      } else if (s.y < t.y + t.height && t.y < s.y + s.height) {
+        if (t.x + t.width <= s.x) expect(Math.abs(end.x - t.x - t.width) < 0.5, `${e.id} enters the right`).toBe(true);
+        if (t.x >= s.x + s.width) expect(Math.abs(end.x - t.x) < 0.5, `${e.id} enters the left`).toBe(true);
+      }
+      // Each end sits on its own card's border.
+      for (const [id, p] of [[e.from, pts[0]!], [e.to, pts.at(-1)!]] as const) {
+        const r = out.nodes[id]!;
+        const onBorder = (Math.abs(p.x - r.x) < 0.5 || Math.abs(p.x - r.x - r.width) < 0.5 ? p.y >= r.y - 0.5 && p.y <= r.y + r.height + 0.5 : false) || (Math.abs(p.y - r.y) < 0.5 || Math.abs(p.y - r.y - r.height) < 0.5 ? p.x >= r.x - 0.5 && p.x <= r.x + r.width + 0.5 : false);
+        expect(onBorder, `${e.id} ends on ${id}`).toBe(true);
+      }
+      const style = `${e.tone ?? ''}|${e.kind ?? 'sync'}`;
+      for (const [role, node, p] of [['out', e.from, pts[0]!], ['in', e.to, pts.at(-1)!]] as const) {
+        const key = `${node}@${p.x},${p.y}`;
+        ports.set(key, (ports.get(key) ?? new Set()).add(`${role}:${style}`));
+      }
+    }
+    // One look per port, and never an arrival where another edge leaves.
+    expect([...ports].filter(([, styles]) => styles.size > 1).map(([k]) => k)).toEqual([]);
     for (const [id, p] of Object.entries(out.labels ?? {})) for (const [n, r] of Object.entries(out.nodes)) expect(inside(p, r), `label ${id} on ${n}`).toBe(false);
   });
 });

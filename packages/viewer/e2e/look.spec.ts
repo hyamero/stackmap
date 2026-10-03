@@ -182,7 +182,7 @@ for (const theme of ['light', 'dark'] as const) {
 
       const [edgeRgb, stageRgb] = [await tokenRgb(page, '--sm-edge'), await tokenRgb(page, '--sm-stage')];
       for (const target of ['commerce-api-1', 'commerce-api-2', 'commerce-api-3', 'orders', 'sessions']) {
-        const handle = (await page.locator(`[data-card-id="${target}"] .sm-handle[data-handle="in"]`).boundingBox())!;
+        const handle = (await page.locator(`.sm-handle[data-handle-of="${target}"][data-handle="in"]`).boundingBox())!;
         const cy = handle.y + handle.height / 2;
         // Strip left of the dot: a bare 1.25px line has no edge-coloured pixels 1px+ off its axis, an arrowhead does.
         const m = await inkMask(page, { x: handle.x - 10, y: cy - 4, width: 10, height: 8 }, edgeRgb, stageRgb);
@@ -228,9 +228,9 @@ for (const theme of ['light', 'dark'] as const) {
 
     test('handle dots are drawn only where an edge attaches', async ({ page }) => {
       await page.goto('/?page=sample');
-      await expect(page.locator('[data-card-id="edge"] .sm-handle[data-handle="in"]')).toHaveCount(0);
-      await expect(page.locator('[data-card-id="orders"] .sm-handle[data-handle="out"]')).toHaveCount(0);
-      await expect(page.locator('[data-card-id="sessions"] .sm-handle[data-handle="out"]')).toHaveCount(0);
+      await expect(page.locator('.sm-handle[data-handle-of="edge"][data-handle="in"]')).toHaveCount(0);
+      await expect(page.locator('.sm-handle[data-handle-of="orders"][data-handle="out"]')).toHaveCount(0);
+      await expect(page.locator('.sm-handle[data-handle-of="sessions"][data-handle="out"]')).toHaveCount(0);
       // edge:out, three API in+out, orders:in, sessions:in
       await expect(page.locator('.sm-handle')).toHaveCount(9);
     });

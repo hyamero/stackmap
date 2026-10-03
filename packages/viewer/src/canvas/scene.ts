@@ -44,8 +44,6 @@ export interface ScenePhase {
 export interface SceneCard {
   node: DiagramNode;
   rect: Rect;
-  hasIn: boolean;
-  hasOut: boolean;
   /** lifecycle: an end state (success or failure with no way out) */
   final: boolean;
 }
@@ -60,6 +58,17 @@ export interface SceneEdge {
   tone?: EdgeTone;
   label?: string;
   mid?: Point;
+  /** where another edge crosses over this one: the viewer breaks this line there */
+  gaps: SceneGap[];
+}
+
+/** A crossing on the line that passes under, and whether that line runs vertically there. */
+export interface SceneGap {
+  x: number;
+  y: number;
+  vertical: boolean;
+  /** the edges passing over */
+  over: string[];
 }
 
 export interface SceneLifeline {
@@ -82,6 +91,7 @@ export interface SceneHandle {
   node: string;
   type: NodeType;
   at: Point;
+  role: 'in' | 'out';
 }
 
 export interface Scene {
@@ -99,8 +109,8 @@ export interface Scene {
   frames: SceneFrame[];
   cards: SceneCard[];
   edges: SceneEdge[];
-  /** Lane layouts attach edges anywhere on a card, so dots sit at the route ends. ELK layouts: null (fixed ports). */
-  handles: SceneHandle[] | null;
+  /** One dot per place an edge meets a card (edges attach anywhere along a side); none in a sequence. */
+  handles: SceneHandle[];
   /** sequence: one lifeline per participant and the activation bars on them */
   lifelines: SceneLifeline[];
   activations: SceneActivation[];
@@ -120,6 +130,55 @@ function union(rects: Rect[]): Rect {
   const right = Math.max(...rects.map((r) => r.x + r.width));
   const bottom = Math.max(...rects.map((r) => r.y + r.height));
   return { x, y, width: right - x, height: bottom - y };
+}
+
+// A crossing this near a run's end sits on its rounded corner or arrowhead: leave it whole.
+const CROSSING_CLEAR = EDGE_RADIUS + 4;
+// The main flow outranks any toned edge, which outranks a plain one.
+const prominence = (e: SceneEdge) => (e.tone === 'main' ? 2 : e.tone ? 1 : 0);
+
+/**
+ * With trunks, a line crossing another can read as a branch joining it; a short break in the line that passes under
+ * says it doesn't. Only proper crossings count: where any edge bends, lines meet at a junction instead. Every edge
+ * running through a crossing one way breaks there together (a trunk's mates would otherwise show through the gap).
+ */
+function markCrossings(edges: SceneEdge[]): void {
+  // Runs by the line they lie on: vertical ones by x, horizontal ones by y.
+  type Run = { k: number; lo: number; hi: number };
+  const ups = new Map<number, Run[]>();
+  const acrosses = new Map<number, Run[]>();
+  const bends = new Set<string>();
+  edges.forEach((e, k) => {
+    e.points.forEach((p, i) => {
+      bends.add(`${p.x},${p.y}`);
+      const q = e.points[i + 1];
+      if (!q || (p.x === q.x) === (p.y === q.y)) return;
+      const [map, at, lo, hi] = p.x === q.x ? [ups, p.x, Math.min(p.y, q.y), Math.max(p.y, q.y)] : [acrosses, p.y, Math.min(p.x, q.x), Math.max(p.x, q.x)];
+      map.set(at, [...(map.get(at) ?? []), { k, lo, hi }]);
+    });
+  });
+  const ys = [...acrosses.keys()].sort((a, b) => a - b);
+  const through = (runs: Run[] | undefined, v: number) => [...new Set((runs ?? []).filter((r) => r.lo < v && v < r.hi).map((r) => r.k))];
+  // The bundle that stays whole: the more prominent, then the busier (break a lone line, not a trunk), then the later.
+  const n = edges.length;
+  const rank = (bundle: number[]) => Math.max(...bundle.map((k) => prominence(edges[k]!))) * n * n + bundle.length * n + Math.max(...bundle);
+  const done = new Set<string>();
+  for (const [x, verticals] of ups) {
+    for (const v of verticals) {
+      // Horizontal lines strictly inside this run, clear of its corners.
+      let i = ys.findIndex((y) => y > v.lo + CROSSING_CLEAR);
+      for (; i >= 0 && i < ys.length && ys[i]! < v.hi - CROSSING_CLEAR; i++) {
+        const y = ys[i]!;
+        const key = `${x},${y}`;
+        if (done.has(key) || bends.has(key)) continue;
+        if (!acrosses.get(y)!.some((h) => h.k !== v.k && h.lo + CROSSING_CLEAR < x && x < h.hi - CROSSING_CLEAR)) continue;
+        done.add(key);
+        const [down, across] = [through(ups.get(x), y), through(acrosses.get(y), x)];
+        const [under, over] = rank(down) < rank(across) ? [down, across] : [across, down];
+        for (const k of under) edges[k]!.gaps.push({ x, y, vertical: under === down, over: over.map((o) => edges[o]!.id) });
+      }
+    }
+  }
 }
 
 export function toScene(d: LaidOutDiagram): Scene {
@@ -151,14 +210,10 @@ export function toScene(d: LaidOutDiagram): Scene {
     .sort((a, b) => a.frame.depth - b.frame.depth || a.order - b.order)
     .map(({ frame }) => frame);
 
-  const targets = new Set(d.draft.edges.map((e) => e.to));
-  const sources = new Set(d.draft.edges.map((e) => e.from));
   const exits = new Set(d.draft.edges.filter((e) => e.from !== e.to).map((e) => e.from));
   const cards: SceneCard[] = d.draft.nodes.map((node) => ({
     node,
     rect: need(d.nodes[node.id], `node '${node.id}'`),
-    hasIn: targets.has(node.id),
-    hasOut: sources.has(node.id),
     final: (node.type === 'success' || node.type === 'failure') && !exits.has(node.id),
   }));
 
@@ -174,6 +229,7 @@ export function toScene(d: LaidOutDiagram): Scene {
       tone: e.tone,
       label: e.label,
       mid: e.label ? (d.labels?.[e.id] ?? polylineMidpoint(points)) : undefined,
+      gaps: [],
     };
   });
 
@@ -197,19 +253,19 @@ export function toScene(d: LaidOutDiagram): Scene {
   const activations: SceneActivation[] = (d.sequence?.activations ?? []).flatMap((a) =>
     typeOf.has(a.participant) ? [{ node: a.participant, type: typeOf.get(a.participant)!, rect: a.rect, depth: a.depth }] : [],
   );
-  let handles: SceneHandle[] | null = sequence ? [] : null;
-  if (lanes) {
+  if (!sequence) markCrossings(edges);
+  const handles: SceneHandle[] = [];
+  if (!sequence) {
     const seen = new Set<string>();
-    handles = [];
     for (const e of edges) {
-      for (const [node, at] of [
-        [e.from, e.points[0]!],
-        [e.to, e.points.at(-1)!],
+      for (const [node, at, role] of [
+        [e.from, e.points[0]!, 'out'],
+        [e.to, e.points.at(-1)!, 'in'],
       ] as const) {
         const key = `${node}:${at.x},${at.y}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        handles.push({ node, type: typeOf.get(node)!, at });
+        handles.push({ node, type: typeOf.get(node)!, at, role });
       }
     }
   }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cardSize, type DiagramDraft, type DiagramNode, type Point, type Rect } from '@stackmap/core';
 import { commerceApi, groupedPlatform } from '@stackmap/core/samples';
 import { GROUP_LABEL_BAND, layoutDiagram } from '../src/index';
+import { STRESS } from './stress';
 
 const node = (id: string, extra: Partial<DiagramNode> = {}): DiagramNode => ({
   id,
@@ -119,6 +120,94 @@ describe('layoutDiagram', () => {
     for (const [id, pts] of Object.entries(out.edges)) {
       expect(pts[pts.length - 1]!.y, id).toBeGreaterThan(pts[0]!.y);
     }
+  });
+
+  it('lays a reply out against the flow, so the caller stays upstream of what it calls', async () => {
+    const out = await layoutDiagram(
+      draft({
+        direction: 'DOWN',
+        groups: [{ id: 'ui', label: 'UI' }, { id: 'api', label: 'API' }],
+        nodes: [node('api', { group: 'api' }), node('feed', { type: 'client', group: 'ui' }), node('picker', { type: 'client', group: 'ui' })],
+        edges: [
+          { id: 'send', from: 'picker', to: 'api' },
+          { id: 'reply', from: 'api', to: 'feed', kind: 'return' },
+        ],
+      }),
+    );
+    expect(out.groups.ui!.y + out.groups.ui!.height).toBeLessThan(out.groups.api!.y);
+    // The call drops straight in; the reply climbs back up from the callee's top to the caller's bottom.
+    expect(out.edges.send!.length).toBeLessThanOrEqual(4);
+    const reply = out.edges.reply!;
+    expect(reply[0]!.y).toBeCloseTo(out.nodes.api!.y, 0);
+    expect(reply.at(-1)!.y).toBeCloseTo(out.nodes.feed!.y + out.nodes.feed!.height, 0);
+  });
+
+  it('breaks a cycle at the edge that points back to where the flow started', async () => {
+    const out = await layoutDiagram(
+      draft({
+        direction: 'DOWN',
+        nodes: [node('a'), node('b'), node('c')],
+        edges: [
+          { id: 'ab', from: 'a', to: 'b' },
+          { id: 'bc', from: 'b', to: 'c' },
+          { id: 'ca', from: 'c', to: 'a', label: 'retry' },
+        ],
+      }),
+    );
+    expect(out.nodes.a!.y).toBeLessThan(out.nodes.b!.y);
+    expect(out.nodes.b!.y).toBeLessThan(out.nodes.c!.y);
+    // The back edge leaves c by its top and enters a by its bottom instead of wrapping round the diagram.
+    const ca = out.edges.ca!;
+    expect(ca[0]!.y).toBeCloseTo(out.nodes.c!.y, 0);
+    expect(ca.at(-1)!.y).toBeCloseTo(out.nodes.a!.y + out.nodes.a!.height, 0);
+  });
+
+  it('gives edges of another tone or line style their own port', async () => {
+    for (const direction of ['RIGHT', 'DOWN'] as const) {
+      const out = await layoutDiagram(
+        draft({
+          direction,
+          nodes: [node('hub'), node('plain'), node('m'), node('s'), node('q')],
+          edges: [
+            { id: 'plain', from: 'hub', to: 'plain', label: 'reads' },
+            { id: 'main', from: 'hub', to: 'm', tone: 'main' as const },
+            { id: 'sec', from: 'hub', to: 's', tone: 'security' as const },
+            { id: 'async', from: 'hub', to: 'q', kind: 'async' as const },
+          ],
+        }),
+      );
+      const starts = Object.values(out.edges).map((pts) => `${pts[0]!.x},${pts[0]!.y}`);
+      expect(new Set(starts).size, direction).toBe(starts.length);
+    }
+  });
+
+  it('merges edges of one style into a shared trunk, labelled or not, with each label by its target', async () => {
+    const targets = ['a', 'b', 'c', 'd'];
+    const out = await layoutDiagram(
+      draft({
+        direction: 'DOWN',
+        nodes: [node('hub'), ...targets.map((t) => node(t))],
+        edges: targets.map((t, i) => ({ id: t, from: 'hub', to: t, ...(i % 2 ? { label: `to ${t}` } : {}) })),
+      }),
+    );
+    const starts = Object.values(out.edges).map((pts) => `${pts[0]!.x},${pts[0]!.y}`);
+    expect(new Set(starts).size).toBe(1);
+    for (const t of ['b', 'd']) {
+      const label = out.labels![t]!;
+      const target = out.nodes[t]!;
+      // Above its own target, not out on the shared bus.
+      expect(label.x).toBeGreaterThan(target.x);
+      expect(label.x).toBeLessThan(target.x + target.width);
+      expect(label.y).toBeLessThan(target.y);
+    }
+  });
+
+  it('top-aligns the cards of a row, whatever their heights', async () => {
+    // In the hub, feed (a reply's target) and finisher are shorter than their row-mates and used to be centred on them.
+    const out = await layoutDiagram(STRESS['hub-down']!);
+    expect(out.nodes.feed!.y).toBe(out.nodes.picker!.y);
+    expect(out.nodes.finisher!.y).toBe(out.nodes.pin!.y);
+    expect(out.nodes.effort!.y).toBe(out.nodes.pin!.y);
   });
 
   it('is deterministic', async () => {

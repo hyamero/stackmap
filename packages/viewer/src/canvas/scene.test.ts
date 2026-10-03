@@ -21,6 +21,69 @@ const nested: LaidOutDiagram = {
   bounds: { width: 420, height: 270 },
 };
 
+// A plus: a horizontal call through the middle of a vertical one, plus a third that only touches the first at its end.
+const crossing = (tone?: 'main'): LaidOutDiagram => ({
+  draft: {
+    kind: 'architecture',
+    title: 'crossing',
+    nodes: ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, type: 'service' as const, card: { title: id } })),
+    edges: [
+      { id: 'down', from: 'a', to: 'b', tone },
+      { id: 'across', from: 'c', to: 'd' },
+      { id: 'joins', from: 'e', to: 'b' },
+    ],
+  },
+  nodes: {
+    a: { x: 160, y: 0, width: 80, height: 40 },
+    b: { x: 160, y: 260, width: 80, height: 40 },
+    c: { x: 0, y: 130, width: 40, height: 40 },
+    d: { x: 360, y: 130, width: 40, height: 40 },
+    e: { x: 300, y: 200, width: 40, height: 40 },
+  },
+  groups: {},
+  edges: {
+    down: [{ x: 200, y: 40 }, { x: 200, y: 260 }],
+    across: [{ x: 40, y: 150 }, { x: 360, y: 150 }],
+    joins: [{ x: 300, y: 220 }, { x: 200, y: 220 }, { x: 200, y: 260 }],
+  },
+  bounds: { width: 400, height: 300 },
+});
+
+describe('crossings', () => {
+  it('breaks the earlier-drawn line where the later crosses it, and nowhere a trunk merely joins', () => {
+    const edges = Object.fromEntries(toScene(crossing()).edges.map((e) => [e.id, e.gaps]));
+    expect(edges).toEqual({ down: [{ x: 200, y: 150, vertical: true, over: ['across'] }], across: [], joins: [] });
+  });
+
+  it('keeps the main flow whole: the plainer line passes under it', () => {
+    const edges = Object.fromEntries(toScene(crossing('main')).edges.map((e) => [e.id, e.gaps]));
+    expect(edges.down).toEqual([]);
+    expect(edges.across).toEqual([{ x: 200, y: 150, vertical: false, over: ['down'] }]);
+  });
+
+  it('breaks a lone line, not a trunk, between equals', () => {
+    const d = crossing();
+    d.draft.edges.push({ id: 'mate', from: 'e', to: 'b' });
+    d.edges.mate = [{ x: 300, y: 220 }, { x: 260, y: 220 }, { x: 260, y: 140 }, { x: 200, y: 140 }, { x: 200, y: 260 }];
+    const edges = Object.fromEntries(toScene(d).edges.map((e) => [e.id, e.gaps]));
+    expect(edges).toMatchObject({ down: [], mate: [], across: [{ x: 200, y: 150, vertical: false }] });
+  });
+
+  it('breaks every edge of a trunk through the crossing, even one that joins it just before', () => {
+    const d = crossing();
+    d.draft.edges[1]!.tone = 'main';
+    d.draft.edges.push({ id: 'mate', from: 'e', to: 'b' });
+    d.edges.mate = [{ x: 300, y: 220 }, { x: 260, y: 220 }, { x: 260, y: 140 }, { x: 200, y: 140 }, { x: 200, y: 260 }];
+    const edges = Object.fromEntries(toScene(d).edges.map((e) => [e.id, e.gaps]));
+    expect(edges.down).toEqual([{ x: 200, y: 150, vertical: true, over: ['across'] }]);
+    expect(edges.mate).toEqual([{ x: 200, y: 150, vertical: true, over: ['across'] }]);
+  });
+
+  it('leaves sequence messages whole', () => {
+    expect(toScene(galleryLayouts['cache-miss']!).edges.every((e) => e.gaps.length === 0)).toBe(true);
+  });
+});
+
 describe('toScene', () => {
   const scene = toScene(groupedPlatformLayout);
 
@@ -53,16 +116,15 @@ describe('toScene', () => {
     expect(() => toScene(cyclic)).toThrow("Group 'inner' has a parent cycle");
   });
 
-  it('places cards at their rects and marks which sides have edges', () => {
+  it('places cards at their rects and puts a dot only where an edge meets a card', () => {
     const db = scene.cards.find((c) => c.node.id === 'db')!;
     expect(db.rect).toEqual(groupedPlatformLayout.nodes.db);
-    const sides = (id: string) => {
-      const { hasIn, hasOut } = scene.cards.find((c) => c.node.id === id)!;
-      return { hasIn, hasOut };
-    };
-    expect(sides('web')).toEqual({ hasIn: false, hasOut: true });
-    expect(sides('gw')).toEqual({ hasIn: true, hasOut: true });
-    expect(sides('stripe')).toEqual({ hasIn: true, hasOut: false });
+    const roles = (id: string) => [...new Set(scene.handles.filter((h) => h.node === id).map((h) => h.role))].sort();
+    expect(roles('web')).toEqual(['out']);
+    expect(roles('gw')).toEqual(['in', 'out']);
+    expect(roles('stripe')).toEqual(['in']);
+    const ends = new Set(scene.edges.flatMap((e) => [`${e.points[0]!.x},${e.points[0]!.y}`, `${e.points.at(-1)!.x},${e.points.at(-1)!.y}`]));
+    expect(new Set(scene.handles.map((h) => `${h.at.x},${h.at.y}`))).toEqual(ends);
   });
 
   it('precomputes edge paths, kinds and label midpoints from the baked points', () => {
@@ -97,13 +159,12 @@ describe('toScene', () => {
     // failed has a way out (retry), so it isn't an end state.
     expect(lanes.cards.find((c) => c.node.id === 'failed')!.final).toBe(false);
     const ends = new Set(lanes.edges.flatMap((e) => [`${e.points[0]!.x},${e.points[0]!.y}`, `${e.points.at(-1)!.x},${e.points.at(-1)!.y}`]));
-    expect(new Set(lanes.handles!.map((h) => `${h.at.x},${h.at.y}`))).toEqual(ends);
+    expect(new Set(lanes.handles.map((h) => `${h.at.x},${h.at.y}`))).toEqual(ends);
     expect(lanes.edges.find((e) => e.id === 'retry')!.kind).toBe('return');
     expect(lanes.edges.find((e) => e.id === 'needs-approval')!.mid).toEqual(d.labels!['needs-approval']);
   });
 
-  it('ELK layouts keep fixed ports and full cards; staged dataflows get bands', () => {
-    expect(scene.handles).toBeNull();
+  it('ELK layouts keep full cards; staged dataflows get bands', () => {
     expect(scene.compact).toBe(false);
     const staged = toScene(galleryLayouts['product-analytics']!);
     expect(staged.phaseStyle).toBe('band');

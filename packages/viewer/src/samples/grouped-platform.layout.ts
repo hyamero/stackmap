@@ -188,19 +188,19 @@ export const groupedPlatformLayout: LaidOutDiagram = {
       "height": 64
     },
     "orders-svc": {
-      "x": 364,
+      "x": 363.67,
       "y": 591,
       "width": 280,
       "height": 64
     },
     "billing-svc": {
-      "x": 664,
+      "x": 663.67,
       "y": 591,
       "width": 280,
       "height": 64
     },
     "jobs": {
-      "x": 364,
+      "x": 317,
       "y": 735,
       "width": 280,
       "height": 64
@@ -244,9 +244,9 @@ export const groupedPlatformLayout: LaidOutDiagram = {
       "height": 280
     },
     "app-tier": {
-      "x": 340,
+      "x": 293,
       "y": 543,
-      "width": 628,
+      "width": 674.67,
       "height": 280
     },
     "data-tier": {
@@ -323,34 +323,34 @@ export const groupedPlatformLayout: LaidOutDiagram = {
     ],
     "e5": [
       {
-        "x": 504,
+        "x": 457,
         "y": 655
       },
       {
-        "x": 504,
+        "x": 457,
         "y": 735
       }
     ],
     "e6": [
       {
-        "x": 504,
+        "x": 550.33,
         "y": 655
       },
       {
-        "x": 504,
+        "x": 550.33,
         "y": 665
       },
       {
-        "x": 664,
+        "x": 617,
         "y": 665
       },
       {
-        "x": 664,
-        "y": 862
+        "x": 617,
+        "y": 852
       },
       {
         "x": 804,
-        "y": 862
+        "y": 852
       },
       {
         "x": 804,
@@ -359,24 +359,24 @@ export const groupedPlatformLayout: LaidOutDiagram = {
     ],
     "e7": [
       {
-        "x": 504,
+        "x": 550.33,
         "y": 655
       },
       {
-        "x": 504,
+        "x": 550.33,
         "y": 665
       },
       {
-        "x": 664,
+        "x": 617,
         "y": 665
       },
       {
-        "x": 664,
-        "y": 862
+        "x": 617,
+        "y": 852
       },
       {
         "x": 504,
-        "y": 862
+        "y": 852
       },
       {
         "x": 504,
@@ -400,11 +400,11 @@ export const groupedPlatformLayout: LaidOutDiagram = {
       },
       {
         "x": 804,
-        "y": 862
+        "y": 852
       },
       {
         "x": 1148,
-        "y": 862
+        "y": 852
       },
       {
         "x": 1148,
@@ -413,11 +413,11 @@ export const groupedPlatformLayout: LaidOutDiagram = {
     ],
     "e10": [
       {
-        "x": 504,
+        "x": 457,
         "y": 799
       },
       {
-        "x": 504,
+        "x": 457,
         "y": 852
       },
       {
@@ -440,7 +440,7 @@ export const groupedPlatformLayout: LaidOutDiagram = {
       "y": 166.5
     },
     "e5": {
-      "x": 504,
+      "x": 457,
       "y": 695
     }
   }

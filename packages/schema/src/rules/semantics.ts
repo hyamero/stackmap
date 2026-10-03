@@ -64,7 +64,7 @@ function cycles(nodes: string[], edges: [string, string][]): string[][] {
 
 const LARGE_DIAGRAM = 60;
 
-/** Size, duplicate ids, orphans, self-loops, parallel edges, dataflow cycles, empty views and groups. */
+/** Size, duplicate ids and row labels, orphans, self-loops, parallel edges, dataflow cycles, empty views and groups. */
 export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
   const out: Diagnostic[] = [
     ...duplicates(d.nodes, 'nodes'),
@@ -74,6 +74,24 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
     ...duplicates(d.lanes, 'lanes'),
     ...duplicates(d.phases, 'phases'),
   ];
+
+  // Two rows under one label read as a typo, or as one fact split in two; the reader can't tell which.
+  d.nodes.forEach((n, i) => {
+    const first = new Map<string, number>();
+    n.card.rows?.forEach((r, j) => {
+      const key = r.label.trim().toLowerCase();
+      const at = first.get(key);
+      if (at === undefined) return void first.set(key, j);
+      out.push({
+        code: 'semantics/duplicate-row-label',
+        severity: 'warning',
+        subject: `/nodes/${i}/card/rows/${j}/label`,
+        message: `Two rows on "${n.id}" are both labelled "${r.label.trim()}"`,
+        evidence: { id: n.id, label: r.label, first: `/nodes/${i}/card/rows/${at}/label` },
+        allowedFixes: ['merge the two rows into one (both values in one value)', 'give the second row its own label'],
+      });
+    });
+  });
 
   d.nodes.forEach((n, i) => {
     if (n.card.statsNote !== undefined && !n.card.stats?.length)
@@ -127,7 +145,8 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
       });
   });
 
-  // ELK gives each card one in and one out port, so two edges a → b share one route and one label spot.
+  // Two edges a → b of one style share their ports and draw as one line; of different styles they run side by side:
+  // either way, one relationship drawn twice.
   if (d.kind === 'architecture' || d.kind === 'dataflow') {
     const first = new Map<string, string>();
     d.edges.forEach((e, i) => {
@@ -139,7 +158,7 @@ export function semanticsDiagnostics(d: DiagramDraft): Diagnostic[] {
         code: 'semantics/parallel-edge',
         severity: 'warning',
         subject: `/edges/${i}`,
-        message: `Edges "${seen}" and "${e.id}" both run from "${e.from}" to "${e.to}"; they draw as one line, labels on top of each other`,
+        message: `Edges "${seen}" and "${e.id}" both run from "${e.from}" to "${e.to}"; the reader sees one relationship drawn twice`,
         evidence: { id: e.id, first: seen, from: e.from, to: e.to },
         allowedFixes: [`merge "${e.id}" into "${seen}" (one label for both)`, 'remove the edge'],
       });

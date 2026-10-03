@@ -182,7 +182,7 @@ export function layoutLanes(draft: DiagramDraft): LaidOutDiagram {
     if (routed[e.id]) edges[e.id] = routed[e.id]!.map((p) => ({ x: round(p.x), y: round(p.y) }));
   }
 
-  const { labels } = placeLabels(draft.edges, edges, Object.values(rects));
+  const { labels } = placeLabels(draft.edges, edges, Object.values(rects), false, Object.values(groupRects).map((rect) => ({ rect, band: GROUP_LABEL })));
 
   const height = y - LANE_GAP + PAD;
   return {
