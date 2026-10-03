@@ -48,7 +48,7 @@ export default function ViewerPage() {
       </P>
       <P>
         For the canvas alone without presenting, press <Kbd>Z</Kbd> or Focus in the toolbar. The header, view tabs and inspector step aside and everything on the canvas keeps
-        working; <Kbd>H</Kbd> then hides the toolbar too, and <Kbd>Z</Kbd> brings it all back.
+        working, and <Kbd>Z</Kbd> brings them back. <Kbd>H</Kbd> hides the toolbar, in focus or not, and shows it again.
       </P>
 
       <H2 id="export">Export</H2>
