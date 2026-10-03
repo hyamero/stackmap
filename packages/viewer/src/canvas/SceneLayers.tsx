@@ -346,6 +346,7 @@ export const SceneLayers = memo(function SceneLayers({
             key={e.id}
             data-edge-label={e.id}
             data-dim={emphasis.edges.get(e.id)?.dim || undefined}
+            data-lit={emphasis.edges.get(e.id)?.tint ? true : undefined}
             className={`sm-edge-label pointer-events-none absolute font-sans whitespace-nowrap ${
               scene.labelStyle === 'text' ? 'rounded bg-stage px-1.5 text-[11.5px] leading-4 text-fg' : 'rounded-full bg-panel px-2 py-0.5 text-[11px] text-fg-muted'
             }`}

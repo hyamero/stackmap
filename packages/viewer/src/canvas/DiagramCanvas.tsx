@@ -14,7 +14,7 @@ import { toScene, type Scene } from './scene';
 import { SceneLayers } from './SceneLayers';
 import { useZoom, type WheelMode } from './useZoom';
 import type { Camera } from './useZoom';
-import type { Transform } from './viewport';
+import { LABEL_MIN_ZOOM, type Transform } from './viewport';
 import { CameraProvider, ContentProvider, SceneProvider, ViewportProvider } from './ViewportContext';
 
 const PAN_STEP = 80;
@@ -205,6 +205,7 @@ export function DiagramCanvas({
           <div
             ref={sceneRef}
             className="sm-viewport absolute top-0 left-0 origin-top-left"
+            data-labels={k < LABEL_MIN_ZOOM ? 'hidden' : undefined}
             style={{ transform: `translate(${x}px, ${y}px) scale(${k})` }}
           >
             <SceneLayers scene={scene} emphasis={emphasis} selected={state.selected} flow={playing ? flow : null} speed={state.speed} />

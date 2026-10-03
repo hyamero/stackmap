@@ -48,6 +48,13 @@
 .sm-route-handle {
   transition: opacity 150ms ease;
 }
+/* Zoomed out past reading size, labels are only noise; those on lit edges (a selection, a trace) stay. */
+.sm-viewport[data-labels='hidden']:not(.sm-exporting) .sm-edge-label:not([data-lit]) {
+  opacity: 0;
+}
+.sm-exporting .sm-edge-label {
+  transition: none;
+}
 .sm-card[data-emphasis='dim'],
 .sm-edge-path[data-dim],
 .sm-edge-label[data-dim],
