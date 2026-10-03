@@ -22,18 +22,6 @@ const place = ({ x, y, width, height }: { x: number; y: number; width: number; h
   height,
 });
 
-// Dot centred on the card edge where ELK put the port (mid-side, per layout's fixed ports).
-function handleStyle(side: 'in' | 'out', horizontal: boolean): CSSProperties {
-  if (horizontal) {
-    return side === 'in'
-      ? { top: '50%', left: 0, transform: 'translate(-50%, -50%)' }
-      : { top: '50%', right: 0, transform: 'translate(50%, -50%)' };
-  }
-  return side === 'in'
-    ? { left: '50%', top: 0, transform: 'translate(-50%, -50%)' }
-    : { left: '50%', bottom: 0, transform: 'translate(-50%, 50%)' };
-}
-
 function Frame({ frame, compact, onLane }: { frame: SceneFrame; compact: boolean; onLane: boolean }) {
   // Q18: groups aren't in the refs — thin dashed container, faint fill, sentence-case label in the label band.
   // A trust boundary (`tone: security`) takes the security tint and a shield.
@@ -134,26 +122,21 @@ function edgeLook(e: SceneEdge, tint: EdgeColor): { color: EdgeColor; width: num
 // Memoised with stable props: an explorer change re-renders only the cards whose emphasis changed.
 const Card = memo(function Card({
   card,
-  horizontal,
   compact,
-  handles,
   state,
   rects,
   tabbable,
   onFocused,
 }: {
   card: SceneCard;
-  horizontal: boolean;
   compact: boolean;
-  /** false: the scene draws dots at the route ends instead (lane layouts) */
-  handles: boolean;
   state: NodeEmphasis;
   rects: Record<string, Rect>;
   /** roving tabindex: one card is the canvas's tab stop, arrows move between the rest */
   tabbable: boolean;
   onFocused: (id: string) => void;
 }) {
-  const { node, rect, hasIn, hasOut, final } = card;
+  const { node, rect, final } = card;
   const dispatch = useExploreDispatch();
   const camera = useCamera();
   const accent = { '--sm-handle': `var(--sm-${node.type}-accent)` } as CSSProperties;
@@ -195,8 +178,6 @@ const Card = memo(function Card({
       onKeyDown={onKeyDown}
     >
       {compact ? <StepCard node={node} final={final} /> : <NodeCard node={node} />}
-      {handles && hasIn && <span aria-hidden="true" data-handle="in" className="sm-handle" style={handleStyle('in', horizontal)} />}
-      {handles && hasOut && <span aria-hidden="true" data-handle="out" className="sm-handle" style={handleStyle('out', horizontal)} />}
     </div>
   );
 });
@@ -219,7 +200,6 @@ export const SceneLayers = memo(function SceneLayers({
   /** its playback speed */
   speed?: number;
 }) {
-  const horizontal = scene.direction === 'RIGHT';
   const typeOf = useMemo(() => new Map(scene.cards.map((c) => [c.node.id, c.node.type])), [scene]);
   const rects = useMemo(() => Object.fromEntries(scene.cards.map((c) => [c.node.id, c.rect])), [scene]);
   const [lastFocused, setLastFocused] = useState<string | null>(null);
@@ -314,10 +294,8 @@ export const SceneLayers = memo(function SceneLayers({
         <Card
           key={c.node.id}
           card={c}
-          horizontal={horizontal}
           state={emphasis.nodes.get(c.node.id) ?? 'normal'}
           compact={scene.compact}
-          handles={scene.handles === null}
           rects={rects}
           tabbable={c.node.id === tabStop}
           onFocused={setLastFocused}
@@ -328,6 +306,7 @@ export const SceneLayers = memo(function SceneLayers({
           key={`${h.node}:${h.at.x},${h.at.y}`}
           aria-hidden="true"
           data-handle-of={h.node}
+          data-handle={h.role}
           data-dim={emphasis.nodes.get(h.node) === 'dim' || undefined}
           className="sm-handle sm-route-handle"
           style={{ left: h.at.x, top: h.at.y, transform: 'translate(-50%, -50%)', '--sm-handle': `var(--sm-${typeOf.get(h.node)}-accent)` } as CSSProperties}
