@@ -51,7 +51,7 @@ The agent writes `.stackmap/<name>/diagram.json`, validates and repairs it, and 
   </picture>
 </p>
 
-- **Explore:** select a card for its details, connections and source evidence. **Trace** keeps a node's upstream and downstream; **Route** lights every path between two nodes.
+- **Explore:** select a card to light its connections and dim the rest, with its details and source evidence in the inspector. **Trace** keeps a node's upstream and downstream; **Route** lights every path between two nodes.
 - **Find:** search titles, ids and types; the **lens** dims the node types you don't need.
 - **Guided views:** tabs the agent defines, like "Checkout path", that focus one part of the diagram. **Present** steps through them full screen.
 - **Flow:** **Play** sends pulses along whatever you're looking at: the whole diagram, a view, a trace or a route, hop by hop.
