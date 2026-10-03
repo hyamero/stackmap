@@ -268,6 +268,18 @@ describe('validateDiagram', () => {
       expect(only(base({ kind: 'sequence', edges }), 'semantics/parallel-edge')).toEqual([]);
     });
 
+    it('two rows with the same label on one card warn at the second', () => {
+      const rows = [
+        { label: 'Floor', value: 'file: hard' },
+        { label: 'Timeout', value: '2.5 s' },
+        { label: 'floor ', value: '16k: standard' },
+      ];
+      expect(only(base({ nodes: [node('a', { card: { title: 'a', rows } }), node('b')] }), 'semantics/duplicate-row-label')).toMatchObject([
+        { subject: '/nodes/0/card/rows/2/label', severity: 'warning', evidence: { id: 'a', label: 'floor ', first: '/nodes/0/card/rows/0/label' } },
+      ]);
+      expect(only(base(), 'semantics/duplicate-row-label')).toEqual([]);
+    });
+
     it('past 60 nodes the diagram warns once to split', () => {
       const nodes = (n: number) => Array.from({ length: n }, (_, i) => node(`n${i}`));
       const chain = (n: number) => Array.from({ length: n - 1 }, (_, i) => ({ id: `e${i}`, from: `n${i}`, to: `n${i + 1}` }));
