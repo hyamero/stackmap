@@ -44,8 +44,6 @@ export interface ScenePhase {
 export interface SceneCard {
   node: DiagramNode;
   rect: Rect;
-  hasIn: boolean;
-  hasOut: boolean;
   /** lifecycle: an end state (success or failure with no way out) */
   final: boolean;
 }
@@ -82,6 +80,7 @@ export interface SceneHandle {
   node: string;
   type: NodeType;
   at: Point;
+  role: 'in' | 'out';
 }
 
 export interface Scene {
@@ -99,8 +98,8 @@ export interface Scene {
   frames: SceneFrame[];
   cards: SceneCard[];
   edges: SceneEdge[];
-  /** Lane layouts attach edges anywhere on a card, so dots sit at the route ends. ELK layouts: null (fixed ports). */
-  handles: SceneHandle[] | null;
+  /** One dot per place an edge meets a card (edges attach anywhere along a side); none in a sequence. */
+  handles: SceneHandle[];
   /** sequence: one lifeline per participant and the activation bars on them */
   lifelines: SceneLifeline[];
   activations: SceneActivation[];
@@ -151,14 +150,10 @@ export function toScene(d: LaidOutDiagram): Scene {
     .sort((a, b) => a.frame.depth - b.frame.depth || a.order - b.order)
     .map(({ frame }) => frame);
 
-  const targets = new Set(d.draft.edges.map((e) => e.to));
-  const sources = new Set(d.draft.edges.map((e) => e.from));
   const exits = new Set(d.draft.edges.filter((e) => e.from !== e.to).map((e) => e.from));
   const cards: SceneCard[] = d.draft.nodes.map((node) => ({
     node,
     rect: need(d.nodes[node.id], `node '${node.id}'`),
-    hasIn: targets.has(node.id),
-    hasOut: sources.has(node.id),
     final: (node.type === 'success' || node.type === 'failure') && !exits.has(node.id),
   }));
 
@@ -197,19 +192,18 @@ export function toScene(d: LaidOutDiagram): Scene {
   const activations: SceneActivation[] = (d.sequence?.activations ?? []).flatMap((a) =>
     typeOf.has(a.participant) ? [{ node: a.participant, type: typeOf.get(a.participant)!, rect: a.rect, depth: a.depth }] : [],
   );
-  let handles: SceneHandle[] | null = sequence ? [] : null;
-  if (lanes) {
+  const handles: SceneHandle[] = [];
+  if (!sequence) {
     const seen = new Set<string>();
-    handles = [];
     for (const e of edges) {
-      for (const [node, at] of [
-        [e.from, e.points[0]!],
-        [e.to, e.points.at(-1)!],
+      for (const [node, at, role] of [
+        [e.from, e.points[0]!, 'out'],
+        [e.to, e.points.at(-1)!, 'in'],
       ] as const) {
         const key = `${node}:${at.x},${at.y}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        handles.push({ node, type: typeOf.get(node)!, at });
+        handles.push({ node, type: typeOf.get(node)!, at, role });
       }
     }
   }
