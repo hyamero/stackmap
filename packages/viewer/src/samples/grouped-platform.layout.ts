@@ -291,11 +291,7 @@ export const groupedPlatformLayout: LaidOutDiagram = {
         "y": 303
       },
       {
-        "x": 503.67,
-        "y": 538
-      },
-      {
-        "x": 503.67,
+        "x": 504,
         "y": 591
       }
     ],
@@ -321,11 +317,7 @@ export const groupedPlatformLayout: LaidOutDiagram = {
         "y": 490
       },
       {
-        "x": 803.67,
-        "y": 538
-      },
-      {
-        "x": 803.67,
+        "x": 804,
         "y": 591
       }
     ],
@@ -393,12 +385,8 @@ export const groupedPlatformLayout: LaidOutDiagram = {
     ],
     "e8": [
       {
-        "x": 803.67,
-        "y": 655
-      },
-      {
         "x": 804,
-        "y": 828
+        "y": 655
       },
       {
         "x": 804,
@@ -407,12 +395,8 @@ export const groupedPlatformLayout: LaidOutDiagram = {
     ],
     "e9": [
       {
-        "x": 803.67,
-        "y": 655
-      },
-      {
         "x": 804,
-        "y": 828
+        "y": 655
       },
       {
         "x": 804,

@@ -307,17 +307,92 @@ function collect(draft: DiagramDraft, result: ElkNode, direction: Direction, sta
     }
     // ELK may re-home edges into the lowest common ancestor, so collect from every level.
     for (const e of (container.edges ?? []) as ElkExtendedEdge[]) {
-      edges[e.id] = (e.sections ?? [])
-        .flatMap((s) => [s.startPoint, ...(s.bendPoints ?? []), s.endPoint])
-        .map((p) => ({ x: round(p.x), y: round(p.y) }));
+      edges[e.id] = squared(
+        (e.sections ?? []).flatMap((s) => [s.startPoint, ...(s.bendPoints ?? []), s.endPoint]).map((p) => ({ x: round(p.x), y: round(p.y) })),
+      );
       if (reversed.has(e.id)) edges[e.id]!.reverse();
     }
   };
   visit(result);
+  straightenSteps(draft, nodes, edges);
 
   const bounds = { width: round(result.width ?? 0), height: round(result.height ?? 0) };
   if (!staged) return { draft, nodes, groups, edges, bounds };
   return { draft, nodes, groups, edges, bounds, phases: stageBands(draft, nodes, direction) };
+}
+
+/**
+ * ELK spreads ports at thirds of a side, so a run meant to be straight can drift by a third of a pixel and render
+ * as a soft, slanted hairline. Snap each such run to one whole coordinate (a run continuing a straight one keeps its
+ * line) and drop the bends that no longer turn. Edges sharing a trunk share its points, so they snap alike.
+ */
+function squared(pts: Point[]): Point[] {
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1]!, pts[i]!];
+    const [dx, dy] = [Math.abs(a.x - b.x), Math.abs(a.y - b.y)];
+    if (dx > 0 && dx < 1 && dy >= 1) a.x = b.x = i > 1 && pts[i - 2]!.x === a.x ? a.x : Math.round((a.x + b.x) / 2);
+    else if (dy > 0 && dy < 1 && dx >= 1) a.y = b.y = i > 1 && pts[i - 2]!.y === a.y ? a.y : Math.round((a.y + b.y) / 2);
+  }
+  return pts.filter((p, i) => {
+    const [prev, next] = [pts[i - 1], pts[i + 1]];
+    if (!prev || !next) return true;
+    return !((prev.x === p.x && p.x === next.x) || (prev.y === p.y && p.y === next.y));
+  });
+}
+
+const STEP_MAX = 16;
+// Clear of a card's rounded corner, and of its other ports.
+const SIDE_INSET = 16;
+const PORT_GAP = 8;
+
+/**
+ * Two facing ports a few pixels out of line come out of ELK as a shallow step, which reads as noise rather than a
+ * turn. Draw it as one straight line by sliding an end along its side: the source first, so the arrowhead keeps its
+ * place. Only an end no other edge shares moves (a trunk stays whole), and only where the line meets no card and
+ * runs along no other route.
+ */
+function straightenSteps(draft: DiagramDraft, nodes: Record<string, Rect>, edges: Record<string, Point[]>): void {
+  const near = (p: Point, q: Point, d: number) => Math.abs(p.x - q.x) < d && Math.abs(p.y - q.y) < d;
+  const ends = () => Object.entries(edges).flatMap(([id, pts]) => [pts[0]!, pts.at(-1)!].map((p) => ({ id, p })));
+  for (const e of draft.edges) {
+    const pts = edges[e.id];
+    if (e.from === e.to || pts?.length !== 4) continue;
+    const [a, b, c, d] = pts as [Point, Point, Point, Point];
+    const vertical = a.x === b.x;
+    const step = vertical ? Math.abs(c.x - b.x) : Math.abs(c.y - b.y);
+    // A Z, not a U: both ends run the same way, so the straight line still leaves and enters by the same sides.
+    const z = vertical ? Math.sign(b.y - a.y) === Math.sign(d.y - c.y) : Math.sign(b.x - a.x) === Math.sign(d.x - c.x);
+    if (!z || step === 0 || step >= STEP_MAX) continue;
+    for (const [end, card, other] of [
+      [a, nodes[e.from]!, d],
+      [d, nodes[e.to]!, a],
+    ] as const) {
+      const moved = vertical ? { x: other.x, y: end.y } : { x: end.x, y: other.y };
+      const along = vertical ? moved.x - card.x : moved.y - card.y;
+      if (along < SIDE_INSET || along > (vertical ? card.width : card.height) - SIDE_INSET) continue;
+      const rest = ends().filter((n) => n.id !== e.id);
+      if (rest.some((n) => near(n.p, end, 0.5) || near(n.p, moved, PORT_GAP))) continue;
+      const line = end === a ? [moved, d] : [a, moved];
+      const [lo, hi] = vertical ? [Math.min(line[0]!.y, line[1]!.y), Math.max(line[0]!.y, line[1]!.y)] : [Math.min(line[0]!.x, line[1]!.x), Math.max(line[0]!.x, line[1]!.x)];
+      const at = vertical ? moved.x : moved.y;
+      const meetsCard = Object.entries(nodes).some(
+        ([id, r]) => id !== e.from && id !== e.to && (vertical ? r.x < at && at < r.x + r.width && r.y < hi && lo < r.y + r.height : r.y < at && at < r.y + r.height && r.x < hi && lo < r.x + r.width),
+      );
+      const runsAlong = Object.entries(edges).some(
+        ([id, q]) =>
+          id !== e.id &&
+          q.slice(1).some((v, i) => {
+            const u = q[i]!;
+            return vertical
+              ? u.x === at && v.x === at && Math.min(u.y, v.y) < hi && lo < Math.max(u.y, v.y)
+              : u.y === at && v.y === at && Math.min(u.x, v.x) < hi && lo < Math.max(u.x, v.x);
+          }),
+      );
+      if (meetsCard || runsAlong) continue;
+      edges[e.id] = line;
+      break;
+    }
+  }
 }
 
 /** Partition per node: its phase, or for an unphased node the phase of its first placed predecessor (else 0). */
